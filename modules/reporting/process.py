@@ -9,9 +9,12 @@ Report structure:
 # basic info
 _id/report_id: String # globally unique for any report from any feed
 feed_type: String # to know how to deal with it
+#feed_name: String # can have several feeds of one type
 received: DateTime # when the report came
 created: DateTime # document creation
 modified: DateTime # last document modification
+session: String # grouping reports together
+session_quit: Boolean # to not continue this session
 
 # status
 verification: String # new, verified, false
@@ -78,7 +81,9 @@ class ReportHolder(object):
     def create_report(self, data):
 
         feed_type = self.get_conf('feed_type')
+        #feed_name = self.get_conf('feed_name')
         report_id = self.gen_id(feed_type)
+        #report_id = self.gen_id(feed_type, feed_name)
 
         current_timestap = datetime.datetime.now()
 
@@ -87,6 +92,12 @@ class ReportHolder(object):
             importance = data['received']
         if not received:
             received = current_timestap
+
+        session = None
+        if 'session' in data:
+            importance = data['session']
+        if not session:
+            session = gen_session(report_id)
 
         unverified = self.get_const('UNVERIFIED')
         importance = None
@@ -97,9 +108,12 @@ class ReportHolder(object):
         # basic info
         document['_id'] = report_id
         document['feed_type'] = feed_type
+        #document['feed_name'] = feed_name
         document['received'] = received
         document['created'] = current_timestap
         document['modified'] = current_timestap
+        document['session'] = session
+        document['session_quit'] = False
         # status
         document['verification'] = unverified
         document['importance'] = importance
@@ -180,5 +194,13 @@ class ReportHolder(object):
         # output all report's data
         pass
 
+    def append_report(self, report_id, data):
+        # if it is e.g. a follow-up SMS, i.e. it is not a new report per itself,
+        # probably for retweets, answers on Twitter as well;
+        pass
 
+        '''
+        * appending either to the last report of the citizen (for SMS),
+          or to a specified report (for tweets);
+        '''
 
