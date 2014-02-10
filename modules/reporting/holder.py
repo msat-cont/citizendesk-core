@@ -14,7 +14,6 @@ received: DateTime # when the report came
 created: DateTime # document creation
 modified: DateTime # last document modification
 session: String # grouping reports together
-session_quit: Boolean # to not continue this session
 
 # status
 verification: String # new, verified, false
@@ -49,24 +48,66 @@ discarded: [String] # nothing here
 Citizen structure:
 
 _id: ObjectId() # just a unique identifier
-identifiers: [{type:String, value:String}]
+nickname: String
+identifiers: [{type:String, value:String, valid_from:Datetime, invalid_from:Datetime}]
+session_quit: Boolean # to not continue this session, False ... this should be on a citizen (contact)
 
-# it is e.g. {'identifiers':[{'phone_number':'123456789'}, {'twitter_id':'asdfghjkl'}]}
+# it is e.g.
+{
+    'nickname': 'citizen X',
+    'identifiers':[
+        {'phone_number':'123456789', valid_from:'2000-01-01', invalid_from:'2012-12-19'},
+        {'twitter_id':'asdfghjkl', valid_from:'1970-01-01', invalid_from:None}
+    ]
+}
+
+Citizen settings:
+type: String
+spec: Dict
+value: Dict
+
+# it is e.g.
+{
+    {
+        'type':'force_new_session',
+        'spec': {'channel': {type:'SMS'}, 'author': {'type':'phone', 'value':'123456789'}},
+        'value':{'set':True, 'once':True}
+    }
+}
 
 '''
 
 import datetime
+from reporting.dbc import mongo_dbs
+
+COLL_REPORTS = 'reports'
+COLL_PROTO_REPORTS = 'protoreports'
+COLL_CITIZENS = 'citizens'
+
 
 class ReportHolder(object):
     ''' dealing with reports regardless of their feed types '''
     def __init__(self):
         pass
 
-    def get_collection(self):
-        return None
+    def get_collection(self, for_type):
+        coll_names = {'reports':COLL_REPORTS, 'protoreports':COLL_PROTO_REPORTS, 'citizens':COLL_CITIZENS}
+        if is_proto:
+            coll = None
+        else:
+            db = mongo_dbs.get_db()
+            coll = db['reports']
+
+        return coll
 
     def get_conf(self, conf_name):
-        return ''
+
+        config = {'feed_type':'SMS', 'feed_con':'Gammu', 'time_delay':1800}
+        config['send_script_path'] = '/opt/gammu/bin/send_sms'
+        config['send_config_path'] = '/opt/gammu/etc/gammu/send_sms.conf'
+        if conf_name in config:
+            return config[conf_name]
+        return None
 
     def gen_id(self, feed_type):
         return ''
@@ -113,12 +154,12 @@ class ReportHolder(object):
         document['created'] = current_timestap
         document['modified'] = current_timestap
         document['session'] = session
-        document['session_quit'] = False
+        #document['proto'] = False
         # status
         document['verification'] = unverified
         document['importance'] = importance
         document['relevance'] = None
-        document['checks'] = [] # nothing here
+        document['checks'] = [] # nothing here; put here who did what checks!
         document['assignments'] = [] # nothing here
         # citizens
         document['channels'] = [] # should be filled
@@ -128,13 +169,16 @@ class ReportHolder(object):
         # content
         document['original'] = None # general data tree
         document['geolocations'] = [] # POIs from tweets, image exif data, city names, ...
+        document['place_names'] = [] # free strings: town names, ...
         document['timeline'] = [] # recognized datetimes, image exif data, ...
+        document['time_names'] = [] # recognized datetimes, image exif data, ...
         document['subjects'] = [] # recognized names
-        document['media'] = [] # local binaries with refs
+        document['media'] = [] # local binaries with refs, incl. metadata
         document['texts'] = [] # selected text in bml, sent SMS, ...
         document['links'] = [] # link to bml site, ...
         document['transcripts'] = [] # nothing here
-        document['notices'] = [] # nothing here
+        document['notices_inner'] = [] # nothing here
+        document['notices_outer'] = [{'type':'before', 'value':'blah blah'}] # nothing here
         document['comments'] = [] # comment in bml
         document['tags'] = [] # (hash)tags
         # clients
@@ -184,23 +228,85 @@ class ReportHolder(object):
             if use_any:
                 document['media'].append(use_media)
 
-        self.insert_new_doc(document)
-
         # self.process_media()
         # self.process_texts()
 
+    def save_report(self, data):
+        report = self.create_report(data)
+        coll = self.get_collection(report['proto'])
+        coll.save(document)
 
     def provide_report(self, report_id):
         # output all report's data
         pass
 
-    def append_report(self, report_id, data):
-        # if it is e.g. a follow-up SMS, i.e. it is not a new report per itself,
-        # probably for retweets, answers on Twitter as well;
-        pass
+    #def append_report(self, report_id, data):
+    #    # if it is e.g. a follow-up SMS, i.e. it is not a new report per itself,
+    #    # probably for retweets, answers on Twitter as well;
+    #    pass
+    #
+    #    '''
+    #    * appending either to the last report of the citizen (for SMS),
+    #      or to a specified report (for tweets);
+    #    '''
 
-        '''
-        * appending either to the last report of the citizen (for SMS),
-          or to a specified report (for tweets);
-        '''
+    def get_force_new_session(self, spec):
+        #if spec_type not in ['phone_number']:
+        #    return None
+
+        force_new = False
+
+        coll = self.get_collection('citizen_setting')
+        spec_use = {'type':'force_new_session'}
+        if 'channel' in spec:
+            if 'type' in spec['channel']:
+                spec_use['channel.type'] = spec['channel']['type']
+            if 'value' in spec['channel']:
+                spec_use['channel.type'] = spec['channel']['value']
+        if 'author' in spec:
+            if 'type' in spec['author']:
+                spec_use['author.type'] = spec['author']['type']
+            if 'value' in spec['channel']:
+                spec_use['author.type'] = spec['author']['value']
+        #spec_use['valid_from'] = {'$lte':force_time}
+        #spec_use['invalid_from'] = {'$not':{'$lt': force_time}}
+        #cursor = coll.find({'identifiers': {'$elemMatch': spec_timed}})
+        cursor = coll.find(spec_use, {'value': True, '_id':False})
+        for entry in cursor:
+            #if 'force_new_session' in entry:
+            #    if ('value' in entry['force_new_session']) and entry['force_new_session']['value']:
+            #        force_new = True
+            if ('value' in entry) and entry['value']:
+                if ('set' in entry['value']) and entry['value']['set']:
+                    force_new = True
+
+        return force_new
+
+    def clear_force_new_session(self, spec, once):
+        coll = self.get_collection('citizen_setting')
+        spec_use = {'type':'force_new_session'}
+        if 'channel' in spec:
+            if 'type' in spec['channel']:
+                spec_use['channel.type'] = spec['channel']['type']
+            if 'value' in spec['channel']:
+                spec_use['channel.type'] = spec['channel']['value']
+        if 'author' in spec:
+            if 'type' in spec['author']:
+                spec_use['author.type'] = spec['author']['type']
+            if 'value' in spec['channel']:
+                spec_use['author.type'] = spec['author']['value']
+        if once:
+            spec_use['value.once'] = True
+        coll.remove(spec_use)
+
+
+    def find_last_session(self, spec, proto=None):
+        coll_type = 'reports' if not proto else 'protoreports'
+        coll = self.get_collection(coll_type)
+        cursor = coll.find(spec, {'session':True, 'received':True, '_id':False}).sort(['received', -1]).limit(1)
+        if not cursor.count():
+            return None
+        report = cursor.next()
+        return report
+
 

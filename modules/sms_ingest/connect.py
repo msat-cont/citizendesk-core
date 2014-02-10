@@ -6,14 +6,19 @@ try:
 except:
     sys.stderr.write('Flask module is not avaliable\n')
     sys.exit(1)
+from reporting.holder import ReportHolder
+
+holder = ReportHolder()
 
 def get_conf(name):
-    config = {'feed_type':'SMS', 'feed_con':'Gammu', 'time_delay':1800}
-    config['send_script_path'] = '/opt/gammu/bin/send_sms'
-    config['send_config_path'] = '/opt/gammu/etc/gammu/send_sms.conf'
-    if name in config:
-        return config[name]
-    return None
+    return holder.get_conf(name)
+
+    #config = {'feed_type':'SMS', 'feed_con':'Gammu', 'time_delay':1800}
+    #config['send_script_path'] = '/opt/gammu/bin/send_sms'
+    #config['send_config_path'] = '/opt/gammu/etc/gammu/send_sms.conf'
+    #if name in config:
+    #    return config[name]
+    #return None
 
 def within_session(last_received, current_received):
     if not last_received:
@@ -69,7 +74,7 @@ def take_sms():
     sf.write(save_str)
     sf.close()
     '''
-    db = None
+    #holder = None
     params = {}
 
     if not params['text']:
@@ -99,27 +104,40 @@ def take_sms():
                 if use_tag:
                     tags.append(use_tag)
 
+    # session_id should only be set here when reusing an old one
+    rnd_list = [str(hex(i))[-1:] for i in range(16)]
+    random.shuffle(rnd_list)
     session = '' + params['phone'] + ':' + received
+    session += ':' + ''.join(rnd_list)
     new_session = True
 
-    last_report = db.find_last_report({'channels':channels[0], 'authors':authors[0]})
-    if last_report:
-        if within_session(last_report['received'], received):
-            session = last_report['session']
-            new_session = False
+    session_look_spec = {'channel': {'type':channels[0]['type']}, 'author':authors[0]}
+    force_new_session = holder.get_force_new_session(session_look_spec)
+    #if force_new_session and force_new_session['value']:
+    #    if force_new_session['once']:
+    #     holder.set_force_new_session({'channels':channels[0], 'authors':authors[0]}, False)
+    if force_new_session:
+        holder.clear_force_new_session(session_look_spec, True)
+    else:
+        last_report = holder.find_last_session({'channels':channels[0], 'authors':authors[0]})
+        if last_report:
+            if within_session(last_report['received'], received):
+                session = last_report['session']
+                new_session = False
 
     report = {}
     report['feed_type'] = feed_type
     report['received'] = received
     report['session'] = session
-    report['session_quit'] = False
     report['channels'] = channels
     report['authors'] = authors
     report['original'] = original
     report['texts'] = texts
     report['tags'] = tags
 
-    db.save_report(report)
+    report['proto'] = False
+
+    holder.save_report(report)
 
     if new_session:
         ask_sender()
