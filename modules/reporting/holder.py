@@ -3,6 +3,24 @@
 # saving a report
 #
 '''
+Session structure:
+
+first_report: Datetime
+last_report: Datetime
+reports: [String], list of report_ids
+closed: Boolean, if the session was closed by an (external) action
+
+# it is e.g.
+{
+    'first_report': '2014-02-11',
+    'last_report': '2014-02-12',
+    'reports': [
+        'SMS:123456789:2014-02-11:asdfghj',
+        'SMS:123456789:2014-02-12:zxcvbnm'
+    ],
+    'closed': False
+}
+
 
 Report structure:
 
@@ -10,7 +28,7 @@ Report structure:
 _id/report_id: String # globally unique for any report from any feed
 feed_type: String # to know how to deal with it
 #feed_name: String # can have several feeds of one type
-received: DateTime # when the report came
+produced: DateTime # when the report came (SMS) or was created (tweet)
 created: DateTime # document creation
 modified: DateTime # last document modification
 session: String # grouping reports together
@@ -100,6 +118,7 @@ class ReportHolder(object):
 
         return coll
 
+    '''
     def get_conf(self, conf_name):
 
         config = {'feed_type':'SMS', 'feed_con':'Gammu', 'time_delay':1800}
@@ -108,37 +127,49 @@ class ReportHolder(object):
         if conf_name in config:
             return config[conf_name]
         return None
+    '''
 
-    def gen_id(self, feed_type):
+    def gen_id(self, feed_type, citizen):
+
+        rnd_list = [str(hex(i))[-1:] for i in range(16)]
+        random.shuffle(rnd_list)
+        id_value = '' + feed_type + ':' + citizen
+        id_value += ':' + datetime.datetime.now().isoformat()
+        id_value += ':' + ''.join(rnd_list)
         return ''
 
     def get_const(self, name):
-        return ''
+        known_names = {'UNVERIFIED':'unverified'}
+        if name in known_names:
+            return known_names[name]
+
+        return None
 
     def store_report(self, document):
         collection = self.get_collection()
         collection.save(document)
 
     def create_report(self, data):
+        if not 'feed_type' in data:
+            return None
 
-        feed_type = self.get_conf('feed_type')
-        #feed_name = self.get_conf('feed_name')
+        #feed_type = self.get_conf('feed_type')
+        feed_type = data['feed_type']
         report_id = self.gen_id(feed_type)
-        #report_id = self.gen_id(feed_type, feed_name)
 
         current_timestap = datetime.datetime.now()
 
-        received = None
-        if 'received' in data:
-            importance = data['received']
-        if not received:
-            received = current_timestap
+        produced = None
+        if 'produced' in data:
+            importance = data['produced']
+        if not produced:
+            produced = current_timestap
 
         session = None
         if 'session' in data:
             importance = data['session']
         if not session:
-            session = gen_session(report_id)
+            session = report_id
 
         unverified = self.get_const('UNVERIFIED')
         importance = None
@@ -150,7 +181,7 @@ class ReportHolder(object):
         document['_id'] = report_id
         document['feed_type'] = feed_type
         #document['feed_name'] = feed_name
-        document['received'] = received
+        document['produced'] = produced
         document['created'] = current_timestap
         document['modified'] = current_timestap
         document['session'] = session
@@ -236,23 +267,7 @@ class ReportHolder(object):
         coll = self.get_collection(report['proto'])
         coll.save(document)
 
-    def provide_report(self, report_id):
-        # output all report's data
-        pass
-
-    #def append_report(self, report_id, data):
-    #    # if it is e.g. a follow-up SMS, i.e. it is not a new report per itself,
-    #    # probably for retweets, answers on Twitter as well;
-    #    pass
-    #
-    #    '''
-    #    * appending either to the last report of the citizen (for SMS),
-    #      or to a specified report (for tweets);
-    #    '''
-
     def get_force_new_session(self, spec):
-        #if spec_type not in ['phone_number']:
-        #    return None
 
         force_new = False
 
@@ -268,14 +283,8 @@ class ReportHolder(object):
                 spec_use['author.type'] = spec['author']['type']
             if 'value' in spec['channel']:
                 spec_use['author.type'] = spec['author']['value']
-        #spec_use['valid_from'] = {'$lte':force_time}
-        #spec_use['invalid_from'] = {'$not':{'$lt': force_time}}
-        #cursor = coll.find({'identifiers': {'$elemMatch': spec_timed}})
         cursor = coll.find(spec_use, {'value': True, '_id':False})
         for entry in cursor:
-            #if 'force_new_session' in entry:
-            #    if ('value' in entry['force_new_session']) and entry['force_new_session']['value']:
-            #        force_new = True
             if ('value' in entry) and entry['value']:
                 if ('set' in entry['value']) and entry['value']['set']:
                     force_new = True
@@ -300,13 +309,42 @@ class ReportHolder(object):
         coll.remove(spec_use)
 
 
-    def find_last_session(self, spec, proto=None):
+    def find_last_session(self, spec, proto=False):
         coll_type = 'reports' if not proto else 'protoreports'
         coll = self.get_collection(coll_type)
-        cursor = coll.find(spec, {'session':True, 'received':True, '_id':False}).sort(['received', -1]).limit(1)
+        cursor = coll.find(spec, {'session':True, 'produced':True, '_id':False}).sort([('produced', -1)]).limit(1)
         if not cursor.count():
             return None
         report = cursor.next()
         return report
+
+    def provide_report(self, report_id, proto=False):
+        # output all report's data
+        coll_type = 'reports' if not proto else 'protoreports'
+        coll = self.get_collection(coll_type)
+        report = coll.find_one({'_id':report_id})
+        if not report:
+            return None
+        report['report_id'] = report['_id']
+        del(report['_id'])
+        return report
+
+    def provide_session(self, session_id, proto=False):
+        # output all reports of a session
+        reports = []
+        coll_type = 'reports' if not proto else 'protoreports'
+        coll = self.get_collection(coll_type)
+        cursor = coll.find({'session':session_id}).sort([('produced', 1)])
+        for entry in cursor:
+            entry['report_id'] = entry['_id']
+            del(entry['_id'])
+            reports.append(entry)
+        return reports
+
+    def list_sessions(self, session_id, proto=False):
+        # output sessions
+        pass
+        # we should have sessions as containers where the reports should be as subdocumnets or links to documents
+
 
 

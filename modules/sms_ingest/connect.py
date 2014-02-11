@@ -11,14 +11,12 @@ from reporting.holder import ReportHolder
 holder = ReportHolder()
 
 def get_conf(name):
-    return holder.get_conf(name)
-
-    #config = {'feed_type':'SMS', 'feed_con':'Gammu', 'time_delay':1800}
-    #config['send_script_path'] = '/opt/gammu/bin/send_sms'
-    #config['send_config_path'] = '/opt/gammu/etc/gammu/send_sms.conf'
-    #if name in config:
-    #    return config[name]
-    #return None
+    config = {'feed_type':'SMS', 'feed_conn':'Gammu', 'time_delay':1800}
+    config['send_script_path'] = '/opt/gammu/bin/send_sms'
+    config['send_config_path'] = '/opt/gammu/etc/gammu/send_sms.conf'
+    if name in config:
+        return config[name]
+    return None
 
 def within_session(last_received, current_received):
     if not last_received:
@@ -63,6 +61,11 @@ sms_take = Blueprint('sms_take', __name__)
 
 @sms_take.route('/sms_feeds/', methods=['GET', 'POST'])
 def take_sms():
+    params = {}
+    for part in ['feed', 'phone', 'time', 'text']:
+        params[part] = None
+        if part in request.form:
+            params[part] = str(request.form[part].encode('utf8'))
     '''
     sys.stderr.write(str(request.form) + '\n\n')
     save_list = []
@@ -74,11 +77,10 @@ def take_sms():
     sf.write(save_str)
     sf.close()
     '''
-    #holder = None
-    params = {}
 
-    if not params['text']:
-        return 'no SMS message text provided'
+    for part in ['feed', 'phone', 'time', 'text']:
+        if not params[part]:
+            return (404, 'No ' + str(part) + ' provided')
 
     feed_name = params['feed']
     phone_number = params['phone']
@@ -105,17 +107,11 @@ def take_sms():
                     tags.append(use_tag)
 
     # session_id should only be set here when reusing an old one
-    rnd_list = [str(hex(i))[-1:] for i in range(16)]
-    random.shuffle(rnd_list)
-    session = '' + params['phone'] + ':' + received
-    session += ':' + ''.join(rnd_list)
+    session = None
     new_session = True
 
     session_look_spec = {'channel': {'type':channels[0]['type']}, 'author':authors[0]}
     force_new_session = holder.get_force_new_session(session_look_spec)
-    #if force_new_session and force_new_session['value']:
-    #    if force_new_session['once']:
-    #     holder.set_force_new_session({'channels':channels[0], 'authors':authors[0]}, False)
     if force_new_session:
         holder.clear_force_new_session(session_look_spec, True)
     else:
@@ -127,7 +123,7 @@ def take_sms():
 
     report = {}
     report['feed_type'] = feed_type
-    report['received'] = received
+    report['produced'] = received
     report['session'] = session
     report['channels'] = channels
     report['authors'] = authors
@@ -142,5 +138,5 @@ def take_sms():
     if new_session:
         ask_sender()
 
-    return 'SMS received\n\n'
+    return (200, 'SMS received\n\n')
 
