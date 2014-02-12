@@ -15,7 +15,7 @@ holder = ReportHolder()
 
 def get_conf(name):
     config = {'feed_type':'SMS', 'feed_conn':'Gammu', 'time_delay':1800}
-    config['send_script_path'] = '/opt/gammu/bin/send_sms'
+    config['send_script_path'] = '/opt/gammu/bin/send_sms.py'
     config['send_config_path'] = '/opt/gammu/etc/gammu/send_sms.conf'
     if name in config:
         return config[name]
@@ -62,12 +62,16 @@ def within_session(last_received, current_received):
 
 def ask_sender(phone_number):
     message = 'Dear citizen, could you tell us you geolocation, please?'
+    unicode_flag = False
     send_script = get_conf('send_script_path')
     send_config = get_conf('send_config_path')
     try:
-        subprocess.call([send_script, send_config, phone_number, message])
+        subprocess.call([send_script, send_config, phone_number, message, unicode_flag])
     except:
-        pass
+        logging.error('can not send SMS to: ' + str(phone_number))
+        return False
+
+    return True
 
 sms_take = Blueprint('sms_take', __name__)
 
