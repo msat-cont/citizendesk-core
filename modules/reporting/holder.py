@@ -1,43 +1,25 @@
 #!/usr/bin/env python
 #
-# saving a report
+# Citizen Desk
 #
 '''
-Session structure:
-
-first_report: Datetime
-last_report: Datetime
-reports: [String], list of report_ids
-closed: Boolean, if the session was closed by an (external) action
-
-# it is e.g.
-{
-    'first_report': '2014-02-11',
-    'last_report': '2014-02-12',
-    'reports': [
-        'SMS:123456789:2014-02-11:asdfghj',
-        'SMS:123456789:2014-02-12:zxcvbnm'
-    ],
-    'closed': False
-}
-
-
 Report structure:
 
 # basic info
 _id/report_id: String # globally unique for any report from any feed
 feed_type: String # to know how to deal with it
-#feed_name: String # can have several feeds of one type
+feed_spec: String # can have several feeds of one type
 produced: DateTime # when the report came (SMS) or was created (tweet)
 created: DateTime # document creation
 modified: DateTime # last document modification
 session: String # grouping reports together
+ptoto: Boolean # if the report has to be yet taken
 
 # status
 verification: String # new, verified, false
 importance: String # standard, urgent, ...
 relevance: String # (ir)relevant, ...
-checks: [{type:String, value:String, validator:String}]
+checks: [{type:String, status:String, validator:String}]
 assignments: [{type:String, name:String}]
 
 # citizens
@@ -95,67 +77,58 @@ value: Dict
 
 '''
 
-import datetime
-from reporting.dbc import mongo_dbs
+import os, sys, datetime
+from citizendesk.reporting.dbc import mongo_dbs
 
 COLL_REPORTS = 'reports'
-COLL_PROTO_REPORTS = 'protoreports'
 COLL_CITIZENS = 'citizens'
-
+UNVERIFIED = 'unverified'
 
 class ReportHolder(object):
     ''' dealing with reports regardless of their feed types '''
     def __init__(self):
-        pass
+        self.db = None
 
     def get_collection(self, for_type):
-        coll_names = {'reports':COLL_REPORTS, 'protoreports':COLL_PROTO_REPORTS, 'citizens':COLL_CITIZENS}
-        if is_proto:
-            coll = None
-        else:
-            db = mongo_dbs.get_db()
-            coll = db['reports']
+        coll_names = {'reports':COLL_REPORTS, 'citizens':COLL_CITIZENS}
+        if for_type in coll_names:
+            return self.db[coll_names[for_type]]
 
-        return coll
-
-    '''
-    def get_conf(self, conf_name):
-
-        config = {'feed_type':'SMS', 'feed_con':'Gammu', 'time_delay':1800}
-        config['send_script_path'] = '/opt/gammu/bin/send_sms'
-        config['send_config_path'] = '/opt/gammu/etc/gammu/send_sms.conf'
-        if conf_name in config:
-            return config[conf_name]
         return None
-    '''
 
-    def gen_id(self, feed_type, citizen):
+    def gen_id(self, feed_type):
 
         rnd_list = [str(hex(i))[-1:] for i in range(16)]
         random.shuffle(rnd_list)
-        id_value = '' + feed_type + ':' + citizen
-        id_value += ':' + datetime.datetime.now().isoformat()
+        id_value = '' + feed_type + ':'
+        id_value += datetime.datetime.now().isoformat()
         id_value += ':' + ''.join(rnd_list)
-        return ''
+        return id_value
 
     def get_const(self, name):
-        known_names = {'UNVERIFIED':'unverified'}
+        known_names = {'unverified':UNVERIFIED}
         if name in known_names:
             return known_names[name]
 
         return None
 
     def store_report(self, document):
-        collection = self.get_collection()
+        collection = self.get_collection('reports')
         collection.save(document)
 
     def create_report(self, data):
         if not 'feed_type' in data:
             return None
 
-        #feed_type = self.get_conf('feed_type')
         feed_type = data['feed_type']
-        report_id = self.gen_id(feed_type)
+        feed_spec = None
+        if feed_spec in data:
+            feed_spec = data['feed_spec']
+
+        if 'report_id' in data:
+            report_id = data['report_id']
+        else:
+            report_id = self.gen_id(feed_type)
 
         current_timestap = datetime.datetime.now()
 
@@ -171,7 +144,7 @@ class ReportHolder(object):
         if not session:
             session = report_id
 
-        unverified = self.get_const('UNVERIFIED')
+        unverified = self.get_const('unverified')
         importance = None
         if 'importance' in data:
             importance = data['importance']
@@ -180,12 +153,12 @@ class ReportHolder(object):
         # basic info
         document['_id'] = report_id
         document['feed_type'] = feed_type
-        #document['feed_name'] = feed_name
+        document['feed_spec'] = feed_spec
         document['produced'] = produced
         document['created'] = current_timestap
         document['modified'] = current_timestap
         document['session'] = session
-        #document['proto'] = False
+        document['proto'] = False
         # status
         document['verification'] = unverified
         document['importance'] = importance
@@ -259,13 +232,9 @@ class ReportHolder(object):
             if use_any:
                 document['media'].append(use_media)
 
-        # self.process_media()
-        # self.process_texts()
-
     def save_report(self, data):
         report = self.create_report(data)
-        coll = self.get_collection(report['proto'])
-        coll.save(document)
+        self.store_report(report)
 
     def get_force_new_session(self, spec):
 
@@ -309,19 +278,17 @@ class ReportHolder(object):
         coll.remove(spec_use)
 
 
-    def find_last_session(self, spec, proto=False):
-        coll_type = 'reports' if not proto else 'protoreports'
-        coll = self.get_collection(coll_type)
+    def find_last_session(self, spec):
+        coll = self.get_collection('reports')
         cursor = coll.find(spec, {'session':True, 'produced':True, '_id':False}).sort([('produced', -1)]).limit(1)
         if not cursor.count():
             return None
         report = cursor.next()
         return report
 
-    def provide_report(self, report_id, proto=False):
+    def provide_report(self, report_id):
         # output all report's data
-        coll_type = 'reports' if not proto else 'protoreports'
-        coll = self.get_collection(coll_type)
+        coll = self.get_collection('reports')
         report = coll.find_one({'_id':report_id})
         if not report:
             return None
@@ -329,11 +296,10 @@ class ReportHolder(object):
         del(report['_id'])
         return report
 
-    def provide_session(self, session_id, proto=False):
+    def provide_session(self, session_id):
         # output all reports of a session
         reports = []
-        coll_type = 'reports' if not proto else 'protoreports'
-        coll = self.get_collection(coll_type)
+        coll = self.get_collection('reports')
         cursor = coll.find({'session':session_id}).sort([('produced', 1)])
         for entry in cursor:
             entry['report_id'] = entry['_id']
@@ -341,10 +307,71 @@ class ReportHolder(object):
             reports.append(entry)
         return reports
 
-    def list_sessions(self, session_id, proto=False):
-        # output sessions
-        pass
-        # we should have sessions as containers where the reports should be as subdocumnets or links to documents
+    def list_feed_reports(self, feed_type, feed_spec=None, proto=False, offset=None, limit=None):
+        # output (proto)reports of a feed
+        reports = []
+        coll = self.get_collection('reports')
 
+        report_spec = {'feed_type':feed_type}
+        if feed_spec is not None:
+            report_spec['feed_spec'] = feed_spec
+        report_spec['proto'] = proto
 
+        cursor = coll.find(report_spec).sort([('produced', 1)])
+        if offset is not None:
+            cursor = cursor.skip(offset)
+        if limit is not None:
+            cursor = cursor.limit(limit)
+
+        for entry in cursor:
+            entry['report_id'] = entry['_id']
+            del(entry['_id'])
+            reports.append(entry)
+
+        return reports
+
+    def list_channel_reports(self, channel_type, channel_value=None, proto=False, offset=None, limit=None):
+        # output (proto)reports of a feed
+        reports = []
+        coll = self.get_collection('reports')
+
+        if channel_value is None:
+            report_spec = {'channels.type':channel_type}
+        else:
+            report_spec['channel'] = {'type':channel_type, 'value':channel_value}
+        report_spec['proto'] = proto
+
+        cursor = coll.find(report_spec).sort([('produced', 1)])
+        if offset is not None:
+            cursor = cursor.skip(offset)
+        if limit is not None:
+            cursor = cursor.limit(limit)
+
+        for entry in cursor:
+            entry['report_id'] = entry['_id']
+            del(entry['_id'])
+            reports.append(entry)
+
+        return reports
+
+    def list_author_reports(self, author_type, author_value, proto=False, offset=None, limit=None):
+        # output (proto)reports of a feed
+        reports = []
+        coll = self.get_collection('reports')
+
+        report_spec['author'] = {'type':author_type, 'value':author_value}
+        report_spec['proto'] = proto
+
+        cursor = coll.find(report_spec).sort([('produced', 1)])
+        if offset is not None:
+            cursor = cursor.skip(offset)
+        if limit is not None:
+            cursor = cursor.limit(limit)
+
+        for entry in cursor:
+            entry['report_id'] = entry['_id']
+            del(entry['_id'])
+            reports.append(entry)
+
+        return reports
 

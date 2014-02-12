@@ -1,13 +1,16 @@
 #!/usr/bin/env python
+#
+# Citizen Desk
+#
 
-import os, sys, datetime, subprocess
+import os, sys, datetime, subprocess, logging
 try:
     from flask import Blueprint, request
 except:
-    sys.stderr.write('Flask module is not avaliable\n')
-    sys.exit(1)
-from reporting.holder import ReportHolder
+    logging.error('Flask module is not avaliable\n')
+    os._exit(1)
 
+from citizendesk.reporting.holder import ReportHolder
 holder = ReportHolder()
 
 def get_conf(name):
@@ -17,6 +20,15 @@ def get_conf(name):
     if name in config:
         return config[name]
     return None
+
+def gen_id(feed_type, citizen):
+
+    rnd_list = [str(hex(i))[-1:] for i in range(16)]
+    random.shuffle(rnd_list)
+    id_value = '' + feed_type + ':' + citizen
+    id_value += ':' + datetime.datetime.now().isoformat()
+    id_value += ':' + ''.join(rnd_list)
+    return id_value
 
 def within_session(last_received, current_received):
     if not last_received:
@@ -86,7 +98,6 @@ def take_sms():
     phone_number = params['phone']
 
     feed_type = get_conf('feed_type')
-    #feed_conn = get_conf('feed_conn')
     received = params[time]
     if not received:
         received = datetime.datetime.now()
@@ -122,7 +133,9 @@ def take_sms():
                 new_session = False
 
     report = {}
+    report['report_id'] = gen_id(feed_type, phone_number)
     report['feed_type'] = feed_type
+    report['feed_spec'] = None
     report['produced'] = received
     report['session'] = session
     report['channels'] = channels
