@@ -18,7 +18,7 @@ from citizendesk.sms_ingest.sms_replier import send_sms
 
 def get_conf(name):
     config = {'feed_type':'SMS', 'feed_conn':'Gammu', 'time_delay':1800}
-    config['send_config_path'] = '/opt/gammu/etc/gammu/send_sms.conf'
+    config['send_config_path'] = '/opt/citizendesk/etc/citizendesk/send_sms.conf'
     config['allowed_ips'] = '127.0.0.1'
 
     if name in config:
