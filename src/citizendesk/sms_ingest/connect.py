@@ -3,20 +3,24 @@
 # Citizen Desk
 #
 
-import os, sys, datetime, subprocess, logging
+import os, sys, datetime, logging#, subprocess
 try:
     from flask import Blueprint, request
 except:
     logging.error('Flask module is not avaliable\n')
     os._exit(1)
 
+from citizendesk.reporting.utils import get_client_ip
 from citizendesk.reporting.holder import ReportHolder
 holder = ReportHolder()
 
+from citizendesk.sms_ingest.sms_replier import send_sms
+
 def get_conf(name):
     config = {'feed_type':'SMS', 'feed_conn':'Gammu', 'time_delay':1800}
-    config['send_script_path'] = '/opt/gammu/bin/send_sms.py'
     config['send_config_path'] = '/opt/gammu/etc/gammu/send_sms.conf'
+    config['allowed_ips'] = '127.0.0.1'
+
     if name in config:
         return config[name]
     return None
@@ -63,13 +67,14 @@ def within_session(last_received, current_received):
 def ask_sender(phone_number):
     message = 'Dear citizen, could you tell us you geolocation, please?'
     unicode_flag = False
-    send_script = get_conf('send_script_path')
+    #send_script = get_conf('send_script_path')
     send_config = get_conf('send_config_path')
-    try:
-        subprocess.call([send_script, send_config, phone_number, message, unicode_flag])
-    except:
-        logging.error('can not send SMS to: ' + str(phone_number))
-        return False
+    #try:
+    #    subprocess.call([send_script, send_config, phone_number, message, unicode_flag])
+    #except:
+    #    logging.error('can not send SMS to: ' + str(phone_number))
+    #    return False
+    send_sms(send_config, phone_number, message, unicode_flag)
 
     return True
 
@@ -77,6 +82,13 @@ sms_take = Blueprint('sms_take', __name__)
 
 @sms_take.route('/sms_feeds/', methods=['GET', 'POST'])
 def take_sms():
+    client_ip = get_client_ip()
+
+    allowed_ips = get_conf('allowed_ips')
+    if allowed_ips and ('*' not in allowed_ips):
+        if not client_ip in allowed_ips:
+            return (403, 'Client not allowed\n\n')
+
     params = {}
     for part in ['feed', 'phone', 'time', 'text']:
         params[part] = None
@@ -138,6 +150,7 @@ def take_sms():
 
     report = {}
     report['report_id'] = gen_id(feed_type, phone_number)
+    report['client_ip'] = client_ip
     report['feed_type'] = feed_type
     report['feed_spec'] = None
     report['produced'] = received

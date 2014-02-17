@@ -7,13 +7,14 @@ Report structure:
 
 # basic info
 _id/report_id: String # globally unique for any report from any feed
+client_ip: String # IP address of the coming report
 feed_type: String # to know how to deal with it
 feed_spec: String # can have several feeds of one type
 produced: DateTime # when the report came (SMS) or was created (tweet)
 created: DateTime # document creation
 modified: DateTime # last document modification
 session: String # grouping reports together
-ptoto: Boolean # if the report has to be yet taken
+proto: Boolean # if the report has to be yet taken
 
 # status
 verification: String # new, verified, false
@@ -130,6 +131,10 @@ class ReportHolder(object):
         else:
             report_id = self.gen_id(feed_type)
 
+        client_ip = None
+        if 'client_ip' in data:
+            client_ip = client_ip
+
         current_timestap = datetime.datetime.now()
 
         produced = None
@@ -149,16 +154,21 @@ class ReportHolder(object):
         if 'importance' in data:
             importance = data['importance']
 
+        proto_report = False
+        if 'proto' in data:
+            proto_report = bool(data['proto'])
+
         document = {}
         # basic info
         document['_id'] = report_id
+        document['client_ip'] = client_ip
         document['feed_type'] = feed_type
         document['feed_spec'] = feed_spec
         document['produced'] = produced
         document['created'] = current_timestap
         document['modified'] = current_timestap
         document['session'] = session
-        document['proto'] = False
+        document['proto'] = proto_report
         # status
         document['verification'] = unverified
         document['importance'] = importance
@@ -307,7 +317,7 @@ class ReportHolder(object):
             reports.append(entry)
         return reports
 
-    def list_feed_reports(self, feed_type, feed_spec=None, proto=False, offset=None, limit=None):
+    def list_feed_reports(self, feed_type, feed_spec=None, proto=None, offset=None, limit=None):
         # output (proto)reports of a feed
         reports = []
         coll = self.get_collection('reports')
@@ -315,7 +325,8 @@ class ReportHolder(object):
         report_spec = {'feed_type':feed_type}
         if feed_spec is not None:
             report_spec['feed_spec'] = feed_spec
-        report_spec['proto'] = proto
+        if proto is not None:
+            report_spec['proto'] = bool(proto)
 
         cursor = coll.find(report_spec).sort([('produced', 1)])
         if offset is not None:
@@ -330,7 +341,7 @@ class ReportHolder(object):
 
         return reports
 
-    def list_channel_reports(self, channel_type, channel_value=None, proto=False, offset=None, limit=None):
+    def list_channel_reports(self, channel_type, channel_value=None, proto=None, offset=None, limit=None):
         # output (proto)reports of a feed
         reports = []
         coll = self.get_collection('reports')
@@ -339,7 +350,8 @@ class ReportHolder(object):
             report_spec = {'channels.type':channel_type}
         else:
             report_spec['channel'] = {'type':channel_type, 'value':channel_value}
-        report_spec['proto'] = proto
+        if proto is not None:
+            report_spec['proto'] = bool(proto)
 
         cursor = coll.find(report_spec).sort([('produced', 1)])
         if offset is not None:
@@ -354,13 +366,14 @@ class ReportHolder(object):
 
         return reports
 
-    def list_author_reports(self, author_type, author_value, proto=False, offset=None, limit=None):
+    def list_author_reports(self, author_type, author_value, proto=None, offset=None, limit=None):
         # output (proto)reports of a feed
         reports = []
         coll = self.get_collection('reports')
 
         report_spec['author'] = {'type':author_type, 'value':author_value}
-        report_spec['proto'] = proto
+        if proto is not None:
+            report_spec['proto'] = bool(proto)
 
         cursor = coll.find(report_spec).sort([('produced', 1)])
         if offset is not None:
