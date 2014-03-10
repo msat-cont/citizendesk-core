@@ -7,14 +7,16 @@ Report structure:
 
 # basic info
 _id/report_id: String # globally unique for any report from any feed
+parent_id: String # e.g. reply_to id for tweet conversations
 client_ip: String # IP address of the coming report
 feed_type: String # to know how to deal with it
-feed_spec: String # can have several feeds of one type
 produced: DateTime # when the report came (SMS) or was created (tweet)
 created: DateTime # document creation
 modified: DateTime # last document modification
 session: String # grouping reports together
 proto: Boolean # if the report has to be yet taken
+language: String # en, ...
+sensitive: Boolean # whether it is kind of "not at work" stuff
 
 # status
 verification: String # new, verified, false
@@ -24,7 +26,7 @@ checks: [{type:String, status:String, validator:String}]
 assignments: [{type:String, name:String}]
 
 # citizens
-channels: [{type:String, value:String}] # bookmarklet, sms, twitter, ...
+channels: [{type:String, value:String}] # bookmarklet, sms, twitter (endpoints), ...
 publishers: [{type:String, value:String}] # youtube, flickr, ...
 authors: [{type:String, value:String}] # who created the content
 endorsers: [{type:String, value:String}] # who supports/submits/reports the content
@@ -32,13 +34,17 @@ endorsers: [{type:String, value:String}] # who supports/submits/reports the cont
 # content
 original: Any tree # original structured data
 geolocations: [] # where it happened
+place_names: [] # free strings: town names, ...
 timeline: [] # when the reported events happened
+time_names: [] # recognized datetimes
+citizens: [{type:String, value:String}] # mentioned citizens, i.e. not (necessarily) the authors
 subjects: [] # who/what are the perpetrators
 media: [] # local binaries with refs
 texts: [] # original textual data
 links: [] # links to referred sites
 transcripts: [] # updated/adjusted texts, by staff journalists
-notices: [{who:String, what:String}] # texts by staff journalists
+notices_inner: [{who:String, what:String}] # texts by staff journalists, for internal use
+notices_outer: [{who:String, what:String}] # texts by staff journalists, for display
 comments: [{who:String, what:String}] # texts by (other) citizens
 tags: [String] # (hash)tags. keywords, ...
 
@@ -84,6 +90,7 @@ from citizendesk.reporting.dbc import mongo_dbs
 COLL_REPORTS = 'reports'
 COLL_CITIZENS = 'citizens'
 UNVERIFIED = 'unverified'
+UPDATED_FIELD = 'modified'
 
 class ReportHolder(object):
     ''' dealing with reports regardless of their feed types '''
@@ -91,9 +98,12 @@ class ReportHolder(object):
         self.db = None
 
     def get_collection(self, for_type):
+        self.db = mongo_dbs.get_db().db
+
         coll_names = {'reports':COLL_REPORTS, 'citizens':COLL_CITIZENS}
         if for_type in coll_names:
-            return self.db[coll_names[for_type]]
+            use_coll_name = coll_names[for_type]
+            return self.db[use_coll_name]
 
         return None
 
@@ -120,16 +130,16 @@ class ReportHolder(object):
     def create_report(self, data):
         if not 'feed_type' in data:
             return None
-
         feed_type = data['feed_type']
-        feed_spec = None
-        if feed_spec in data:
-            feed_spec = data['feed_spec']
 
         if 'report_id' in data:
             report_id = data['report_id']
         else:
             report_id = self.gen_id(feed_type)
+
+        parent_id = None
+        if 'parent_id' in data:
+            parent_id = parent_id
 
         client_ip = None
         if 'client_ip' in data:
@@ -161,14 +171,16 @@ class ReportHolder(object):
         document = {}
         # basic info
         document['_id'] = report_id
+        document['parent_id'] = parent_id
         document['client_ip'] = client_ip
         document['feed_type'] = feed_type
-        document['feed_spec'] = feed_spec
         document['produced'] = produced
         document['created'] = current_timestap
         document['modified'] = current_timestap
         document['session'] = session
         document['proto'] = proto_report
+        document['language'] = None
+        document['sensitive'] = None
         # status
         document['verification'] = unverified
         document['importance'] = importance
@@ -180,12 +192,18 @@ class ReportHolder(object):
         document['publishers'] = [] # should be filled
         document['authors'] = [] # should be filled
         document['endorsers'] = [] # should be filled
+        for key in ['channels', 'publishers', 'authors', 'endorsers']:
+            if key in data:
+                document[key] = data[key]
+
         # content
-        document['original'] = None # general data tree
+        document['original'] = data # general data tree
+
         document['geolocations'] = [] # POIs from tweets, image exif data, city names, ...
         document['place_names'] = [] # free strings: town names, ...
         document['timeline'] = [] # recognized datetimes, image exif data, ...
-        document['time_names'] = [] # recognized datetimes, image exif data, ...
+        document['time_names'] = [] # recognized datetimes
+        document['citizens'] = [] # mentioned citizens
         document['subjects'] = [] # recognized names
         document['media'] = [] # local binaries with refs, incl. metadata
         document['texts'] = [] # selected text in bml, sent SMS, ...
@@ -195,6 +213,11 @@ class ReportHolder(object):
         document['notices_outer'] = [{'type':'before', 'value':'blah blah'}] # nothing here
         document['comments'] = [] # comment in bml
         document['tags'] = [] # (hash)tags
+        for key in ['geolocations', 'place_names', 'timeline', 'time_names', 'citizens', 'subjects', 'media',
+                    'texts', 'transcripts', 'notices_inner', 'notices_outer', 'comments', 'tags']:
+            if key in data:
+                document[key] = data[key]
+
         # clients
         document['viewed'] = [] # nothing here
         document['discarded'] = [] # nothing here
@@ -241,6 +264,8 @@ class ReportHolder(object):
                         use_any = True
             if use_any:
                 document['media'].append(use_media)
+
+        return document
 
     def save_report(self, data):
         report = self.create_report(data)
@@ -317,14 +342,34 @@ class ReportHolder(object):
             reports.append(entry)
         return reports
 
-    def list_feed_reports(self, feed_type, feed_spec=None, proto=None, offset=None, limit=None):
+    def list_channel_reports(self, channel=None, proto=None, offset=None, limit=None):
+        # output (proto)reports of a feed channel
+        reports = []
+        coll = self.get_collection('reports')
+
+        report_spec = {'channel':channel}
+        if proto is not None:
+            report_spec['proto'] = bool(proto)
+
+        cursor = coll.find(report_spec).sort([('produced', 1)])
+        if offset is not None:
+            cursor = cursor.skip(offset)
+        if limit is not None:
+            cursor = cursor.limit(limit)
+
+        for entry in cursor:
+            entry['report_id'] = entry['_id']
+            del(entry['_id'])
+            reports.append(entry)
+
+        return reports
+
+    def list_feed_reports(self, feed_type, proto=None, offset=None, limit=None):
         # output (proto)reports of a feed
         reports = []
         coll = self.get_collection('reports')
 
         report_spec = {'feed_type':feed_type}
-        if feed_spec is not None:
-            report_spec['feed_spec'] = feed_spec
         if proto is not None:
             report_spec['proto'] = bool(proto)
 
@@ -387,4 +432,28 @@ class ReportHolder(object):
             reports.append(entry)
 
         return reports
+
+    def add_channels(self, report_id, channels):
+        if (not report_id) or (not channels) or (type(channles) is not list):
+            return
+        coll = self.get_collection('reports')
+
+        timepoint = datetime.datetime.utcnow()
+        coll.update({'_id': report_id}, {'$addToSet': {'channels': {'$each': channles}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+
+    def add_publishers(self, report_id, publishers):
+        if (not report_id) or (not publishers) or (type(publishers) is not list):
+            return
+        coll = self.get_collection('reports')
+
+        timepoint = datetime.datetime.utcnow()
+        coll.update({'_id': report_id}, {'$addToSet': {'publishers': {'$each': channles}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+
+    def add_endorsers(self, report_id, endorsers):
+        if (not report_id) or (not endorsers) or (type(endorsers) is not list):
+            return
+        coll = self.get_collection('reports')
+
+        timepoint = datetime.datetime.utcnow()
+        coll.update({'_id': report_id}, {'$addToSet': {'endorsers': {'$each': channles}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
 

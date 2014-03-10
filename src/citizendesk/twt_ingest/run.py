@@ -24,12 +24,12 @@ except:
 
 DB_NAME = 'citizendesk'
 
-from citizendesk.reporting.dbc import mongo_dbs
-from citizendesk.twt_ingest.connect import twt_take
-
 app = Flask(__name__)
 
 def prepare_reporting(dbname):
+    from citizendesk.reporting.dbc import mongo_dbs
+    from citizendesk.twt_ingest.connect import twt_take
+
     mongo_dbs.set_dbname(dbname)
     DbHolder = namedtuple('DbHolder', 'db')
     mongo_dbs.set_db(DbHolder(db=MongoClient(MONGODB_SERVER_HOST, MONGODB_SERVER_PORT)[mongo_dbs.get_dbname()]))
@@ -50,5 +50,8 @@ def run_flask(dbname, host='localhost', port=DEFAULT_PORT, lockfile='', debug=Fa
     app.run(host=host, port=port, debug=debug)
 
 if __name__ == '__main__':
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    sys.path.append(os.path.dirname(os.path.dirname(file_dir)))
+
     run_flask(DB_NAME, host='localhost', port=DEFAULT_PORT, lockfile='', debug=True)
 
