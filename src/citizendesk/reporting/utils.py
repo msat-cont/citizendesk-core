@@ -3,17 +3,52 @@
 # Citizen Desk
 #
 
+import os, sys, time, signal
+import logging, logging.handlers
+
 try:
     from flask import request
 except:
-    logging.error('Flask module is not avaliable\n')
+    sys.stderr.write('Flask module is not avaliable\n')
     os._exit(1)
 
-def get_conf(name):
-    configs = {'local_ips':[]}
-    if name in configs:
-        return configs[name]
-    return None
+logger = logging.getLogger()
+allowed_ips = ['127.0.0.1']
+
+def setup_logger(log_path=None):
+    global logger
+
+    while logger.handlers:
+        logger.removeHandler(logger.handlers[-1])
+
+    formatter = logging.Formatter("%(levelname)s [%(asctime)s]: %(message)s")
+
+    if log_path:
+        fh = logging.handlers.WatchedFileHandler(log_path)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+    else:
+        sh = logging.StreamHandler()
+        sh.setFormatter(formatter)
+        logger.addHandler(sh)
+
+    logger.setLevel(logging.INFO)
+
+def get_logger():
+    global logger
+    return logger
+
+def get_local_ips(name):
+    # if we should have local ips out of the standard ranges
+    return []
+
+def set_allowed_ips(addr_list):
+    global allowed_ips
+    allowed_ips = addr_list if (type(addr_list) is list) else [addr_list]
+
+def get_allowed_ips():
+    global allowed_ips
+    return allowed_ips
 
 def is_remote_ip(ip_addr):
     if not ip_addr:
@@ -27,6 +62,8 @@ def is_remote_ip(ip_addr):
 
     ip_parts = ip_addr.split('.')
     if 4 == len(ip_parts):
+        if '127' == ip_parts[0]:
+            return False
         if '10' == ip_parts[0]:
             return False
         if '172' == ip_parts[0]:
@@ -35,7 +72,7 @@ def is_remote_ip(ip_addr):
         if ('192' == ip_parts[0]) and ('168' == ip_parts[0]):
             return False
 
-    local_ips = get_conf('local_ips')
+    local_ips = get_local_ips()
     if local_ips and (ip_addr in local_ips):
         return False
 
@@ -76,4 +113,140 @@ def get_client_ip():
 
     return remote_ip
 
+def daemonize(work_dir, pid_path):
+    global logger
+
+    UMASK = 022
+
+    if (hasattr(os, 'devnull')):
+       REDIRECT_TO = os.devnull
+    else:
+       REDIRECT_TO = '/dev/null'
+
+    try:
+        pid = os.fork()
+    except OSError, e:
+        logger.error('can not daemonize: %s [%d]' % (e.strerror, e.errno))
+        logging.shutdown()
+        cleanup(1)
+
+    if (pid != 0):
+        os._exit(0)
+
+    os.setsid()
+    signal.signal(signal.SIGHUP, signal.SIG_IGN)
+
+    try:
+        pid = os.fork()
+    except OSError, e:
+        logger.error('can not daemonize: %s [%d]' % (e.strerror, e.errno))
+        logging.shutdown()
+        cleanup(1)
+
+    if (pid != 0):
+        os._exit(0)
+
+    try:
+        os.chdir(work_dir)
+        os.umask(UMASK)
+    except OSError, e:
+        logger.error('can not daemonize: %s [%d]' % (e.strerror, e.errno))
+        logging.shutdown()
+        cleanup(1)
+
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        si = file(REDIRECT_TO, 'r')
+        so = file(REDIRECT_TO, 'a+')
+        se = file(REDIRECT_TO, 'a+', 0)
+        os.dup2(si.fileno(), sys.stdin.fileno())
+        os.dup2(so.fileno(), sys.stdout.fileno())
+        os.dup2(se.fileno(), sys.stderr.fileno())
+    except OSError, e:
+        logger.error('can not daemonize: %s [%d]' % (e.strerror, e.errno))
+        logging.shutdown()
+        cleanup(1)
+
+    if pid_path is None:
+        logger.warning('no pid file path provided')
+    else:
+        try:
+            fh = open(pid_path, 'w')
+            fh.write(str(os.getpid()) + '\n')
+            fh.close()
+        except Exception:
+            logger.error('can not create pid file: ' + str(pid_path))
+            logging.shutdown()
+            cleanup(1)
+
+def set_user(user_id, group_id, pid_path):
+    global logger
+
+    if (user_id is not None) and (str(user_id) != '0'):
+        if (pid_path is not None) and os.path.exists(pid_path):
+            try:
+                os.chown(pid_path, user_id, -1)
+            except OSError, e:
+                logger.warning('can not set pid file owner: %s [%d]' % (e.strerror, e.errno))
+
+    if group_id is not None:
+        try:
+            os.setgid(group_id)
+        except Exception as e:
+            logger.error('can not set group id: %s [%d]' % (e.strerror, e.errno))
+            cleanup(1)
+
+    if user_id is not None:
+        try:
+            os.setuid(user_id)
+        except Exception as e:
+            logger.error('can not set user id: %s [%d]' % (e.strerror, e.errno))
+            cleanup(1)
+
+def cleanup(status=0):
+    global logger
+
+    logger.info('stopping the ' + str(get_daemon_name()))
+
+    pid_path = get_pid_path()
+    if pid_path is not None:
+        try:
+            fh = open(pid_path, 'w')
+            fh.write('')
+            fh.close()
+        except Exception:
+            logger.warning('can not clean pid file: ' + str(pid_path))
+
+        if os.path.isfile(pid_path):
+            try:
+                os.unlink(pid_path)
+            except Exception:
+                pass
+
+    logging.shutdown()
+    os._exit(status)
+
+def exit_handler(signal_number, frame):
+    cleanup()
+
+saved_pid_path = None
+
+def set_pid_path(pid_path):
+    global saved_pid_path
+    saved_pid_path = pid_path
+
+def get_pid_path():
+    global saved_pid_path
+    return saved_pid_path
+
+saved_daemon_name = None
+
+def set_daemon_name(daemon_name):
+    global saved_daemon_name
+    saved_daemon_name = daemon_name
+
+def get_daemon_name():
+    global saved_daemon_name
+    return saved_daemon_name
 

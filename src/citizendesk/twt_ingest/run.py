@@ -6,10 +6,12 @@
 MONGODB_SERVER_HOST = 'localhost'
 MONGODB_SERVER_PORT = 27017
 
+DB_NAME = 'citizendesk'
+
+DEFAULT_HOST = 'localhost'
 DEFAULT_PORT = 9055
 
 import os, sys, datetime, json, logging
-import atexit
 from collections import namedtuple
 try:
     from flask import Flask, request, Blueprint
@@ -22,36 +24,39 @@ except:
     logging.error('MongoDB support is not installed')
     os._exit(1)
 
-DB_NAME = 'citizendesk'
-
 app = Flask(__name__)
 
-def prepare_reporting(dbname):
+def prepare_reporting(mongo_addr, dbname):
     from citizendesk.reporting.dbc import mongo_dbs
     from citizendesk.twt_ingest.connect import twt_take
 
     mongo_dbs.set_dbname(dbname)
     DbHolder = namedtuple('DbHolder', 'db')
-    mongo_dbs.set_db(DbHolder(db=MongoClient(MONGODB_SERVER_HOST, MONGODB_SERVER_PORT)[mongo_dbs.get_dbname()]))
+    mongo_dbs.set_db(DbHolder(db=MongoClient(mongo_addr[0], mongo_addr[1])[mongo_dbs.get_dbname()]))
 
     app.register_blueprint(twt_take)
 
 @app.errorhandler(404)
 def page_not_found(error):
+    from citizendesk.reporting.utils import get_client_ip
 
     for part in [request.url, request.method, request.path, request.full_path, request.content_type, request.get_data()]:
-        sys.stderr.write(str(part))
-        sys.stderr.write('\n\n')
+        logger.info('page not found: ' + str(request.method) + ' on ' + str(request.url) + ', by ' + str(get_client_ip()))
 
     return 'page_not_found.html', 404
 
-def run_flask(dbname, host='localhost', port=DEFAULT_PORT, lockfile='', debug=False):
-    prepare_reporting(dbname)
-    app.run(host=host, port=port, debug=debug)
+def run_flask(dbname, server, mongo, debug=False):
+    prepare_reporting(mongo, dbname)
+    app.run(host=server[0], port=server[1], debug=debug)
 
 if __name__ == '__main__':
     file_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.dirname(os.path.dirname(file_dir)))
+    from citizendesk.reporting.utils import setup_logger
 
-    run_flask(DB_NAME, host='localhost', port=DEFAULT_PORT, lockfile='', debug=True)
+    default_server = (DEFAULT_HOST, DEFAULT_PORT)
+    default_mongo = (MONGODB_SERVER_HOST, MONGODB_SERVER_PORT)
+
+    setup_logger()
+    run_flask(DB_NAME, server=default_server, mongo=default_mongo, debug=True)
 

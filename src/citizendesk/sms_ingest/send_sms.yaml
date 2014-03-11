@@ -1,0 +1,9 @@
+
+method: POST
+
+url: http://sms-sender.localnet:12345/send/sms
+url_unicode: http://sms-sender.localnet:12345/send/unicode_sms
+
+phone_param: phone
+text_param: text
+
