@@ -13,10 +13,17 @@ except:
 collection = 'twt_filters'
 
 schema = {
-    'follow': ['6253282'],
-    'track': ['citizen desk', 'citizendesk'],
-    'locations': [{'west': -74, 'east': -73, 'south': 40, 'north': 41}],
-    'language': 'en'
+    '_id': 1,
+    'spec': {
+        'follow': ['6253282'],
+        'track': ['citizen desk', 'citizendesk'],
+        'locations': [{'west': -74, 'east': -73, 'south': 40, 'north': 41}],
+        'language': 'en'
+    },
+    'logs': {
+        'created': '2014-03-12T12:00:00',
+        'updated': '2014-03-12T12:10:00'
+    }
 }
 
 def do_get_one(db, doc_id):
@@ -109,6 +116,10 @@ def do_post_one(db, doc_id=None, data=None):
     if data is None:
         return (False, 'data not provided')
 
+    if ('spec' not in data) or (type(data['spec']) is not dict):
+        return (False, '"spec" part not provided')
+    spec = data['spec']
+
     if doc_id is not None:
         if doc_id.isdigit():
             try:
@@ -126,19 +137,27 @@ def do_post_one(db, doc_id=None, data=None):
         entry = coll.find_one({'_id': doc_id})
         if not entry:
             return (False, '"filter" of the provided _id not found')
-        if 'created' in entry:
-            created = entry['created']
+        try:
+            if ('logs' in entry) and (entry['logs']) and ('created' in entry['logs']):
+                if entry['logs']['created']:
+                    created = entry['logs']['created']
+        except:
+            created = timepoint
 
     doc = {
-        'created': created,
-        'updated': updated
+        'logs': {
+            'created': created,
+            'updated': updated
+        },
+        'spec': {}
     }
-    for key in schema:
-        doc[key] = None
-        if key in data:
-            doc[key] = data[key]
 
-    res = _check_schema(doc)
+    for key in schema['spec']:
+        doc['spec'][key] = None
+        if key in spec:
+            doc['spec'][key] = spec[key]
+
+    res = _check_schema(doc['spec'])
     if not res[0]:
         return res
 
