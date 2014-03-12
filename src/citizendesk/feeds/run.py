@@ -9,7 +9,7 @@ MONGODB_SERVER_PORT = 27017
 DB_NAME = 'citizendesk'
 
 DEFAULT_HOST = 'localhost'
-DEFAULT_PORT = 9055
+DEFAULT_PORT = 9060
 
 import os, sys, datetime, json, logging
 from collections import namedtuple
@@ -24,22 +24,50 @@ except:
     logging.error('MongoDB support is not installed')
     os._exit(1)
 
+
+class HTTPMethodOverrideMiddleware(object):
+    allowed_methods = frozenset([
+        'GET',
+        'HEAD',
+        'POST',
+        'DELETE',
+        'PUT',
+        'PATCH',
+        'OPTIONS'
+    ])
+    bodyless_methods = frozenset(['GET', 'HEAD', 'OPTIONS', 'DELETE'])
+
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        method = environ.get('HTTP_X_HTTP_METHOD_OVERRIDE', '').upper()
+        if method in self.allowed_methods:
+            method = method.encode('ascii', 'replace')
+            environ['REQUEST_METHOD'] = method
+        if method in self.bodyless_methods:
+            environ['CONTENT_LENGTH'] = '0'
+        return self.app(environ, start_response)
+
 app = Flask(__name__)
+app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
 
 def prepare_reporting(mongo_addr, dbname):
     from citizendesk.reporting.dbc import mongo_dbs
-    from citizendesk.twt_ingest.connect import twt_take
+    import citizendesk.feeds.twt.dispatch as twt_dispatch
 
     mongo_dbs.set_dbname(dbname)
     DbHolder = namedtuple('DbHolder', 'db')
     mongo_dbs.set_db(DbHolder(db=MongoClient(mongo_addr[0], mongo_addr[1])[mongo_dbs.get_dbname()]))
 
-    app.register_blueprint(twt_take)
+    twt_dispatch.setup_blueprints(app)
 
 @app.errorhandler(404)
 def page_not_found(error):
     from citizendesk.reporting.utils import get_client_ip
     from citizendesk.reporting.utils import get_logger
+
+    logger = get_logger()
 
     for part in [request.url, request.method, request.path, request.full_path, request.content_type, request.get_data()]:
         logger.info('page not found: ' + str(request.method) + ' on ' + str(request.url) + ', by ' + str(get_client_ip()))
