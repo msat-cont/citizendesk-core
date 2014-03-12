@@ -27,8 +27,8 @@ except:
 app = Flask(__name__)
 
 def prepare_reporting(mongo_addr, dbname):
-    from citizendesk.reporting.dbc import mongo_dbs
-    from citizendesk.twt_ingest.connect import twt_take
+    from citizendesk.common.dbc import mongo_dbs
+    from citizendesk.ingest.twt.connect import twt_take
 
     mongo_dbs.set_dbname(dbname)
     DbHolder = namedtuple('DbHolder', 'db')
@@ -38,8 +38,8 @@ def prepare_reporting(mongo_addr, dbname):
 
 @app.errorhandler(404)
 def page_not_found(error):
-    from citizendesk.reporting.utils import get_client_ip
-    from citizendesk.reporting.utils import get_logger
+    from citizendesk.common.utils import get_client_ip
+    from citizendesk.common.utils import get_logger
 
     for part in [request.url, request.method, request.path, request.full_path, request.content_type, request.get_data()]:
         logger.info('page not found: ' + str(request.method) + ' on ' + str(request.url) + ', by ' + str(get_client_ip()))
@@ -51,9 +51,9 @@ def run_flask(dbname, server, mongo, debug=False):
     app.run(host=server[0], port=server[1], debug=debug)
 
 if __name__ == '__main__':
-    file_dir = os.path.dirname(os.path.realpath(__file__))
+    file_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     sys.path.append(os.path.dirname(os.path.dirname(file_dir)))
-    from citizendesk.reporting.utils import setup_logger
+    from citizendesk.common.utils import setup_logger
 
     default_server = (DEFAULT_HOST, DEFAULT_PORT)
     default_mongo = (MONGODB_SERVER_HOST, MONGODB_SERVER_PORT)

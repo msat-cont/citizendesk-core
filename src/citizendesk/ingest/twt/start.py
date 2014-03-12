@@ -174,14 +174,14 @@ def run_server():
     run_flask(params.get_db_name(), server=server_address, mongo=mongo_address, debug=False)
 
 if __name__ == '__main__':
-    file_dir = os.path.dirname(os.path.realpath(__file__))
+    file_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     sys.path.append(os.path.dirname(os.path.dirname(file_dir)))
 
     try:
-        from citizendesk.reporting.utils import setup_logger, get_logger, set_allowed_ips
-        from citizendesk.reporting.utils import set_pid_path, set_daemon_name
-        from citizendesk.reporting.utils import daemonize, set_user, cleanup, exit_handler
-        from citizendesk.twt_ingest.run import run_flask
+        from citizendesk.common.utils import setup_logger, get_logger, set_allowed_ips
+        from citizendesk.common.utils import set_pid_path, set_daemon_name
+        from citizendesk.common.utils import daemonize, set_user, cleanup, exit_handler
+        from citizendesk.ingest.twt.run import run_flask
     except:
         sys.stderr.write('citizen modules not installed\n')
         os._exit(1)

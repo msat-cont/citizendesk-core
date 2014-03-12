@@ -85,7 +85,7 @@ value: Dict
 '''
 
 import os, sys, datetime
-from citizendesk.reporting.dbc import mongo_dbs
+from citizendesk.common.dbc import mongo_dbs
 
 COLL_REPORTS = 'reports'
 COLL_CITIZENS = 'citizens'

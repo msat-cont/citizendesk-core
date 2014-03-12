@@ -21,8 +21,8 @@ except:
     sys.stderr.write('Flask module is not avaliable\n')
     os._exit(1)
 
-from citizendesk.reporting.utils import get_logger, get_client_ip, get_allowed_ips
-from citizendesk.reporting.holder import ReportHolder
+from citizendesk.common.utils import get_logger, get_client_ip, get_allowed_ips
+from citizendesk.common.holder import ReportHolder
 
 holder = ReportHolder()
 
@@ -55,7 +55,7 @@ twt_take = Blueprint('twt_take', __name__)
 
 @twt_take.route('/newstwister/tweets/<tweet_id>', defaults={}, methods=['POST'], strict_slashes=False)
 def take_twt(tweet_id):
-    from citizendesk.twt_ingest.process import do_post
+    from citizendesk.ingest.twt.process import do_post
 
     logger = get_logger()
     client_ip = get_client_ip()

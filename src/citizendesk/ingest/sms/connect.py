@@ -10,11 +10,11 @@ except:
     logging.error('Flask module is not avaliable\n')
     os._exit(1)
 
-from citizendesk.reporting.utils import get_client_ip
-from citizendesk.reporting.holder import ReportHolder
+from citizendesk.common.utils import get_client_ip
+from citizendesk.common.holder import ReportHolder
 holder = ReportHolder()
 
-from citizendesk.sms_ingest.sms_replier import send_sms
+from citizendesk.ingest.sms.sms_replier import send_sms
 
 def get_conf(name):
     config = {'feed_type':'SMS', 'feed_conn':'Gammu', 'time_delay':1800}

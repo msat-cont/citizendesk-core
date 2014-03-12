@@ -15,7 +15,7 @@
 
 . /lib/lsb/init-functions
 
-DAEMON=/opt/citizendesk/lib/citizendesk/twt_ingest/start.py
+DAEMON=/opt/citizendesk/lib/citizendesk/ingest/twt/start.py
 PIDFILE=/opt/citizendesk/var/run/twt_ingestd.pid
 LOGFILE=/opt/citizendesk/var/log/citizendesk/twt_ingest.log
 WEBPORT=9055

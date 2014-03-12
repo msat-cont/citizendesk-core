@@ -53,7 +53,7 @@ app = Flask(__name__)
 app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
 
 def prepare_reporting(mongo_addr, dbname):
-    from citizendesk.reporting.dbc import mongo_dbs
+    from citizendesk.common.dbc import mongo_dbs
     import citizendesk.feeds.twt.dispatch as twt_dispatch
 
     mongo_dbs.set_dbname(dbname)
@@ -64,8 +64,8 @@ def prepare_reporting(mongo_addr, dbname):
 
 @app.errorhandler(404)
 def page_not_found(error):
-    from citizendesk.reporting.utils import get_client_ip
-    from citizendesk.reporting.utils import get_logger
+    from citizendesk.common.utils import get_client_ip
+    from citizendesk.common.utils import get_logger
 
     logger = get_logger()
 
@@ -81,7 +81,7 @@ def run_flask(dbname, server, mongo, debug=False):
 if __name__ == '__main__':
     file_dir = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(os.path.dirname(os.path.dirname(file_dir)))
-    from citizendesk.reporting.utils import setup_logger
+    from citizendesk.common.utils import setup_logger
 
     default_server = (DEFAULT_HOST, DEFAULT_PORT)
     default_mongo = (MONGODB_SERVER_HOST, MONGODB_SERVER_PORT)

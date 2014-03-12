@@ -24,8 +24,8 @@ except:
 
 DB_NAME = 'citizendesk'
 
-from citizendesk.reporting.dbc import mongo_dbs
-from citizendesk.sms_ingest.connect import sms_take
+from citizendesk.common.dbc import mongo_dbs
+from citizendesk.ingest.sms.connect import sms_take
 
 app = Flask(__name__)
 

@@ -55,7 +55,7 @@ discarded: []
 '''
 
 import os, sys, datetime, json
-from citizendesk.twt_ingest.connect import get_conf, gen_id, get_tweet
+from citizendesk.ingest.twt.connect import get_conf, gen_id, get_tweet
 
 def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_ip):
 
