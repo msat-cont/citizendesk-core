@@ -43,6 +43,9 @@ def do_get_one(db, doc_id):
     coll = db[collection]
     doc = coll.find_one({'_id': doc_id})
 
+    if not doc:
+        return (False, 'filter spec not found')
+
     return (True, doc)
 
 def do_get_list(db, offset=0, limit=20):

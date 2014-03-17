@@ -3,6 +3,13 @@
 # Citizen Desk
 #
 
+import datetime
+
+try:
+    unicode
+except:
+    unicode = str
+
 INSECURE = True
 
 collection = 'twt_oauths'
@@ -38,11 +45,14 @@ def do_get_one(db, doc_id):
     coll = db[collection]
     doc = coll.find_one({'_id': doc_id})
 
+    if not doc:
+        return (False, 'oauth spec not found')
+
     if INSECURE:
         try:
             for key in doc['spec']:
                 if doc['spec'][key]:
-                    doc['spec'][key] = '***'
+                    doc['spec'][key] = '****' + str(doc['spec'][key])[-4:]
         except:
             pass
 
@@ -70,7 +80,7 @@ def do_get_list(db, offset=0, limit=20):
             try:
                 for key in entry['spec']:
                     if entry['spec'][key]:
-                        entry['spec'][key] = '***'
+                        entry['spec'][key] = '****' + str(entry['spec'][key])[-4:]
             except:
                 pass
 
@@ -79,7 +89,15 @@ def do_get_list(db, offset=0, limit=20):
     return (True, docs)
 
 def _check_schema(doc):
-    return (False, 'not yet implemented')
+
+    for key in schema['spec']:
+        if key not doc:
+            return (False, '"' + str(key) + '" is missing in the data spec')
+        if doc[key] is None:
+            continue
+        if type(doc[key]) not in [str, unicode]:
+            return (False, '"' + str(key) + '" field has to be string')
+    return True
 
 def do_post_one(db, doc_id=None, data=None):
     '''
