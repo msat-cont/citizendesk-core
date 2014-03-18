@@ -5,10 +5,11 @@
 '''
 requests:
 
+GET, POST
 /feeds/twt/filter/
-/feeds/twt/oauth/
-/feeds/twt/stream/
-/feeds/twt/endpoint/
+
+GET, POST, DELETE
+/feeds/twt/filter/<filter_id>/
 
 '''
 

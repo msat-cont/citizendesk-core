@@ -5,11 +5,17 @@
 '''
 requests:
 
-GET, POST
-/feeds/twt/oauth/
+GET, PATCH,
+/feeds/twt/report/<report_id>/
 
-GET, POST, DELETE
-/feeds/twt/oauth/<oauth_id>/
+GET
+/feeds/twt/endpoint/<endpoint_id>/
+
+GET
+/feeds/twt/endpoint/<endpoint_id>/proto/<is_proto>/
+
+GET
+/feeds/twt/session/<session_id>/
 
 '''
 
@@ -24,20 +30,20 @@ except:
 from citizendesk.common.utils import get_logger, get_client_ip, get_allowed_ips
 from citizendesk.common.dbc import mongo_dbs
 
-bp_feed_twt_oauth = Blueprint('bp_feed_twt_oauth', __name__)
+bp_feed_twt_report = Blueprint('bp_feed_twt_report', __name__)
 
 def setup_blueprints(app):
-    app.register_blueprint(bp_feed_twt_oauth)
+    app.register_blueprint(bp_feed_twt_report)
     return
 
-@bp_feed_twt_oauth.route('/feed/twt/oauth/<oauth_id>', defaults={}, methods=['GET'], strict_slashes=False)
-def feed_twt_oauth_get_one(oauth_id):
-    from citizendesk.feeds.twt.oauth import process
+@bp_feed_twt_report.route('/feed/twt/report/<report_id>', defaults={}, methods=['GET'], strict_slashes=False)
+def feed_twt_report_get_one(report_id):
+    from citizendesk.feeds.twt.report import process
 
     logger = get_logger()
     client_ip = get_client_ip()
 
-    res = process.do_get_one(mongo_dbs.get_db().db, oauth_id)
+    res = process.do_get_one(mongo_dbs.get_db().db, report_id)
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
@@ -46,9 +52,10 @@ def feed_twt_oauth_get_one(oauth_id):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_oauth.route('/feed/twt/oauth/', defaults={}, methods=['GET'], strict_slashes=False)
-def feed_twt_oauth_get_list():
-    from citizendesk.feeds.twt.oauth import process
+@bp_feed_twt_report.route('/feed/twt/endpoint/<endpoint_id>', defaults={'is_proto': None}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_report.route('/feed/twt/endpoint/<endpoint_id>/proto/<is_proto>', defaults={}, methods=['GET'], strict_slashes=False)
+def feed_twt_report_get_list(endpoint_id, is_proto):
+    from citizendesk.feeds.twt.report import process
 
     logger = get_logger()
     client_ip = get_client_ip()
@@ -61,7 +68,7 @@ def feed_twt_oauth_get_list():
             except:
                 params[key] = None
 
-    res = process.do_get_list(mongo_dbs.get_db().db, params['offset'], params['limit'])
+    res = process.do_get_list(mongo_dbs.get_db().db, endpoint_id, is_proto, params['offset'], params['limit'])
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
@@ -70,10 +77,33 @@ def feed_twt_oauth_get_list():
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_oauth.route('/feed/twt/oauth/', defaults={'oauth_id': None}, methods=['POST'], strict_slashes=False)
-@bp_feed_twt_oauth.route('/feed/twt/oauth/<oauth_id>', defaults={}, methods=['POST'], strict_slashes=False)
-def feed_twt_oauth_post_one(oauth_id):
-    from citizendesk.feeds.twt.oauth import process
+@bp_feed_twt_report.route('/feed/twt/session/<session_id>', defaults={}, methods=['GET'], strict_slashes=False)
+def feed_twt_report_get_session(session_id):
+    from citizendesk.feeds.twt.report import process
+
+    logger = get_logger()
+    client_ip = get_client_ip()
+
+    params = {'offset': None, 'limit': None}
+    for key in params:
+        if key in request.args:
+            try:
+                params[key] = int(request.args.get(key))
+            except:
+                params[key] = None
+
+    res = process.do_get_session(mongo_dbs.get_db().db, session_id, params['offset'], params['limit'])
+
+    if not res[0]:
+        ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
+        return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
+
+    ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
+    return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
+
+@bp_feed_twt_report.route('/feed/twt/report/<report_id>', defaults={}, methods=['PATCH'], strict_slashes=False)
+def feed_twt_report_patch_one(report_id):
+    from citizendesk.feeds.twt.report import process
 
     logger = get_logger()
     client_ip = get_client_ip()
@@ -88,23 +118,7 @@ def feed_twt_oauth_post_one(oauth_id):
     if data is None:
         return (json.dumps('provided data are not valid json'), 404, {'Content-Type': 'application/json'})
 
-    res = process.do_post_one(mongo_dbs.get_db().db, oauth_id, data)
-
-    if not res[0]:
-        ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
-        return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
-
-    ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
-    return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
-
-@bp_feed_twt_oauth.route('/feed/twt/oauth/<oauth_id>', defaults={}, methods=['DELETE'], strict_slashes=False)
-def feed_twt_oauth_delete_one(oauth_id):
-    from citizendesk.feeds.twt.oauth import process
-
-    logger = get_logger()
-    client_ip = get_client_ip()
-
-    res = process.do_delete_one(mongo_dbs.get_db().db, oauth_id)
+    res = process.do_patch_one(mongo_dbs.get_db().db, report_id, data)
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}

@@ -8,7 +8,9 @@ requests:
 /feeds/twt/filter/
 /feeds/twt/oauth/
 /feeds/twt/stream/
+/feeds/twt/report/
 /feeds/twt/endpoint/
+/feeds/twt/session/
 
 '''
 
@@ -18,5 +20,11 @@ def setup_blueprints(app):
 
     import citizendesk.feeds.twt.oauth.connect as twt_oauth_connect
     twt_oauth_connect.setup_blueprints(app)
+
+    import citizendesk.feeds.twt.stream.connect as twt_stream_connect
+    twt_stream_connect.setup_blueprints(app)
+
+    import citizendesk.feeds.twt.report.connect as twt_report_connect
+    twt_report_connect.setup_blueprints(app)
 
     return

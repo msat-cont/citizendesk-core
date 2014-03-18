@@ -10,53 +10,23 @@ try:
 except:
     unicode = str
 
-collection = 'twt_filters'
-
-schema = {
-    '_id': 1,
-    'spec': {
-        'follow': ['6253282'],
-        'track': ['citizen desk', 'citizendesk'],
-        'locations': [{'west': -74, 'east': -73, 'south': 40, 'north': 41}],
-        'language': 'en'
-    },
-    'logs': {
-        'created': '2014-03-12T12:00:00',
-        'updated': '2014-03-12T12:10:00'
-    }
-}
+from citizendesk.feeds.twt.filter import collection, schema, get_one
 
 def do_get_one(db, doc_id):
     '''
-    returns data of a single filter spec
+    returns data of a single filter info
     '''
-    if not db:
-        return (False, 'inner application error')
-
-    if doc_id is not None:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
-
-    coll = db[collection]
-    doc = coll.find_one({'_id': doc_id})
-
-    if not doc:
-        return (False, 'filter spec not found')
-
-    return (True, doc)
+    return get_one(db, doc_id)
 
 def do_get_list(db, offset=0, limit=20):
     '''
-    returns data of a set of filter specs
+    returns data of a set of filter infos
     '''
     if not db:
         return (False, 'inner application error')
 
     coll = db[collection]
-    cursor = coll.find()
+    cursor = coll.find().sort([('_id', 1)])
     if offset:
         cursor = cursor.skip(offset)
     if limit:
@@ -70,48 +40,48 @@ def do_get_list(db, offset=0, limit=20):
 
     return (True, docs)
 
-def _check_schema(doc):
+def _check_schema(spec):
 
-        if doc['follow']:
-            if type(doc['follow']) is not list:
-                return (False, '"follow" field has to be list')
-            for value in doc['follow']:
+        if spec['follow']:
+            if type(spec['follow']) is not list:
+                return (False, '"spec.follow" field has to be list')
+            for value in spec['follow']:
                 if type(value) not in [str, unicode]:
-                    return (False, '"follow" field has to be list of strings')
+                    return (False, '"spec.follow" field has to be list of strings')
                 if not value.isdigit():
-                    return (False, '"follow" field values have to be digiatl strings')
-        if doc['track']:
-            if type(doc['track']) is not list:
-                return (False, '"track" field has to be list')
-            for value in doc['track']:
+                    return (False, '"spec.follow" field values have to be digiatl strings')
+        if spec['track']:
+            if type(spec['track']) is not list:
+                return (False, '"spec.track" field has to be list')
+            for value in spec['track']:
                 if type(value) not in [str, unicode]:
-                    return (False, '"track" field has to be list of strings')
+                    return (False, '"spec.track" field has to be list of strings')
                 if ',' in value:
-                    return (False, '"track" field values can not contain comma "," since it is used as a value separator')
-        if doc['locations']:
-            if type(doc['locations']) is not list:
-                return (False, '"locations" field has to be list')
-            for value in doc['locations']:
+                    return (False, '"spec.track" field values can not contain comma "," since it is used as a value separator')
+        if spec['locations']:
+            if type(spec['locations']) is not list:
+                return (False, '"spec.locations" field has to be list')
+            for value in spec['locations']:
                 if type(value) not in [dict]:
-                    return (False, '"locations" field has to be list of dicts')
+                    return (False, '"spec.locations" field has to be list of dicts')
                 location_keys = ['west', 'east', 'north', 'south']
                 for key in location_keys:
                     if not key in value:
-                        return (False, '"locations" field value lacks ' + str(key) + ' key')
+                        return (False, '"spec.locations" field value lacks ' + str(key) + ' key')
                 for key in value:
                     if key not in location_keys:
-                        return (False, '"locations" field values only have to have "west", "east", "south", "north" keys')
+                        return (False, '"spec.locations" field values only have to have "west", "east", "south", "north" keys')
                     if type(value[key]) is not int:
-                        return (False, '"locations" field value keys have to be integers')
-        if doc['language']:
-            if type(doc['language']) not in [str, unicode]:
-                return (False, '"language" field has to be string')
+                        return (False, '"spec.locations" field value keys have to be integers')
+        if spec['language']:
+            if type(spec['language']) not in [str, unicode]:
+                return (False, '"spec.language" field has to be string')
 
         return (True,)
 
 def do_post_one(db, doc_id=None, data=None):
     '''
-    sets data of a single filter spec
+    sets data of a single filter info
     '''
     if not db:
         return (False, 'inner application error')
@@ -179,7 +149,7 @@ def do_post_one(db, doc_id=None, data=None):
 
 def do_delete_one(db, doc_id):
     '''
-    deletes data of a single filter spec
+    deletes data of a single filter info
     '''
     if not db:
         return (False, 'inner application error')

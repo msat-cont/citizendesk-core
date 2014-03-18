@@ -5,37 +5,21 @@
 
 import datetime
 try:
-    from citizendesk.external.feeds.twt import newstwisterc as control
+    from citizendesk.feeds.twt.external import newstwister as controller
 except:
-    control = None
+    controller = None
 
 try:
     unicode
 except:
     unicode = str
 
-#STATUS_IDLE = 0
-#STATUS_WORK = 1
+try:
+    long
+except:
+    long = int
 
-collection = 'twt_streams'
-
-schema = {
-    '_id': 1,
-    'spec': {
-        'oauth_id': '_id of oauth spec',
-        'filter_id': '_id of filter spec',
-        'desc': 'the purpose of this stream'
-    },
-    'control': {
-        'streamer_url': 'http://localhost:9054/',
-        'process_id': 'under which system id the stream runs',
-        'works': 'controls whether stream is active'
-    },
-    'logs': {
-        'created': '2014-03-12T12:00:00',
-        'updated': '2014-03-12T12:00:00'
-    }
-}
+from citizendesk.feeds.twt.stream import collection, schema
 
 '''
 For this case, we have to check the status(es) on each GET request.
@@ -47,7 +31,7 @@ def do_get_one(db, doc_id):
     '''
     returns data of a single stream info
     '''
-    if not control:
+    if not controller:
         return (False, 'external controller not available')
     if not db:
         return (False, 'inner application error')
@@ -64,25 +48,35 @@ def do_get_one(db, doc_id):
 
     if not doc:
         return (False, 'stream info not found')
+
+    might_run = True
+    if ('control' not in doc) or (type(doc['control']) is not dict):
+        might_run = False
+
+    if might_run:
+        for key in schema['control']:
+            if (key not in doc['control']) or (not doc['control'][key]):
+                might_run = False
+                break
+
+    if might_run:
+        connector = controller.NewstwisterConnector(doc['control']['stream_url'])
+        res = connector.request_status(doc['control']['process_id'])
+        # let None here when can not check that it runs
+        if res is not None:
+            doc['control']['switch_on'] = True if res else False
+        else:
+            doc['control']['switch_on'] = None
+        if res is False:
+            # update info in db when we know it has been stopped
+            timepoint = datetime.datetime.utcnow()
+            update_set = {'control.switch_on': False, 'control.process_id': None, 'logs.stopped': timepoint}
+            coll.update({'_id': doc_id}, {'$set': update_set}, upsert=False)
+
     if ('spec' not in doc) or (type(doc['spec']) is not dict):
         return (False, 'wrong stream info (spec) in db')
     if ('control' not in doc) or (type(doc['control']) is not dict):
         return (False, 'wrong stream info (control) in db')
-
-    might_run = True
-    for key in schema['control']:
-        if (key not in doc['control']) or (not doc['control'][key]):
-            might_run = False
-            break
-
-    if might_run:
-        connector = control.NewstwisterConnector(doc['control']['stream_url'])
-        res = connector.request_status(doc['control']['process_id'])
-        # let None here when can not check that it runs
-        doc['control']['status'] = res
-        if res is False:
-            # update info in db when we know it does not run even though db says otherwise
-            pass
 
     return (True, doc)
 
@@ -90,13 +84,13 @@ def do_get_list(db, offset=0, limit=20):
     '''
     returns data of a set of stream control
     '''
-    if not control:
+    if not controller:
         return (False, 'external controller not available')
     if not db:
         return (False, 'inner application error')
 
     coll = db[collection]
-    cursor = coll.find()
+    cursor = coll.find().sort([('_id', 1)])
     if offset:
         cursor = cursor.skip(offset)
     if limit:
@@ -107,36 +101,59 @@ def do_get_list(db, offset=0, limit=20):
         if not entry:
             continue
         if ('spec' not in entry) or (type(entry['spec']) is not dict):
-            docs.append(entry)
             continue
-        if ('stream_url' in entry['spec']) and entry['spec']['stream_url']:
-            stream_url = entry['spec']['stream_url']
-            connector = control.NewstwisterConnector(stream_url)
-            res = connector.request_status(entry['_id'])
-            if res is None:
-                return (False, 'could not get stream status')
-            entry['spec']['status'] = bool(res)
+        if ('control' not in entry) or (type(entry['control']) is not dict):
+            continue
+
+        might_run = True
+        for key in schema['control']:
+            if (key not in entry['control']) or (not entry['control'][key]):
+                might_run = False
+                break
+
+        if might_run:
+            connector = controller.NewstwisterConnector(entry['control']['stream_url'])
+            res = connector.request_status(entry['control']['process_id'])
+            # let None here when can not check that it runs
+            if res is not None:
+                entry['control']['switch_on'] = True if res else False
+            else:
+                entry['control']['switch_on'] = None
+            if res is False:
+                # update info in db when we know it has been stopped
+                timepoint = datetime.datetime.utcnow()
+                update_set = {'control.switch_on': False, 'control.process_id': None, 'logs.stopped': timepoint}
+                coll.update({'_id': entry['_id']}, {'$set': update_set}, upsert=False)
 
         docs.append(entry)
 
     return (True, docs)
 
-def _check_schema(doc):
+def _check_schema(spec, ctrl):
 
-    for key in schema['spec']:
-        if key not doc:
-            return (False, '"' + str(key) + '" is missing in the data spec')
-        if doc[key] is None:
-            continue
-        if type(doc[key]) not in [str, unicode]:
-            return (False, '"' + str(key) + '" field has to be string')
+    if spec:
+        if ('oauth_id' in spec) and (spec['oauth_id'] is not None):
+            if type(spec['oauth_id']) not in [int, long]:
+                return (False, '"spec.oauth_id" has to be integer _id of oauth info')
+        if ('filter_id' in spec) and (spec['filter_id'] is not None):
+            if type(spec['filter_id']) not in [int, long]:
+                return (False, '"spec.filter_id" has to be integer _id of filter info')
+
+    if ctrl:
+        if ('streamer_url' in spec) and (spec['streamer_url'] is not None):
+            if type(spec['streamer_url']) not in [str, unicode]:
+                return (False, '"control.streamer_url" has to be string')
+        if ('switch_on' in spec) and (spec['switch_on'] is not None):
+            if type(spec['switch_on']) not in [bool]:
+                return (False, '"control.switch_on" has to be boolean')
+
     return True
 
 def do_post_one(db, doc_id=None, data=None):
     '''
     sets data of a single stream info
     '''
-    if not control:
+    if not controller:
         return (False, 'external controller not available')
     if not db:
         return (False, 'inner application error')
@@ -146,7 +163,6 @@ def do_post_one(db, doc_id=None, data=None):
 
     if ('spec' not in data) or (type(data['spec']) is not dict):
         return (False, '"spec" part not provided')
-    spec = data['spec']
 
     if doc_id is not None:
         if doc_id.isdigit():
@@ -160,6 +176,8 @@ def do_post_one(db, doc_id=None, data=None):
     timepoint = datetime.datetime.utcnow()
     created = timepoint
     updated = timepoint
+    started = None
+    stopped = None
 
     entry = None
     if doc_id is not None:
@@ -167,18 +185,31 @@ def do_post_one(db, doc_id=None, data=None):
         if not entry:
             return (False, '"stream" of the provided _id not found')
         try:
-            if ('logs' in entry) and (entry['logs']) and ('created' in entry['logs']):
-                if entry['logs']['created']:
+            if ('logs' in entry) and (entry['logs']):
+                if ('created' in entry['logs']) and entry['logs']['created']:
                     created = entry['logs']['created']
+                if ('started' in entry['logs']) and entry['logs']['started']:
+                    started = entry['logs']['started']
+                if ('stopped' in entry['logs']) and entry['logs']['stopped']:
+                    started = entry['logs']['stopped']
         except:
             created = timepoint
+            started = None
+            stopped = None
 
     doc = {
         'logs': {
             'created': created,
-            'updated': updated
+            'updated': updated,
+            'started': started,
+            'stopped': stopped
         },
-        'spec': {}
+        'spec': {},
+        'control': {
+            'streamer_url': None,
+            'process_id': None,
+            'switch_on': False
+        }
     }
 
     for key in schema['spec']:
@@ -186,45 +217,35 @@ def do_post_one(db, doc_id=None, data=None):
         if key in spec:
             doc['spec'][key] = spec[key]
 
-    res = _check_schema(doc['spec'])
+    res = _check_schema(doc['spec'], None)
     if not res[0]:
         return res
 
-    # TODO: load the data
-    oauth_spec = {}
-    filter_spec = {}
-    if doc['spec']['oauth_id'] and not oauth_spec:
-        return (False, '"oauth_id" not found')
-    if doc['spec']['filter_id'] and not filter_spec:
-        return (False, '"filter_id" not found')
+    # stop in any case, since filter/oauth specs might have changed
+    might_run = True
+    if not entry:
+        might_run = False
 
-    # restart on any case when it should run, since filter/oauth specs might have changed
-    differs = False
-    if doc['spec']['status'] in [STATUS_WORK]:
-        if oauth_spec and filter_spec:
-            differs = True
+    if might_run:
+        if ('control' not in entry) or (type(entry['control']) is not dict):
+            might_run = False
 
-    '''
-    if (doc_id is not None) and entry and ('spec' in entry) and (type(entry['spec']) is dict):
-        if ('status' in entry['spec']) and (entry['spec']['status'] in [STATUS_WORK]):
-        entry['spec']
-        for key in ['oauth_id', 'filter_id', 'stream_url', 'status']:
-            if key not in entry['spec']:
-                differs = True
+    if might_run:
+        for key in schema['control']:
+            if (key not in entry['control']) or (not entry['control'][key]):
+                might_run = False
                 break
-            if key not in doc['spec']:
-                differs = True
-                break
-            if entry['spec'][key] != doc['spec'][key]:
-                differs = True
-                break
-    '''
 
-    if differs:
-        connector = control.NewstwisterConnector(entry['spec']['stream_url'])
-        res = connector.request_stop(doc_id)
-        if (res is None) or res:
-            return (False, 'can not stop the previously setup stream')
+    if might_run:
+        connector = controller.NewstwisterConnector(entry['control']['stream_url'])
+        res = connector.request_stop(entry['control']['process_id'])
+        if not res:
+            return (False, 'can not stop the stream')
+        # update info in db when we know it has been stopped
+        timepoint = datetime.datetime.utcnow()
+        doc['logs']['stopped'] = timepoint
+        update_set = {'control.switch_on': False, 'control.process_id': None, 'logs.stopped': timepoint}
+        coll.update({'_id': entry['_id']}, {'$set': update_set}, upsert=False)
 
     if not doc_id:
         try:
@@ -237,16 +258,135 @@ def do_post_one(db, doc_id=None, data=None):
 
     doc_id = coll.save(doc)
 
-    if ('stream_url' in doc['spec']) and doc['spec']['stream_url']:
-        if ('status' in doc['spec']) and doc['spec']['status']:
-            connector = control.NewstwisterConnector(doc['spec']['stream_url'])
-            res = connector.request_start(doc_id, {'oauth_spec': oauth_spec, 'filter_spec': filter_spec})
-            if not res:
-                #coll.remove({'_id': doc_id})
-                # TODO: set status to STATUS_IDLE
-                if differs:
-                    return (False, 'can not restart the stream')
-                return (False, 'can not start the stream')
+    return (True, {'_id': doc_id})
+
+def do_patch_one(db, doc_id=None, data=None):
+    '''
+    starts/stops the stream
+    '''
+    try:
+        import citizendesk.feeds.twt.filter.storage.get_one as filter_get_one
+    except:
+        return (False, 'filter processor not available')
+    try:
+        import citizendesk.feeds.twt.oauth.storage.get_one as oauth_get_one
+    except:
+        return (False, 'oauth processor not available')
+
+    if not controller:
+        return (False, 'external controller not available')
+    if not db:
+        return (False, 'inner application error')
+
+    if data is None:
+        return (False, 'data not provided')
+
+    if ('control' not in data) or (type(data['control']) is not dict):
+        return (False, '"control" part not provided')
+
+    if doc_id is not None:
+        return (False, 'stream _id not provided')
+
+    if doc_id.isdigit():
+        try:
+            doc_id = int(doc_id)
+        except:
+            pass
+
+    coll = db[collection]
+
+    entry = coll.find_one({'_id': doc_id})
+    if not entry:
+        return (False, '"stream" of the provided _id not found')
+
+    doc = {'control': {}}
+    for key in schema['control']:
+        doc['control'][key] = None
+        if key in spec:
+            doc['control'][key] = spec[key]
+
+    res = _check_schema(None, doc['control'])
+    if not res[0]:
+        return res
+
+    should_run = False
+    if doc['control']['switch_on']:
+        if doc['control']['streamer_url']:
+            return (False, 'can not start the stream without the "streamer_url" being set')
+        else:
+            should_run = True
+
+    filter_id = None
+    oauth_id = None
+    if should_run:
+        if ('spec' in entry) and (type(entry['spec']) is dict):
+            if 'filter_id' in entry['spec']:
+                filter_id = entry['spec']['filter_id']
+            if 'oauth_id' in entry['spec']:
+                oauth_id = entry['spec']['oauth_id']
+
+        if (not filter_id) or (not oauth_id):
+            return (False, 'Can not start the stream without assigned filter_id and oauth_id')
+
+    # load the supplemental data
+    filter_info = None
+    oauth_info = None
+    if should_run:
+        res = filter_get_one(db, filter_id)
+        if not res[0]:
+            return (False, 'filter info with _id equal to "spec.filter_id" not found')
+        filter_info = res[1]
+        if ('spec' not in filter_info) or (type(filter_info['spec']) is not dict):
+            return (False, 'set filter without "spec" part')
+
+        res = oauth_get_one(db, oauth_id)
+        if not res[0]:
+            return (False, 'oauth info with _id equal to "spec.oauth_id" not found')
+        oauth_info = res[1]
+        if ('spec' not in oauth_info) or (type(oauth_info['spec']) is not dict):
+            return (False, 'set oauth without "spec" part')
+
+    # stop first in any case, since filter/oauth specs might have changed
+    might_run = True
+    if not entry:
+        might_run = False
+
+    if might_run:
+        if ('control' not in entry) or (type(entry['control']) is not dict):
+            might_run = False
+
+    if might_run:
+        for key in schema['control']:
+            if (key not in entry['control']) or (not entry['control'][key]):
+                might_run = False
+                break
+
+    if might_run:
+        cur_stream_url = entry['control']['stream_url']
+        connector = controller.NewstwisterConnector(cur_stream_url)
+        res = connector.request_stop(entry['control']['process_id'])
+        if not res:
+            return (False, 'can not stop the stream')
+        # update info in db when we know it has been stopped
+        timepoint = datetime.datetime.utcnow()
+        update_set = {'control.switch_on': False, 'control.process_id': None, 'logs.stopped': timepoint}
+        coll.update({'_id': doc_id}, {'$set': update_set}, upsert=False)
+
+    if should_run:
+        new_stream_url = doc['spec']['stream_url']
+        connector = controller.NewstwisterConnector(new_stream_url)
+        res = connector.request_start(doc_id, oauth_info['spec'], filter_info['spec'])
+        if not res:
+            return (False, 'can not start the stream')
+        try:
+            proc_id = int(res)
+        except:
+            proc_id = res
+
+        # update info in db when we know it has been started
+        timepoint = datetime.datetime.utcnow()
+        update_set = {'control.switch_on': True, 'control.process_id': proc_id, 'control.stream_url': new_stream_url, 'logs.started': timepoint}
+        coll.update({'_id': doc_id}, {'$set': {update_set}}, upsert=False)
 
     return (True, {'_id': doc_id})
 
@@ -254,31 +394,32 @@ def do_delete_one(db, doc_id):
     '''
     deletes data of a single stream info
     '''
-    if not control:
+    if not controller:
         return (False, 'external controller not available')
     if not db:
         return (False, 'inner application error')
 
-    doc = do_get_one(db, doc_id)
+    coll = db[collection]
+
+    doc = coll.find_one({'_id': doc_id})
     if not doc:
         return (False, 'requested stream not found')
 
-    try:
-        stream_url = doc['spec']['stream_url']
-    except:
-        stream_url = None
-    if not stream_url:
-        return (False, 'requested stream is not setup')
+    might_run = True
+    if ('control' not in doc) or (type(doc['control']) is not dict):
+        might_run = False
 
-    #storage = control.NewstwisterStorage(db)
-    connector = control.NewstwisterConnector(stream_url)
+    if might_run:
+        for key in schema['control']:
+            if (key not in doc['control']) or (not doc['control'][key]):
+                might_run = False
+                break
 
-    #res = connector.request_stop(storage, doc_id)
-    res = connector.request_stop(doc_id)
-    if not res:
-        return (False, 'could not stop the stream')
-
-    coll = db[collection]
+    if might_run:
+        connector = controller.NewstwisterConnector(doc['control']['stream_url'])
+        res = connector.request_stop(doc['control']['process_id'])
+        if not res:
+            return (False, 'can not stop the stream')
 
     coll.remove({'_id': doc_id})
 

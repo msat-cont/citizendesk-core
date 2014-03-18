@@ -10,44 +10,19 @@ try:
 except:
     unicode = str
 
+from citizendesk.feeds.twt.oauth import collection, schema, get_one
+
 INSECURE = True
-
-collection = 'twt_oauths'
-
-schema = {
-    '_id': 1,
-    'spec': {
-        'consumer_key': 'YOUR TWITER Consumer key',
-        'consumer_secret': 'YOUR TWITER Consumer secret',
-        'access_token_key': 'YOUR TWITER Access token',
-        'access_token_secret': 'YOUR TWITER Access token secret'
-    },
-    'logs': {
-        'created': '2014-03-12T12:00:00',
-        'updated': '2014-03-12T12:00:00'
-    }
-}
 
 def do_get_one(db, doc_id):
     '''
-    returns data of a single oauth spec
+    returns data of a single oauth info
     '''
-    if not db:
-        return (False, 'inner application error')
+    res = get_one(db, doc_id)
+    if not res[0]:
+        return res
 
-    if doc_id is not None:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
-
-    coll = db[collection]
-    doc = coll.find_one({'_id': doc_id})
-
-    if not doc:
-        return (False, 'oauth spec not found')
-
+    doc = res[1]
     if INSECURE:
         try:
             for key in doc['spec']:
@@ -60,13 +35,13 @@ def do_get_one(db, doc_id):
 
 def do_get_list(db, offset=0, limit=20):
     '''
-    returns data of a set of oauth specs
+    returns data of a set of oauth infos
     '''
     if not db:
         return (False, 'inner application error')
 
     coll = db[collection]
-    cursor = coll.find()
+    cursor = coll.find().sort([('_id', 1)])
     if offset:
         cursor = cursor.skip(offset)
     if limit:
@@ -88,20 +63,20 @@ def do_get_list(db, offset=0, limit=20):
 
     return (True, docs)
 
-def _check_schema(doc):
+def _check_schema(spec):
 
     for key in schema['spec']:
-        if key not doc:
-            return (False, '"' + str(key) + '" is missing in the data spec')
-        if doc[key] is None:
+        if key not in spec:
+            return (False, '"spec.' + str(key) + '" is missing in the data spec')
+        if spec[key] is None:
             continue
-        if type(doc[key]) not in [str, unicode]:
-            return (False, '"' + str(key) + '" field has to be string')
+        if type(spec[key]) not in [str, unicode]:
+            return (False, '"spec.' + str(key) + '" field has to be string')
     return True
 
 def do_post_one(db, doc_id=None, data=None):
     '''
-    sets data of a single oauth spec
+    sets data of a single oauth info
     '''
     if not db:
         return (False, 'inner application error')
@@ -169,7 +144,7 @@ def do_post_one(db, doc_id=None, data=None):
 
 def do_delete_one(db, doc_id):
     '''
-    deletes data of a single oauth spec
+    deletes data of a single oauth info
     '''
     if not db:
         return (False, 'inner application error')
