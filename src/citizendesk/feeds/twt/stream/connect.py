@@ -68,6 +68,8 @@ def feed_twt_stream_get_list():
         return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
 
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
+    if 3 >= len(res):
+        ret_data['_meta']['list'] = res[2]
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
 @bp_feed_twt_stream.route('/feeds/twt/stream/', defaults={'stream_id': None}, methods=['POST'], strict_slashes=False)
@@ -114,7 +116,12 @@ def feed_twt_stream_patch_one(stream_id):
     if data is None:
         return (json.dumps('provided data are not valid json'), 404, {'Content-Type': 'application/json'})
 
-    res = process.do_patch_one(mongo_dbs.get_db().db, stream_id, data)
+    params = {'force': None}
+    for key in params:
+        if key in request.args:
+            params[key] = request.args.get(key)
+
+    res = process.do_patch_one(mongo_dbs.get_db().db, stream_id, data, params['force'])
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}

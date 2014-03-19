@@ -11,6 +11,7 @@ except:
     unicode = str
 
 from citizendesk.feeds.twt.report.storage import collection, schema, FEED_TYPE, CHANNEL_TYPE
+from citizendesk.common.utils import get_boolean as _get_boolean
 
 DEFAULT_LIMIT = 20
 
@@ -33,32 +34,6 @@ def do_get_one(db, doc_id):
 
     return (True, doc)
 
-def _get_boolean(value):
-    if value is None:
-        return None
-
-    if not value:
-        return False
-    if type(value) is bool:
-        return value
-
-    if value in [0, '0']:
-        return False
-    if value in [1, '1']:
-        return True
-
-    if type(value) in [str, unicode]:
-        if value.startswith('t'):
-            return True
-        if value.startswith('T'):
-            return True
-        if value.startswith('f'):
-            return False
-        if value.startswith('F'):
-            return False
-
-    return None
-
 def do_get_list(db, stream_id, proto=None, offset=None, limit=None):
     '''
     returns data of a set of reports saved by the stream
@@ -77,6 +52,8 @@ def do_get_list(db, stream_id, proto=None, offset=None, limit=None):
     coll = db[collection]
     cursor = coll.find(list_spec).sort([('produced', 1)])
 
+    total = cursor.count()
+
     if limit is None:
         limit = DEFAULT_LIMIT
 
@@ -91,7 +68,7 @@ def do_get_list(db, stream_id, proto=None, offset=None, limit=None):
             continue
         docs.append(entry)
 
-    return (True, docs)
+    return (True, docs, {'total': total})
 
 def do_get_session(db, session, offset=None, limit=None):
     '''
@@ -105,6 +82,8 @@ def do_get_session(db, session, offset=None, limit=None):
     coll = db[collection]
     cursor = coll.find(list_spec).sort([('produced', 1)])
 
+    total = cursor.count()
+
     if limit is None:
         limit = DEFAULT_LIMIT
 
@@ -119,7 +98,7 @@ def do_get_session(db, session, offset=None, limit=None):
             continue
         docs.append(entry)
 
-    return (True, docs)
+    return (True, docs, {'total': total})
 
 def do_patch_one(db, doc_id=None, data=None):
     '''

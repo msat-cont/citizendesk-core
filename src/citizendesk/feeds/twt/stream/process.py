@@ -20,6 +20,7 @@ except:
     long = int
 
 from citizendesk.feeds.twt.stream.storage import collection, schema
+from citizendesk.common.utils import get_boolean as _get_boolean
 
 DEFAULT_LIMIT = 20
 
@@ -94,6 +95,8 @@ def do_get_list(db, offset=None, limit=None):
     coll = db[collection]
     cursor = coll.find().sort([('_id', 1)])
 
+    total = cursor.count()
+
     if limit is None:
         limit = DEFAULT_LIMIT
 
@@ -133,7 +136,7 @@ def do_get_list(db, offset=None, limit=None):
 
         docs.append(entry)
 
-    return (True, docs)
+    return (True, docs, {'total': total})
 
 def _check_schema(spec, ctrl):
 
@@ -273,7 +276,7 @@ def _prepare_filter(filter_spec):
 
     if ('language' in filter_spec) and filter_spec['language']:
         if type(filter_spec['language']) in [str, unicode]:
-            filter_use['language'] = filter_apec['language']
+            filter_use['language'] = filter_spec['language']
 
     if ('locations' in filter_spec) and (type(filter_spec['locations']) is list):
         locations = []
@@ -308,7 +311,7 @@ def _prepare_filter(filter_spec):
 
     return filter_use
 
-def do_patch_one(db, doc_id=None, data=None):
+def do_patch_one(db, doc_id=None, data=None, force=None):
     '''
     starts/stops the stream
     '''
@@ -342,6 +345,11 @@ def do_patch_one(db, doc_id=None, data=None):
             doc_id = int(doc_id)
         except:
             pass
+
+    try:
+        force_val = bool(_get_boolean(force))
+    except:
+        force_val = None
 
     coll = db[collection]
 
@@ -405,6 +413,12 @@ def do_patch_one(db, doc_id=None, data=None):
         except:
             return (False, 'can not prepare filter params')
 
+    # check if the oauth_id is not used by any other running feed
+    if should_run:
+        running_count = coll.find({'spec.oauth_id': oauth_id, 'control.switch_on': True, '_id': {'$ne': doc_id}}).count()
+        if running_count:
+            return (False, 'the "oauth_id" is already used at a running stream')
+
     # stop first in any case, since filter/oauth specs might have changed
     might_run = True
     if not entry:
@@ -424,7 +438,7 @@ def do_patch_one(db, doc_id=None, data=None):
         cur_stream_url = entry['control']['streamer_url']
         connector = controller.NewstwisterConnector(cur_stream_url)
         res = connector.request_stop(entry['control']['process_id'])
-        if not res:
+        if (not res) and (not force_val):
             return (False, 'can not stop the stream')
         # update info in db when we know it has been stopped
         timepoint = datetime.datetime.utcnow()

@@ -44,6 +44,8 @@ def do_get_list(db, offset=None, limit=None):
     coll = db[collection]
     cursor = coll.find().sort([('_id', 1)])
 
+    total = cursor.count()
+
     if limit is None:
         limit = DEFAULT_LIMIT
 
@@ -66,7 +68,7 @@ def do_get_list(db, offset=None, limit=None):
 
         docs.append(entry)
 
-    return (True, docs)
+    return (True, docs, {'total': total})
 
 def _check_schema(spec):
 

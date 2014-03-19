@@ -68,6 +68,8 @@ def feed_twt_filter_get_list():
         return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
 
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
+    if 3 >= len(res):
+        ret_data['_meta']['list'] = res[2]
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
 @bp_feed_twt_filter.route('/feeds/twt/filter/', defaults={'filter_id': None}, methods=['POST'], strict_slashes=False)

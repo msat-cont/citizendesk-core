@@ -113,6 +113,32 @@ def get_client_ip():
 
     return remote_ip
 
+def get_boolean(value):
+    if value is None:
+        return None
+
+    if not value:
+        return False
+    if type(value) is bool:
+        return value
+
+    if value in [0, '0']:
+        return False
+    if value in [1, '1']:
+        return True
+
+    if type(value) in [str, unicode]:
+        if value.startswith('t'):
+            return True
+        if value.startswith('T'):
+            return True
+        if value.startswith('f'):
+            return False
+        if value.startswith('F'):
+            return False
+
+    return None
+
 def daemonize(work_dir, pid_path):
     global logger
 
