@@ -13,6 +13,7 @@ except:
 from citizendesk.feeds.twt.oauth.storage import collection, schema, get_one
 
 INSECURE = True
+DEFAULT_LIMIT = 20
 
 def do_get_one(db, doc_id):
     '''
@@ -33,7 +34,7 @@ def do_get_one(db, doc_id):
 
     return (True, doc)
 
-def do_get_list(db, offset=0, limit=20):
+def do_get_list(db, offset=None, limit=None):
     '''
     returns data of a set of oauth infos
     '''
@@ -42,6 +43,10 @@ def do_get_list(db, offset=0, limit=20):
 
     coll = db[collection]
     cursor = coll.find().sort([('_id', 1)])
+
+    if limit is None:
+        limit = DEFAULT_LIMIT
+
     if offset:
         cursor = cursor.skip(offset)
     if limit:
@@ -72,7 +77,7 @@ def _check_schema(spec):
             continue
         if type(spec[key]) not in [str, unicode]:
             return (False, '"spec.' + str(key) + '" field has to be string')
-    return True
+    return (True,)
 
 def do_post_one(db, doc_id=None, data=None):
     '''
@@ -148,6 +153,13 @@ def do_delete_one(db, doc_id):
     '''
     if not db:
         return (False, 'inner application error')
+
+    if doc_id is not None:
+        if doc_id.isdigit():
+            try:
+                doc_id = int(doc_id)
+            except:
+                pass
 
     coll = db[collection]
 

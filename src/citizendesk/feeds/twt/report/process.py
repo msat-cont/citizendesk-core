@@ -12,6 +12,8 @@ except:
 
 from citizendesk.feeds.twt.report.storage import collection, schema, FEED_TYPE, CHANNEL_TYPE
 
+DEFAULT_LIMIT = 20
+
 '''
 Here we should list (saved) reports filtered according to _id of the requested stream.
 '''
@@ -32,6 +34,9 @@ def do_get_one(db, doc_id):
     return (True, doc)
 
 def _get_boolean(value):
+    if value is None:
+        return None
+
     if not value:
         return False
     if type(value) is bool:
@@ -54,24 +59,26 @@ def _get_boolean(value):
 
     return None
 
-def do_get_list(db, stream_id, proto=None, offset=0, limit=20):
+def do_get_list(db, stream_id, proto=None, offset=None, limit=None):
     '''
     returns data of a set of reports saved by the stream
     '''
     if not db:
         return (False, 'inner application error')
 
-    try:
-        proto = bool(_get_boolean(proto))
-    except:
-        proto = None
-
     list_spec = {'feed_type': FEED_TYPE, 'channels': {'$elemMatch': {'type': CHANNEL_TYPE, 'value': stream_id}}}
     if proto is not None:
+        try:
+            proto = bool(_get_boolean(proto))
+        except:
+            return (False, 'the "proto" specifier has to be a boolean value')
         list_spec['proto'] = proto
 
     coll = db[collection]
     cursor = coll.find(list_spec).sort([('produced', 1)])
+
+    if limit is None:
+        limit = DEFAULT_LIMIT
 
     if offset:
         cursor = cursor.skip(offset)
@@ -86,7 +93,7 @@ def do_get_list(db, stream_id, proto=None, offset=0, limit=20):
 
     return (True, docs)
 
-def do_get_session(db, session, offset=0, limit=20):
+def do_get_session(db, session, offset=None, limit=None):
     '''
     returns data of a set of reports saved by the stream
     '''
@@ -97,6 +104,9 @@ def do_get_session(db, session, offset=0, limit=20):
 
     coll = db[collection]
     cursor = coll.find(list_spec).sort([('produced', 1)])
+
+    if limit is None:
+        limit = DEFAULT_LIMIT
 
     if offset:
         cursor = cursor.skip(offset)
@@ -121,15 +131,22 @@ def do_patch_one(db, doc_id=None, data=None):
     if data is None:
         return (False, 'data not provided')
 
+    if doc_id is not None:
+        if doc_id.isdigit():
+            try:
+                doc_id = int(doc_id)
+            except:
+                pass
+
     if type(data) is not dict:
         return (False, 'data should be a dict')
-    if 'proto' not in data:
+    if ('proto' not in data) or (data['proto'] is None):
         return (False, 'data should contain a "proto" field')
 
     try:
         proto = bool(_get_boolean(data['proto']))
     except:
-        return (False, 'the "proto" parameter has to be boolean value')
+        return (False, 'the "proto" field has to be a boolean value')
 
     res = do_get_one(db, doc_id)
     if not res[0]:

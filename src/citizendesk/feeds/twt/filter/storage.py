@@ -15,7 +15,7 @@ collection = 'twt_filters'
 schema = {
     '_id': 1,
     'spec': {
-        'follow': ['6253282'],
+        'follow': [6253282],
         'track': ['citizen desk', 'citizendesk'],
         'locations': [{'west': -74, 'east': -73, 'south': 40, 'north': 41}],
         'language': 'en'
@@ -33,7 +33,7 @@ def get_one(db, doc_id):
     if not db:
         return (False, 'inner application error')
 
-    if doc_id is not None:
+    if type(doc_id) in [str, unicode]:
         if doc_id.isdigit():
             try:
                 doc_id = int(doc_id)

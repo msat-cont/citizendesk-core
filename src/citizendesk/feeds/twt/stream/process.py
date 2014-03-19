@@ -21,6 +21,8 @@ except:
 
 from citizendesk.feeds.twt.stream.storage import collection, schema
 
+DEFAULT_LIMIT = 20
+
 '''
 For this case, we have to check the status(es) on each GET request.
 And for POST requests, we have to stop the stream first if it is active and anything changes.
@@ -60,7 +62,7 @@ def do_get_one(db, doc_id):
                 break
 
     if might_run:
-        connector = controller.NewstwisterConnector(doc['control']['stream_url'])
+        connector = controller.NewstwisterConnector(doc['control']['streamer_url'])
         res = connector.request_status(doc['control']['process_id'])
         # let None here when can not check that it runs
         if res is not None:
@@ -80,7 +82,7 @@ def do_get_one(db, doc_id):
 
     return (True, doc)
 
-def do_get_list(db, offset=0, limit=20):
+def do_get_list(db, offset=None, limit=None):
     '''
     returns data of a set of stream control
     '''
@@ -91,6 +93,10 @@ def do_get_list(db, offset=0, limit=20):
 
     coll = db[collection]
     cursor = coll.find().sort([('_id', 1)])
+
+    if limit is None:
+        limit = DEFAULT_LIMIT
+
     if offset:
         cursor = cursor.skip(offset)
     if limit:
@@ -112,7 +118,7 @@ def do_get_list(db, offset=0, limit=20):
                 break
 
         if might_run:
-            connector = controller.NewstwisterConnector(entry['control']['stream_url'])
+            connector = controller.NewstwisterConnector(entry['control']['streamer_url'])
             res = connector.request_status(entry['control']['process_id'])
             # let None here when can not check that it runs
             if res is not None:
@@ -140,14 +146,14 @@ def _check_schema(spec, ctrl):
                 return (False, '"spec.filter_id" has to be integer _id of filter info')
 
     if ctrl:
-        if ('streamer_url' in spec) and (spec['streamer_url'] is not None):
-            if type(spec['streamer_url']) not in [str, unicode]:
+        if ('streamer_url' in ctrl) and (ctrl['streamer_url'] is not None):
+            if type(ctrl['streamer_url']) not in [str, unicode]:
                 return (False, '"control.streamer_url" has to be string')
-        if ('switch_on' in spec) and (spec['switch_on'] is not None):
-            if type(spec['switch_on']) not in [bool]:
+        if ('switch_on' in ctrl) and (ctrl['switch_on'] is not None):
+            if type(ctrl['switch_on']) not in [bool]:
                 return (False, '"control.switch_on" has to be boolean')
 
-    return True
+    return (True,)
 
 def do_post_one(db, doc_id=None, data=None):
     '''
@@ -214,8 +220,8 @@ def do_post_one(db, doc_id=None, data=None):
 
     for key in schema['spec']:
         doc['spec'][key] = None
-        if key in spec:
-            doc['spec'][key] = spec[key]
+        if key in data['spec']:
+            doc['spec'][key] = data['spec'][key]
 
     res = _check_schema(doc['spec'], None)
     if not res[0]:
@@ -237,7 +243,7 @@ def do_post_one(db, doc_id=None, data=None):
                 break
 
     if might_run:
-        connector = controller.NewstwisterConnector(entry['control']['stream_url'])
+        connector = controller.NewstwisterConnector(entry['control']['streamer_url'])
         res = connector.request_stop(entry['control']['process_id'])
         if not res:
             return (False, 'can not stop the stream')
@@ -260,16 +266,58 @@ def do_post_one(db, doc_id=None, data=None):
 
     return (True, {'_id': doc_id})
 
+def _prepare_filter(filter_spec):
+    filter_use = {}
+    if type(filter_spec) is not dict:
+        return filter_use
+
+    if ('language' in filter_spec) and filter_spec['language']:
+        if type(filter_spec['language']) in [str, unicode]:
+            filter_use['language'] = filter_apec['language']
+
+    if ('locations' in filter_spec) and (type(filter_spec['locations']) is list):
+        locations = []
+        for item in filter_spec['locations']:
+            if type(item) is not dict:
+                continue
+            can_use_item = True
+            for item_key in ['west', 'east', 'north', 'south']:
+                if item_key not in item:
+                    can_use_item = False
+                    break
+                try:
+                    str(item[item_key])
+                except:
+                    can_use_item = False
+                    break
+            if not can_use_item:
+                continue
+            item_location = ','.join([str(item[x]) for x in ['west', 'south', 'east', 'north']])
+            locations.append(item_location)
+
+        if locations:
+            filter_use['locations'] = ','.join(locations)
+
+    if ('track' in filter_spec) and (type(filter_spec['track']) is list):
+        if filter_spec['track']:
+            filter_use['track'] = ','.join([str(x) for x in filter_spec['track']])
+
+    if ('follow' in filter_spec) and (type(filter_spec['follow']) is list):
+        if filter_spec['follow']:
+            filter_use['follow'] = ','.join([str(x) for x in filter_spec['follow']])
+
+    return filter_use
+
 def do_patch_one(db, doc_id=None, data=None):
     '''
     starts/stops the stream
     '''
     try:
-        import citizendesk.feeds.twt.filter.storage.get_one as filter_get_one
+        from citizendesk.feeds.twt.filter.storage import get_one as filter_get_one
     except:
         return (False, 'filter processor not available')
     try:
-        import citizendesk.feeds.twt.oauth.storage.get_one as oauth_get_one
+        from citizendesk.feeds.twt.oauth.storage import get_one as oauth_get_one
     except:
         return (False, 'oauth processor not available')
 
@@ -280,11 +328,13 @@ def do_patch_one(db, doc_id=None, data=None):
 
     if data is None:
         return (False, 'data not provided')
+    if type(data) is not dict:
+        return (False, 'invalid data provided')
 
     if ('control' not in data) or (type(data['control']) is not dict):
         return (False, '"control" part not provided')
 
-    if doc_id is not None:
+    if doc_id is None:
         return (False, 'stream _id not provided')
 
     if doc_id.isdigit():
@@ -298,12 +348,14 @@ def do_patch_one(db, doc_id=None, data=None):
     entry = coll.find_one({'_id': doc_id})
     if not entry:
         return (False, '"stream" of the provided _id not found')
+    if ('spec' not in entry) or (type(entry['spec']) is not dict):
+        return (False, '"stream" of the provided _id does not contain "spec" part')
 
     doc = {'control': {}}
     for key in schema['control']:
         doc['control'][key] = None
-        if key in spec:
-            doc['control'][key] = spec[key]
+        if key in data['control']:
+            doc['control'][key] = data['control'][key]
 
     res = _check_schema(None, doc['control'])
     if not res[0]:
@@ -311,7 +363,7 @@ def do_patch_one(db, doc_id=None, data=None):
 
     should_run = False
     if doc['control']['switch_on']:
-        if doc['control']['streamer_url']:
+        if not doc['control']['streamer_url']:
             return (False, 'can not start the stream without the "streamer_url" being set')
         else:
             should_run = True
@@ -346,6 +398,13 @@ def do_patch_one(db, doc_id=None, data=None):
         if ('spec' not in oauth_info) or (type(oauth_info['spec']) is not dict):
             return (False, 'set oauth without "spec" part')
 
+    filter_spec = {}
+    if filter_info and filter_info['spec']:
+        try:
+            filter_spec = _prepare_filter(filter_info['spec'])
+        except:
+            return (False, 'can not prepare filter params')
+
     # stop first in any case, since filter/oauth specs might have changed
     might_run = True
     if not entry:
@@ -362,7 +421,7 @@ def do_patch_one(db, doc_id=None, data=None):
                 break
 
     if might_run:
-        cur_stream_url = entry['control']['stream_url']
+        cur_stream_url = entry['control']['streamer_url']
         connector = controller.NewstwisterConnector(cur_stream_url)
         res = connector.request_stop(entry['control']['process_id'])
         if not res:
@@ -373,9 +432,9 @@ def do_patch_one(db, doc_id=None, data=None):
         coll.update({'_id': doc_id}, {'$set': update_set}, upsert=False)
 
     if should_run:
-        new_stream_url = doc['spec']['stream_url']
+        new_stream_url = doc['control']['streamer_url']
         connector = controller.NewstwisterConnector(new_stream_url)
-        res = connector.request_start(doc_id, oauth_info['spec'], filter_info['spec'])
+        res = connector.request_start('stream:' + str(doc_id), oauth_info['spec'], filter_spec)
         if not res:
             return (False, 'can not start the stream')
         try:
@@ -385,8 +444,8 @@ def do_patch_one(db, doc_id=None, data=None):
 
         # update info in db when we know it has been started
         timepoint = datetime.datetime.utcnow()
-        update_set = {'control.switch_on': True, 'control.process_id': proc_id, 'control.stream_url': new_stream_url, 'logs.started': timepoint}
-        coll.update({'_id': doc_id}, {'$set': {update_set}}, upsert=False)
+        update_set = {'control.switch_on': True, 'control.process_id': proc_id, 'control.streamer_url': new_stream_url, 'logs.started': timepoint}
+        coll.update({'_id': doc_id}, {'$set': update_set}, upsert=False)
 
     return (True, {'_id': doc_id})
 
@@ -398,6 +457,13 @@ def do_delete_one(db, doc_id):
         return (False, 'external controller not available')
     if not db:
         return (False, 'inner application error')
+
+    if doc_id is not None:
+        if doc_id.isdigit():
+            try:
+                doc_id = int(doc_id)
+            except:
+                pass
 
     coll = db[collection]
 
@@ -416,7 +482,7 @@ def do_delete_one(db, doc_id):
                 break
 
     if might_run:
-        connector = controller.NewstwisterConnector(doc['control']['stream_url'])
+        connector = controller.NewstwisterConnector(doc['control']['streamer_url'])
         res = connector.request_stop(doc['control']['process_id'])
         if not res:
             return (False, 'can not stop the stream')

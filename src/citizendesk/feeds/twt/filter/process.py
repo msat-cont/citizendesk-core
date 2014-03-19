@@ -10,7 +10,14 @@ try:
 except:
     unicode = str
 
+try:
+    long
+except:
+    long = int
+
 from citizendesk.feeds.twt.filter.storage import collection, schema, get_one
+
+DEFAULT_LIMIT = 20
 
 def do_get_one(db, doc_id):
     '''
@@ -18,7 +25,7 @@ def do_get_one(db, doc_id):
     '''
     return get_one(db, doc_id)
 
-def do_get_list(db, offset=0, limit=20):
+def do_get_list(db, offset=None, limit=None):
     '''
     returns data of a set of filter infos
     '''
@@ -27,6 +34,10 @@ def do_get_list(db, offset=0, limit=20):
 
     coll = db[collection]
     cursor = coll.find().sort([('_id', 1)])
+
+    if limit is None:
+        limit = DEFAULT_LIMIT
+
     if offset:
         cursor = cursor.skip(offset)
     if limit:
@@ -46,10 +57,11 @@ def _check_schema(spec):
             if type(spec['follow']) is not list:
                 return (False, '"spec.follow" field has to be list')
             for value in spec['follow']:
-                if type(value) not in [str, unicode]:
-                    return (False, '"spec.follow" field has to be list of strings')
-                if not value.isdigit():
-                    return (False, '"spec.follow" field values have to be digiatl strings')
+                if type(value) not in [str, unicode, int, long]:
+                    return (False, '"spec.follow" field has to be list of integers')
+                if type(value) in [str, unicode]:
+                    if not value.isdigit():
+                        return (False, '"spec.follow" field values have to be digital is set as strings')
         if spec['track']:
             if type(spec['track']) is not list:
                 return (False, '"spec.track" field has to be list')
@@ -70,9 +82,9 @@ def _check_schema(spec):
                         return (False, '"spec.locations" field value lacks ' + str(key) + ' key')
                 for key in value:
                     if key not in location_keys:
-                        return (False, '"spec.locations" field values only have to have "west", "east", "south", "north" keys')
-                    if type(value[key]) is not int:
-                        return (False, '"spec.locations" field value keys have to be integers')
+                        return (False, '"spec.locations" field value keys have to be "west", "east", "south", "north"')
+                    if type(value[key]) not in [int, long, float]:
+                        return (False, '"spec.locations" field values have to be numbers')
         if spec['language']:
             if type(spec['language']) not in [str, unicode]:
                 return (False, '"spec.language" field has to be string')
@@ -133,6 +145,9 @@ def do_post_one(db, doc_id=None, data=None):
     res = _check_schema(doc['spec'])
     if not res[0]:
         return res
+    if doc['spec']['follow']:
+        follow_ints = [long(x) for x in doc['spec']['follow']]
+        doc['spec']['follow'] = follow_ints
 
     if not doc_id:
         try:
@@ -153,6 +168,13 @@ def do_delete_one(db, doc_id):
     '''
     if not db:
         return (False, 'inner application error')
+
+    if doc_id is not None:
+        if doc_id.isdigit():
+            try:
+                doc_id = int(doc_id)
+            except:
+                pass
 
     coll = db[collection]
 

@@ -33,7 +33,7 @@ def get_one(db, doc_id):
     if not db:
         return (False, 'inner application error')
 
-    if doc_id is not None:
+    if type(doc_id) in [str, unicode]:
         if doc_id.isdigit():
             try:
                 doc_id = int(doc_id)
