@@ -10,7 +10,7 @@ try:
 except:
     unicode = str
 
-from citizendesk.feeds.twt.oauth import collection, schema, get_one
+from citizendesk.feeds.twt.oauth.storage import collection, schema, get_one
 
 INSECURE = True
 

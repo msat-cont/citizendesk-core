@@ -36,7 +36,7 @@ def setup_blueprints(app):
     app.register_blueprint(bp_feed_twt_report)
     return
 
-@bp_feed_twt_report.route('/feed/twt/report/<report_id>', defaults={}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_report.route('/feeds/twt/report/<report_id>', defaults={}, methods=['GET'], strict_slashes=False)
 def feed_twt_report_get_one(report_id):
     from citizendesk.feeds.twt.report import process
 
@@ -52,8 +52,8 @@ def feed_twt_report_get_one(report_id):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_report.route('/feed/twt/endpoint/<endpoint_id>', defaults={'is_proto': None}, methods=['GET'], strict_slashes=False)
-@bp_feed_twt_report.route('/feed/twt/endpoint/<endpoint_id>/proto/<is_proto>', defaults={}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_report.route('/feeds/twt/endpoint/<endpoint_id>', defaults={'is_proto': None}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_report.route('/feeds/twt/endpoint/<endpoint_id>/proto/<is_proto>', defaults={}, methods=['GET'], strict_slashes=False)
 def feed_twt_report_get_list(endpoint_id, is_proto):
     from citizendesk.feeds.twt.report import process
 
@@ -77,7 +77,7 @@ def feed_twt_report_get_list(endpoint_id, is_proto):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_report.route('/feed/twt/session/<session_id>', defaults={}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_report.route('/feeds/twt/session/<session_id>', defaults={}, methods=['GET'], strict_slashes=False)
 def feed_twt_report_get_session(session_id):
     from citizendesk.feeds.twt.report import process
 
@@ -101,7 +101,7 @@ def feed_twt_report_get_session(session_id):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_report.route('/feed/twt/report/<report_id>', defaults={}, methods=['PATCH'], strict_slashes=False)
+@bp_feed_twt_report.route('/feeds/twt/report/<report_id>', defaults={}, methods=['PATCH'], strict_slashes=False)
 def feed_twt_report_patch_one(report_id):
     from citizendesk.feeds.twt.report import process
 

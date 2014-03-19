@@ -10,7 +10,7 @@ try:
 except:
     unicode = str
 
-from citizendesk.feeds.twt.filter import collection, schema, get_one
+from citizendesk.feeds.twt.filter.storage import collection, schema, get_one
 
 def do_get_one(db, doc_id):
     '''

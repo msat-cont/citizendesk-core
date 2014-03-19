@@ -19,7 +19,7 @@ try:
 except:
     long = int
 
-from citizendesk.feeds.twt.stream import collection, schema
+from citizendesk.feeds.twt.stream.storage import collection, schema
 
 '''
 For this case, we have to check the status(es) on each GET request.

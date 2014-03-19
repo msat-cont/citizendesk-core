@@ -10,7 +10,7 @@ try:
 except:
     unicode = str
 
-from citizendesk.feeds.twt.report import collection, schema, FEED_TYPE, CHANNEL_TYPE
+from citizendesk.feeds.twt.report.storage import collection, schema, FEED_TYPE, CHANNEL_TYPE
 
 '''
 Here we should list (saved) reports filtered according to _id of the requested stream.

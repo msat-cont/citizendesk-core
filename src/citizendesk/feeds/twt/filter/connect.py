@@ -30,7 +30,7 @@ def setup_blueprints(app):
     app.register_blueprint(bp_feed_twt_filter)
     return
 
-@bp_feed_twt_filter.route('/feed/twt/filter/<filter_id>', defaults={}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_filter.route('/feeds/twt/filter/<filter_id>', defaults={}, methods=['GET'], strict_slashes=False)
 def feed_twt_filter_get_one(filter_id):
     from citizendesk.feeds.twt.filter import process
 
@@ -46,7 +46,7 @@ def feed_twt_filter_get_one(filter_id):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_filter.route('/feed/twt/filter/', defaults={}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_filter.route('/feeds/twt/filter/', defaults={}, methods=['GET'], strict_slashes=False)
 def feed_twt_filter_get_list():
     from citizendesk.feeds.twt.filter import process
 
@@ -70,8 +70,8 @@ def feed_twt_filter_get_list():
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_filter.route('/feed/twt/filter/', defaults={'filter_id': None}, methods=['POST'], strict_slashes=False)
-@bp_feed_twt_filter.route('/feed/twt/filter/<filter_id>', defaults={}, methods=['POST'], strict_slashes=False)
+@bp_feed_twt_filter.route('/feeds/twt/filter/', defaults={'filter_id': None}, methods=['POST'], strict_slashes=False)
+@bp_feed_twt_filter.route('/feeds/twt/filter/<filter_id>', defaults={}, methods=['POST'], strict_slashes=False)
 def feed_twt_filter_post_one(filter_id):
     from citizendesk.feeds.twt.filter import process
 
@@ -97,7 +97,7 @@ def feed_twt_filter_post_one(filter_id):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_filter.route('/feed/twt/filter/<filter_id>', defaults={}, methods=['DELETE'], strict_slashes=False)
+@bp_feed_twt_filter.route('/feeds/twt/filter/<filter_id>', defaults={}, methods=['DELETE'], strict_slashes=False)
 def feed_twt_filter_delete_one(filter_id):
     from citizendesk.feeds.twt.filter import process
 

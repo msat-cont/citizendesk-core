@@ -14,7 +14,7 @@ DEFAULT_PORT = 9060
 import os, sys, datetime, json, logging
 from collections import namedtuple
 try:
-    from flask import Flask, request, Blueprint
+    from flask import Flask, request, Blueprint, make_response
 except:
     sys.stderr.write('Flask module is not avaliable\n')
     os._exit(1)
@@ -24,6 +24,7 @@ except:
     logging.error('MongoDB support is not installed')
     os._exit(1)
 
+from citizendesk.common.utils import get_logger, get_client_ip, get_allowed_ips
 
 class HTTPMethodOverrideMiddleware(object):
     allowed_methods = frozenset([
@@ -52,6 +53,21 @@ class HTTPMethodOverrideMiddleware(object):
 app = Flask(__name__)
 app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
 
+@app.before_request
+def check_client():
+    logger = get_logger()
+    client_ip = get_client_ip()
+
+    message = '' + str(request.method) + ' request on ' + str(request.url) + ', by ' + str(get_client_ip())
+
+    allowed_ips = get_allowed_ips()
+    if allowed_ips and ('*' not in allowed_ips):
+        if not client_ip in allowed_ips:
+            logger.info('unallowed ' + message)
+            return make_response('Client not allowed\n\n', 403,)
+
+    logger.info('allowed ' + message)
+
 def prepare_reporting(mongo_addr, dbname):
     from citizendesk.common.dbc import mongo_dbs
     import citizendesk.feeds.twt.dispatch as twt_dispatch
@@ -68,9 +84,7 @@ def page_not_found(error):
     from citizendesk.common.utils import get_logger
 
     logger = get_logger()
-
-    for part in [request.url, request.method, request.path, request.full_path, request.content_type, request.get_data()]:
-        logger.info('page not found: ' + str(request.method) + ' on ' + str(request.url) + ', by ' + str(get_client_ip()))
+    logger.info('page not found: ' + str(request.method) + ' on ' + str(request.url) + ', by ' + str(get_client_ip()))
 
     return 'page not found', 404
 

@@ -30,7 +30,7 @@ def setup_blueprints(app):
     app.register_blueprint(bp_feed_twt_stream)
     return
 
-@bp_feed_twt_stream.route('/feed/twt/stream/<stream_id>', defaults={}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_stream.route('/feeds/twt/stream/<stream_id>', defaults={}, methods=['GET'], strict_slashes=False)
 def feed_twt_stream_get_one(stream_id):
     from citizendesk.feeds.twt.stream import process
 
@@ -46,7 +46,7 @@ def feed_twt_stream_get_one(stream_id):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_stream.route('/feed/twt/stream/', defaults={}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_stream.route('/feeds/twt/stream/', defaults={}, methods=['GET'], strict_slashes=False)
 def feed_twt_stream_get_list():
     from citizendesk.feeds.twt.stream import process
 
@@ -70,8 +70,8 @@ def feed_twt_stream_get_list():
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_stream.route('/feed/twt/stream/', defaults={'stream_id': None}, methods=['POST'], strict_slashes=False)
-@bp_feed_twt_stream.route('/feed/twt/stream/<stream_id>', defaults={}, methods=['POST'], strict_slashes=False)
+@bp_feed_twt_stream.route('/feeds/twt/stream/', defaults={'stream_id': None}, methods=['POST'], strict_slashes=False)
+@bp_feed_twt_stream.route('/feeds/twt/stream/<stream_id>', defaults={}, methods=['POST'], strict_slashes=False)
 def feed_twt_stream_post_one(stream_id):
     from citizendesk.feeds.twt.stream import process
 
@@ -97,7 +97,7 @@ def feed_twt_stream_post_one(stream_id):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_stream.route('/feed/twt/stream/<stream_id>', defaults={}, methods=['PATCH'], strict_slashes=False)
+@bp_feed_twt_stream.route('/feeds/twt/stream/<stream_id>', defaults={}, methods=['PATCH'], strict_slashes=False)
 def feed_twt_stream_patch_one(stream_id):
     from citizendesk.feeds.twt.stream import process
 
@@ -123,7 +123,7 @@ def feed_twt_stream_patch_one(stream_id):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_stream.route('/feed/twt/stream/<stream_id>', defaults={}, methods=['DELETE'], strict_slashes=False)
+@bp_feed_twt_stream.route('/feeds/twt/stream/<stream_id>', defaults={}, methods=['DELETE'], strict_slashes=False)
 def feed_twt_stream_delete_one(stream_id):
     from citizendesk.feeds.twt.stream import process
 
