@@ -34,7 +34,35 @@ def do_get_one(db, doc_id):
 
     return (True, doc)
 
-def do_get_list(db, stream_id, proto=None, offset=None, limit=None):
+def _get_sort(param):
+    def_list = []
+
+    if not param:
+        return def_list
+
+    for item in param.split(','):
+        if not item:
+            continue
+        parts = item.split(':')
+        if 2 != len(parts):
+            continue
+        if not parts[0]:
+            continue
+        if not parts[1]:
+            continue
+        order = None
+        if parts[1][0] in ['1', '+', 'a', 'A']:
+            order = 1
+        if parts[1][0] in ['0', '-', 'd', 'D']:
+            order = -1
+        if not order:
+            continue
+
+        def_list.append((parts[0], order))
+
+    return def_list
+
+def do_get_list(db, stream_id, proto=None, offset=None, limit=None, sort=None):
     '''
     returns data of a set of reports saved by the stream
     '''
@@ -49,8 +77,12 @@ def do_get_list(db, stream_id, proto=None, offset=None, limit=None):
             return (False, 'the "proto" specifier has to be a boolean value')
         list_spec['proto'] = proto
 
+    sort_list = _get_sort(sort)
+    if not sort_list:
+        sort_list = [('produced', 1)]
+
     coll = db[collection]
-    cursor = coll.find(list_spec).sort([('produced', 1)])
+    cursor = coll.find(list_spec).sort(sort_list)
 
     total = cursor.count()
 
@@ -134,4 +166,6 @@ def do_patch_one(db, doc_id=None, data=None):
     coll = db[collection]
 
     coll.update({'_id': doc_id}, {'$set': {'proto': proto}}, upsert=False)
+
+    return (True, {'_id': doc_id})
 

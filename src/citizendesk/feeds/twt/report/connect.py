@@ -69,8 +69,12 @@ def feed_twt_report_get_list(endpoint_id, is_proto):
                 params[key] = int(request.args.get(key))
             except:
                 params[key] = None
+    for key in ['sort']:
+        params[key] = None
+        if key in request.args:
+            params[key] = request.args.get(key)
 
-    res = process.do_get_list(mongo_dbs.get_db().db, endpoint_id, is_proto, params['offset'], params['limit'])
+    res = process.do_get_list(mongo_dbs.get_db().db, endpoint_id, is_proto, params['offset'], params['limit'], params['sort'])
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
