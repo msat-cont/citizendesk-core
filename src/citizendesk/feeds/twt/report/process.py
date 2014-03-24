@@ -62,7 +62,7 @@ def _get_sort(param):
 
     return def_list
 
-def do_get_list(db, stream_id, proto=None, offset=None, limit=None, sort=None):
+def do_get_list(db, stream_id, proto=None, offset=None, limit=None, sort=None, other=None):
     '''
     returns data of a set of reports saved by the stream
     '''
@@ -81,6 +81,13 @@ def do_get_list(db, stream_id, proto=None, offset=None, limit=None, sort=None):
     if not sort_list:
         sort_list = [('produced', 1)]
 
+    text_only = False
+    if other and ('text_only' in other) and other['text_only']:
+        try:
+            text_only = bool(_get_boolean(other['text_only']))
+        except:
+            text_only = False
+
     coll = db[collection]
     cursor = coll.find(list_spec).sort(sort_list)
 
@@ -98,7 +105,17 @@ def do_get_list(db, stream_id, proto=None, offset=None, limit=None, sort=None):
     for entry in cursor:
         if not entry:
             continue
-        docs.append(entry)
+        if not text_only:
+            docs.append(entry)
+        else:
+            if (not 'texts' in entry):
+                continue
+            if (not entry['texts']):
+                continue
+            if (type(entry['texts']) not in [list]):
+                continue
+            for one_text in entry['texts']:
+                docs.append(one_text)
 
     return (True, docs, {'total': total})
 
