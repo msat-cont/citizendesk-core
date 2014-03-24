@@ -18,9 +18,17 @@ try:
 except:
     sys.stderr.write('Flask module is not avaliable\n')
     os._exit(1)
+MongoClient = None
 try:
     from pymongo import MongoClient
 except:
+    MongoClient = None
+if not MongoClient:
+    try:
+        from pymongo import Connection as MongoClient
+    except:
+        MongoClient = None
+if not MongoClient:
     logging.error('MongoDB support is not installed')
     os._exit(1)
 

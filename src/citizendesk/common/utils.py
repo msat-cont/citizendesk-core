@@ -38,7 +38,7 @@ def get_logger():
     global logger
     return logger
 
-def get_local_ips(name):
+def get_local_ips():
     # if we should have local ips out of the standard ranges
     return []
 
