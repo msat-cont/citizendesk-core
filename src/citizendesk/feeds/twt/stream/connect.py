@@ -86,7 +86,13 @@ def feed_twt_stream_post_one(stream_id):
             data = None
     except:
         data = None
-
+    if data is None:
+        try:
+            data = request.json
+            if type(data) is not dict:
+                data = None
+        except:
+            data = None
     if data is None:
         return (json.dumps('provided data are not valid json'), 404, {'Content-Type': 'application/json'})
 
@@ -112,7 +118,13 @@ def feed_twt_stream_patch_one(stream_id):
             data = None
     except:
         data = None
-
+    if data is None:
+        try:
+            data = request.json
+            if type(data) is not dict:
+                data = None
+        except:
+            data = None
     if data is None:
         return (json.dumps('provided data are not valid json'), 404, {'Content-Type': 'application/json'})
 

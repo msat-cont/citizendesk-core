@@ -32,8 +32,6 @@ if not MongoClient:
     logging.error('MongoDB support is not installed')
     os._exit(1)
 
-from citizendesk.common.utils import get_logger, get_client_ip, get_allowed_ips
-
 class HTTPMethodOverrideMiddleware(object):
     allowed_methods = frozenset([
         'GET',
@@ -63,6 +61,8 @@ app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
 
 @app.before_request
 def check_client():
+    from citizendesk.common.utils import get_logger, get_client_ip, get_allowed_ips
+
     logger = get_logger()
     client_ip = get_client_ip()
 

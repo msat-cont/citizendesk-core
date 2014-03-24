@@ -118,7 +118,13 @@ def feed_twt_report_patch_one(report_id):
             data = None
     except:
         data = None
-
+    if data is None:
+        try:
+            data = request.json
+            if type(data) is not dict:
+                data = None
+        except:
+            data = None
     if data is None:
         return (json.dumps('provided data are not valid json'), 404, {'Content-Type': 'application/json'})
 

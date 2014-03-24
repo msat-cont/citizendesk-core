@@ -69,9 +69,17 @@ def take_twt(tweet_id):
 
     try:
         json_data = request.get_json(True, False, False)
+        if type(json_data) is not dict:
+            json_data = None
     except:
         json_data = None
-
+    if json_data is None:
+        try:
+            json_data = request.json
+            if type(json_data) is not dict:
+                json_data = None
+        except:
+            json_data = None
     if not json_data:
         logger.info('data not provided in the request')
         return ('Data not provided', 404,)
