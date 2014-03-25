@@ -160,7 +160,12 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
                             one_width = one_size['w']
                             one_height = one_size['h']
                             break
-                    rep_media.append({'link': one_media['expanded_url'], 'width': one_width, 'height': one_height})
+                    rep_media.append({
+                        'link': one_media['media_url'],
+                        'link_ssl': one_media['media_url_https'],
+                        'width': one_width,
+                        'height': one_height
+                    })
                 report['media'] = rep_media
 
             rep_citizens = []

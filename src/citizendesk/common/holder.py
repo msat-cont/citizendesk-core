@@ -257,7 +257,7 @@ class ReportHolder(object):
         for one_media in media_data:
             if type(one_media) is not dict:
                 pass
-            use_media = {'link': None, 'data': None, 'name': None, 'width': None, 'height': None}
+            use_media = {'link': None, 'link_ssl': None, 'data': None, 'name': None, 'width': None, 'height': None}
             use_any = False
             for media_part in use_media:
                 if media_part in one_media:
