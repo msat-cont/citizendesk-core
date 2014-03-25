@@ -41,7 +41,8 @@ citizens: [{type:String, value:String}] # mentioned citizens, i.e. not (necessar
 subjects: [] # who/what are the perpetrators
 media: [] # local binaries with refs
 texts: [] # original textual data
-links: [] # links to referred sites
+sources: [] # links of the report itself
+links: [] # links to referred (external) sites
 transcripts: [] # updated/adjusted texts, by staff journalists
 notices_inner: [{who:String, what:String}] # texts by staff journalists, for internal use
 notices_outer: [{who:String, what:String}] # texts by staff journalists, for display
@@ -207,7 +208,8 @@ class ReportHolder(object):
         document['subjects'] = [] # recognized names
         document['media'] = [] # local binaries with refs, incl. metadata
         document['texts'] = [] # selected text in bml, sent SMS, ...
-        document['links'] = [] # link to bml site, ...
+        document['sources'] = [] # link to bml site, ...
+        document['links'] = [] # link to referred sites, ...
         document['transcripts'] = [] # nothing here
         document['notices_inner'] = [] # nothing here
         document['notices_outer'] = [{'type':'before', 'value':'blah blah'}] # nothing here
@@ -235,7 +237,7 @@ class ReportHolder(object):
                     value = [value]
             document[part] = value
 
-        for part in ['geolocations', 'texts', 'links', 'comments', 'tags']:
+        for part in ['geolocations', 'texts', 'sources', 'links', 'comments', 'tags']:
             value = []
             if part in data:
                 value = data[part]

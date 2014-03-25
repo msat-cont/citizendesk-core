@@ -83,7 +83,8 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
         'publishers': [{'type': get_conf('publisher_type'), 'value': get_conf('publisher_feed')}],
         'session': session_id,
         'proto': True,
-        'original': tweet
+        'original': tweet,
+        'sources': []
     }
     try:
         if 'created_at' in tweet:
@@ -93,6 +94,9 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
         if not report['produced']:
             report['produced'] = datetime.datetime.now()
         report['language'] = tweet['lang']
+
+        if tweet_id and ('user' in tweet) and (type(tweet['user']) is dict) and ('screen_name' in tweet['user']):
+            report['sources'] = ['http://twitter.com/' + str(tweet['user']['screen_name']) + '/status/' + str(tweet_id) + '/']
 
         if 'possibly_sensitive' in tweet:
             report['sensitive'] = tweet['possibly_sensitive']
