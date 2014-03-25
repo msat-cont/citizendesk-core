@@ -213,8 +213,8 @@ class ReportHolder(object):
         document['notices_outer'] = [{'type':'before', 'value':'blah blah'}] # nothing here
         document['comments'] = [] # comment in bml
         document['tags'] = [] # (hash)tags
-        for key in ['geolocations', 'place_names', 'timeline', 'time_names', 'citizens', 'subjects', 'media',
-                    'texts', 'transcripts', 'notices_inner', 'notices_outer', 'comments', 'tags']:
+        for key in ['place_names', 'timeline', 'time_names', 'citizens', 'subjects',
+                    'transcripts', 'notices_inner', 'notices_outer']:
             if key in data:
                 document[key] = data[key]
 
@@ -255,7 +255,7 @@ class ReportHolder(object):
         for one_media in media_data:
             if type(one_media) is not dict:
                 pass
-            use_media = {'link': None, 'data': None, 'name': None}
+            use_media = {'link': None, 'data': None, 'name': None, 'width': None, 'height': None}
             use_any = False
             for media_part in use_media:
                 if media_part in one_media:
@@ -447,7 +447,7 @@ class ReportHolder(object):
         coll = self.get_collection('reports')
 
         timepoint = datetime.datetime.utcnow()
-        coll.update({'_id': report_id}, {'$addToSet': {'publishers': {'$each': channels}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+        coll.update({'_id': report_id}, {'$addToSet': {'publishers': {'$each': publishers}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
 
     def add_endorsers(self, report_id, endorsers):
         if (not report_id) or (not endorsers) or (type(endorsers) is not list):
@@ -455,5 +455,5 @@ class ReportHolder(object):
         coll = self.get_collection('reports')
 
         timepoint = datetime.datetime.utcnow()
-        coll.update({'_id': report_id}, {'$addToSet': {'endorsers': {'$each': channels}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+        coll.update({'_id': report_id}, {'$addToSet': {'endorsers': {'$each': endorsers}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
 
