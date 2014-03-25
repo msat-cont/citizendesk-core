@@ -434,12 +434,12 @@ class ReportHolder(object):
         return reports
 
     def add_channels(self, report_id, channels):
-        if (not report_id) or (not channels) or (type(channles) is not list):
+        if (not report_id) or (not channels) or (type(channels) is not list):
             return
         coll = self.get_collection('reports')
 
         timepoint = datetime.datetime.utcnow()
-        coll.update({'_id': report_id}, {'$addToSet': {'channels': {'$each': channles}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+        coll.update({'_id': report_id}, {'$addToSet': {'channels': {'$each': channels}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
 
     def add_publishers(self, report_id, publishers):
         if (not report_id) or (not publishers) or (type(publishers) is not list):
@@ -447,7 +447,7 @@ class ReportHolder(object):
         coll = self.get_collection('reports')
 
         timepoint = datetime.datetime.utcnow()
-        coll.update({'_id': report_id}, {'$addToSet': {'publishers': {'$each': channles}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+        coll.update({'_id': report_id}, {'$addToSet': {'publishers': {'$each': channels}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
 
     def add_endorsers(self, report_id, endorsers):
         if (not report_id) or (not endorsers) or (type(endorsers) is not list):
@@ -455,5 +455,5 @@ class ReportHolder(object):
         coll = self.get_collection('reports')
 
         timepoint = datetime.datetime.utcnow()
-        coll.update({'_id': report_id}, {'$addToSet': {'endorsers': {'$each': channles}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+        coll.update({'_id': report_id}, {'$addToSet': {'endorsers': {'$each': channels}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
 

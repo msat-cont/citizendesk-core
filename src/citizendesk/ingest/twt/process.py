@@ -147,8 +147,8 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
                     one_width = None
                     one_height = None
                     for size_spec in ['large', 'medium', 'small']:
-                        if (size_spec in one_link['sizes']) and one_link['sizes'][size_spec]:
-                            one_size = one_link['sizes'][size_spec]
+                        if (size_spec in one_media['sizes']) and one_media['sizes'][size_spec]:
+                            one_size = one_media['sizes'][size_spec]
                             if ('resize' not in one_size) or ('w' not in one_size) or ('h' not in one_size):
                                 continue
                             if one_size['resize'] != 'fit':
@@ -156,7 +156,7 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
                             one_width = one_size['w']
                             one_height = one_size['h']
                             break
-                    rep_media.append({'link': one_link['expanded_url'], 'width': one_width, 'height': one_height})
+                    rep_media.append({'link': one_media['expanded_url'], 'width': one_width, 'height': one_height})
                 report['media'] = rep_media
 
             rep_citizens = []
@@ -199,7 +199,7 @@ def do_post(holder, tweet_id, tweet, feed_filter, endpoint, client_ip):
     retweeted_tweet = None
     try:
         current_sub = tweet
-        while current_sub['retweeted_status']:
+        while ('retweeted_status' in current_sub) and current_sub['retweeted_status']:
             current_sub = current_sub['retweeted_status']
             retweeted_tweet = current_sub
             retweeted_id = retweeted_tweet['id_str']
