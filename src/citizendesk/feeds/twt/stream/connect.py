@@ -8,7 +8,7 @@ requests:
 GET, POST
 /feeds/twt/stream/
 
-GET, POST, PATCH, DELETE
+GET, PUT, PATCH, DELETE
 /feeds/twt/stream/<stream_id>/
 
 '''
@@ -73,7 +73,7 @@ def feed_twt_stream_get_list():
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
 @bp_feed_twt_stream.route('/feeds/twt/stream/', defaults={'stream_id': None}, methods=['POST'], strict_slashes=False)
-@bp_feed_twt_stream.route('/feeds/twt/stream/<stream_id>', defaults={}, methods=['POST'], strict_slashes=False)
+@bp_feed_twt_stream.route('/feeds/twt/stream/<stream_id>', defaults={}, methods=['PUT'], strict_slashes=False)
 def feed_twt_stream_post_one(stream_id):
     from citizendesk.feeds.twt.stream import process
 

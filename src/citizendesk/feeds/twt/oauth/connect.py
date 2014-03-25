@@ -8,7 +8,7 @@ requests:
 GET, POST
 /feeds/twt/oauth/
 
-GET, POST, DELETE
+GET, PUT, DELETE
 /feeds/twt/oauth/<oauth_id>/
 
 '''
@@ -73,7 +73,7 @@ def feed_twt_oauth_get_list():
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
 @bp_feed_twt_oauth.route('/feeds/twt/oauth/', defaults={'oauth_id': None}, methods=['POST'], strict_slashes=False)
-@bp_feed_twt_oauth.route('/feeds/twt/oauth/<oauth_id>', defaults={}, methods=['POST'], strict_slashes=False)
+@bp_feed_twt_oauth.route('/feeds/twt/oauth/<oauth_id>', defaults={}, methods=['PUT'], strict_slashes=False)
 def feed_twt_oauth_post_one(oauth_id):
     from citizendesk.feeds.twt.oauth import process
 

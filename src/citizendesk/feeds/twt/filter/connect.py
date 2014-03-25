@@ -8,7 +8,7 @@ requests:
 GET, POST
 /feeds/twt/filter/
 
-GET, POST, DELETE
+GET, PUT, DELETE
 /feeds/twt/filter/<filter_id>/
 
 '''
@@ -73,7 +73,7 @@ def feed_twt_filter_get_list():
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
 @bp_feed_twt_filter.route('/feeds/twt/filter/', defaults={'filter_id': None}, methods=['POST'], strict_slashes=False)
-@bp_feed_twt_filter.route('/feeds/twt/filter/<filter_id>', defaults={}, methods=['POST'], strict_slashes=False)
+@bp_feed_twt_filter.route('/feeds/twt/filter/<filter_id>', defaults={}, methods=['PUT'], strict_slashes=False)
 def feed_twt_filter_post_one(filter_id):
     from citizendesk.feeds.twt.filter import process
 
