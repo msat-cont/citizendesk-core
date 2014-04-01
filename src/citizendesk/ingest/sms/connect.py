@@ -3,23 +3,27 @@
 # Citizen Desk
 #
 
-import os, sys, datetime, logging#, subprocess
+import os, sys, datetime#, logging
 try:
     from flask import Blueprint, request
 except:
     logging.error('Flask module is not avaliable\n')
     os._exit(1)
 
-from citizendesk.common.utils import get_client_ip
+from citizendesk.common.utils import get_logger, get_client_ip, get_allowed_ips
 from citizendesk.common.holder import ReportHolder
+
 holder = ReportHolder()
 
 from citizendesk.ingest.sms.sms_replier import send_sms
 
 def get_conf(name):
-    config = {'feed_type':'SMS', 'feed_conn':'Gammu', 'time_delay':1800}
-    config['send_config_path'] = '/opt/citizendesk/etc/citizendesk/send_sms.conf'
-    config['allowed_ips'] = '127.0.0.1'
+    config = {
+        'feed_type': 'SMS',
+        'feed_conn': 'SMS',
+        'time_delay': 1800,
+        'send_config_path': '/opt/citizendesk/etc/citizendesk/send_sms.conf' # this should be set via startup params
+    }
 
     if name in config:
         return config[name]
@@ -34,66 +38,33 @@ def gen_id(feed_type, citizen):
     id_value += ':' + ''.join(rnd_list)
     return id_value
 
-def within_session(last_received, current_received):
-    if not last_received:
-        return False
-    if not current_received:
-        return False
-
-    try:
-        if type(last_received) is not datetime.datetime:
-            dt_format = '%Y-%m-%dT%H:%M:%S'
-            if '.' in last_received:
-                dt_format = '%Y-%m-%dT%H:%M:%S.%f'
-            last_received = datetime.datetime.strptime(last_received, dt_format)
-    except:
-        return False
-
-    try:
-        if type(current_received) is not datetime.datetime:
-            dt_format = '%Y-%m-%dT%H:%M:%S'
-            if '.' in current_received:
-                dt_format = '%Y-%m-%dT%H:%M:%S.%f'
-            current_received = datetime.datetime.strptime(current_received, dt_format)
-    except:
-        return False
-
-    time_diff = current_received - last_received
-    if time_diff.seconds <= get_conf('time_delay'):
-        return True
-
-    return False
-
-def ask_sender(phone_number):
-    message = 'Dear citizen, could you tell us you geolocation, please?'
-    unicode_flag = False
-    #send_script = get_conf('send_script_path')
-    send_config = get_conf('send_config_path')
-    #try:
-    #    subprocess.call([send_script, send_config, phone_number, message, unicode_flag])
-    #except:
-    #    logging.error('can not send SMS to: ' + str(phone_number))
-    #    return False
-    send_sms(send_config, phone_number, message, unicode_flag)
-
-    return True
+def get_sms():
+    return None
 
 sms_take = Blueprint('sms_take', __name__)
 
 @sms_take.route('/sms_feeds/', methods=['GET', 'POST'])
 def take_sms():
+    from citizendesk.ingest.sms.process import do_post
+
+    logger = get_logger()
     client_ip = get_client_ip()
 
-    allowed_ips = get_conf('allowed_ips')
+    allowed_ips = get_allowed_ips()
     if allowed_ips and ('*' not in allowed_ips):
         if not client_ip in allowed_ips:
-            return (403, 'Client not allowed\n\n')
+            logger.info('unallowed client from: '+ str(client_ip))
+            return ('Client not allowed\n\n', 403,)
+    logger.info('allowed client from: '+ str(client_ip))
 
     params = {}
     for part in ['feed', 'phone', 'time', 'text']:
         params[part] = None
         if part in request.form:
-            params[part] = str(request.form[part].encode('utf8'))
+            try:
+                params[part] = str(request.form[part].encode('utf8'))
+            except:
+                pass
     '''
     sys.stderr.write(str(request.form) + '\n\n')
     save_list = []
@@ -106,67 +77,20 @@ def take_sms():
     sf.close()
     '''
 
-    for part in ['feed', 'phone', 'time', 'text']:
+    for part in ['feed', 'phone', 'text']:
         if not params[part]:
-            return (404, 'No ' + str(part) + ' provided')
+            return ('No ' + str(part) + ' provided', 404)
 
-    feed_name = params['feed']
-    phone_number = params['phone']
+    if not params['time']:
+        params['time'] = datetime.datetime.now()
 
-    feed_type = get_conf('feed_type')
-    received = params[time]
-    if not received:
-        received = datetime.datetime.now()
-
-    channels = [{'type':'SMS', 'value':feed_name}]
-    publishers = []
-    authors = [{'type':'phone', 'value':phone_number}]
-    endorsers = []
-
-    original = params[text]
-    texts = [params[text]]
-    tags = []
-    if params[text]:
-        for word in params[text].split(' '):
-            if word.startswith('#'):
-                use_tag = word[1:]
-                if use_tag:
-                    tags.append(use_tag)
-
-    # session_id should only be set here when reusing an old one
-    session = None
-    new_session = True
-
-    session_look_spec = {'channel': {'type':channels[0]['type']}, 'author':authors[0]}
-    force_new_session = holder.get_force_new_session(session_look_spec)
-    if force_new_session:
-        holder.clear_force_new_session(session_look_spec, True)
-    else:
-        last_report = holder.find_last_session({'channels':channels[0], 'authors':authors[0]})
-        if last_report:
-            if within_session(last_report['received'], received):
-                session = last_report['session']
-                new_session = False
-
-    report = {}
-    report['report_id'] = gen_id(feed_type, phone_number)
-    report['client_ip'] = client_ip
-    report['feed_type'] = feed_type
-    report['feed_spec'] = None
-    report['produced'] = received
-    report['session'] = session
-    report['channels'] = channels
-    report['authors'] = authors
-    report['original'] = original
-    report['texts'] = texts
-    report['tags'] = tags
-
-    report['proto'] = False
-
-    holder.save_report(report)
-
-    if new_session:
-        ask_sender()
-
-    return (200, 'SMS received\n\n')
+    try:
+        res = do_post(holder, params, client_ip)
+        if (not res) or (not res[0]):
+            logger.info(str(res[1]))
+            return (res[1], 404,)
+        return ('SMS received\n\n', 200,)
+    except Exception as exc:
+        logger.warning('problem on tweet processing or saving')
+        return ('problem on tweet processing or saving', 404,)
 
