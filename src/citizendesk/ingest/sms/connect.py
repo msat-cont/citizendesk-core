@@ -103,8 +103,9 @@ def get_sms(phone_number):
 
 sms_take = Blueprint('sms_take', __name__)
 
-@sms_take.route('/sms_feeds/', methods=['GET', 'POST'])
-def take_sms():
+@sms_take.route('/sms_feeds/', defaults={'feed_name': None}, methods=['GET', 'POST'], strict_slashes=False)
+@sms_take.route('/sms_feeds/<feed_name>', defaults={}, methods=['GET', 'POST'], strict_slashes=False)
+def take_sms(feed_name):
     from citizendesk.common.dbc import mongo_dbs
     db = mongo_dbs.get_db().db
 
@@ -120,9 +121,10 @@ def take_sms():
             return ('Client not allowed\n\n', 403,)
     logger.info('allowed client from: '+ str(client_ip))
 
-    params = {}
+    params = {'feed': feed_name}
     for part in ['feed', 'phone', 'time', 'text']:
-        params[part] = None
+        if part not in params:
+            params[part] = None
         if part in request.form:
             try:
                 params[part] = str(request.form[part].encode('utf8'))
