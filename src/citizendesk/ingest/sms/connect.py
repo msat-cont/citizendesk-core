@@ -3,7 +3,7 @@
 # Citizen Desk
 #
 
-import os, sys, datetime#, logging
+import os, sys, datetime, random
 try:
     from flask import Blueprint, request
 except:
@@ -15,15 +15,64 @@ from citizendesk.common.holder import ReportHolder
 
 holder = ReportHolder()
 
-from citizendesk.ingest.sms.sms_replier import send_sms
+DEFAULT_TIME_DELAY = 1800
+
+def load_send_sms_config(config_path):
+    if not config_path:
+        return
+
+    config_data = {}
+    try:
+        fh = open(config_path)
+        rd = fh.read()
+        fh.close()
+        yl = yaml.load_all(rd)
+        config_data = yl.next()
+        yl.close()
+    except:
+        #logging.error('Can not read config for SMS sending: ' + str(conf_path))
+        return False
+
+    if not config_data:
+        return False
+
+    if (not 'send_reply' in config_data) or (not config_data['send_reply']):
+        return False
+
+    if ('time_delay' in config_data) and (config_data['time_delay']):
+        try:
+            time_delay = 60 * int(config_data['time_delay'])
+            set_conf('time_delay', time_delay)
+        except:
+            pass
+
+    if 'reply_message' in config_data:
+        reply_message = config_data['reply_message']
+        set_conf('reply_message', reply_message)
+
+    send_config = {}
+    for param in ['method', 'url', 'phone_param', 'text_param']:
+        send_config[param] = None
+        if (param in config_data) and config_data[param]:
+            send_config[param] = config_data[param]
+    set_conf('send_config', send_config)
+
+config = {
+    'feed_type': 'SMS',
+    'channel_type': 'SMS',
+    'send_reply': False,
+    'reply_message': None,
+    'time_delay': DEFAULT_TIME_DELAY,
+    'send_config': None
+}
+
+def set_conf(name, value):
+    global config
+
+    config[name] = value
 
 def get_conf(name):
-    config = {
-        'feed_type': 'SMS',
-        'feed_conn': 'SMS',
-        'time_delay': 1800,
-        'send_config_path': '/opt/citizendesk/etc/citizendesk/send_sms.conf' # this should be set via startup params
-    }
+    global config
 
     if name in config:
         return config[name]
@@ -38,13 +87,20 @@ def gen_id(feed_type, citizen):
     id_value += ':' + ''.join(rnd_list)
     return id_value
 
-def get_sms():
-    return None
+def get_sms(phone_number):
+    FEED_TYPE = get_conf('feed_type')
+    CHANNEL_TYPE = get_conf('channel_type')
+
+    sess_spec = {'feed_type': FEED_TYPE, 'channels': {'$elemMatch': {'type': CHANNEL_TYPE, 'value': phone_number}}}
+    return holder.find_last_session(sess_spec)
 
 sms_take = Blueprint('sms_take', __name__)
 
 @sms_take.route('/sms_feeds/', methods=['GET', 'POST'])
 def take_sms():
+    from citizendesk.common.dbc import mongo_dbs
+    db = mongo_dbs.get_db().db
+
     from citizendesk.ingest.sms.process import do_post
 
     logger = get_logger()
@@ -65,27 +121,17 @@ def take_sms():
                 params[part] = str(request.form[part].encode('utf8'))
             except:
                 pass
-    '''
-    sys.stderr.write(str(request.form) + '\n\n')
-    save_list = []
-    for part in ['feed', 'phone', 'time', 'text']:
-        if part in request.form:
-            save_list += [part + ': ' + str(request.form[part].encode('utf8'))]
-    save_str = ', '.join(save_list) + '\n'
-    sf = open('/tmp/cd.debug.001', 'a')
-    sf.write(save_str)
-    sf.close()
-    '''
 
-    for part in ['feed', 'phone', 'text']:
+    timepoint = datetime.datetime.now()
+    if not params['time']:
+        params['time'] = timepoint
+
+    for part in ['phone', 'text']:
         if not params[part]:
             return ('No ' + str(part) + ' provided', 404)
 
-    if not params['time']:
-        params['time'] = datetime.datetime.now()
-
     try:
-        res = do_post(holder, params, client_ip)
+        res = do_post(db, holder, params, client_ip)
         if (not res) or (not res[0]):
             logger.info(str(res[1]))
             return (res[1], 404,)

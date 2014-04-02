@@ -4,8 +4,16 @@
 #
 
 import os, sys, datetime, json
+try:
+    import yaml
+except:
+    #logging.error('Can not load YAML support')
+    sys.exit(1)
+
 from citizendesk.ingest.sms.connect import get_conf, gen_id, get_sms
 from citizendesk.ingest.sms.sms_replier import send_sms
+
+COLL_REPLY_MESSAGES = 'reply_messages'
 
 def is_within_session(last_received, current_received):
     if not last_received:
@@ -37,35 +45,41 @@ def is_within_session(last_received, current_received):
 
     return False
 
-def ask_sender(phone_number):
-    message = 'Dear citizen, could you tell us you geolocation, please?'
-    unicode_flag = False
-    #send_script = get_conf('send_script_path')
-    send_config = get_conf('send_config_path')
-    #try:
-    #    subprocess.call([send_script, send_config, phone_number, message, unicode_flag])
-    #except:
-    #    logging.error('can not send SMS to: ' + str(phone_number))
-    #    return False
-    send_sms(send_config, phone_number, message, unicode_flag)
+def ask_sender(db, phone_number):
+
+    message = get_conf('reply_message')
+
+    specific_message = db[COLL_REPLY_MESSAGES].find_one({'phone_number': phone_number})
+    if specific_message and ('reply_message' in specific_message):
+        message = specific_message['reply_message']
+
+    if not message:
+        return False
+
+    send_config = get_conf('send_config')
+    if not send_config:
+        return False
+
+    for param in ['method', 'url', 'phone_param', 'text_param']:
+        if (param not in send_config) or (not send_config[param]):
+            False
+
+    send_sms(send_config, phone_number, message)
 
     return True
 
-def do_post(holder, params, client_ip):
+def do_post(db, holder, params, client_ip):
+    feed_type = get_conf('feed_type')
+    channel_type = get_conf('channel_type')
+    feed_filter = None
 
     feed_name = params['feed']
     phone_number = params['phone']
-
-    feed_type = get_conf('feed_type')
     received = params['time']
-    if not received:
-        received = datetime.datetime.now()
 
-    feed_filter = None
-
-    channels = [{'type': get_conf('channel_type'), 'value': feed_name, 'filter': feed_filter}],
+    channels = [{'type': channel_type, 'value': phone_number, 'filter': feed_name}]
     publishers = []
-    authors = {'authority': 'telco', 'identifiers': [{'type': 'phone_number', 'value': phone_number}]}
+    authors = [{'authority': 'telco', 'identifiers': [{'type': 'phone_number', 'value': phone_number}]}]
     endorsers = []
 
     original = params['text']
@@ -78,25 +92,20 @@ def do_post(holder, params, client_ip):
                 if use_tag:
                     tags.append(use_tag)
 
-    # session_id should only be set here when reusing an old one
-    session = None
-    new_session = True
+    report_id = gen_id(feed_type, phone_number)
+    session = report_id
     parent_id = None
+    new_session = True
 
-    session_look_spec = {'channel': {'type': channels[0]['type']}, 'author': authors[0]}
-    force_new_session = holder.get_force_new_session(session_look_spec)
-    if force_new_session:
-        holder.clear_force_new_session(session_look_spec, True)
-    else:
-        last_report = holder.find_last_session({'channels': channels[0], 'authors': authors[0]})
-        if last_report:
-            if is_within_session(last_report['received'], received):
-                parent_id = last_report['report_id']
-                session = last_report['session']
-                new_session = False
+    last_report = get_sms(phone_number)
+    if last_report:
+        if is_within_session(last_report['produced'], received):
+            session = last_report['session']
+            parent_id = last_report['report_id']
+            new_session = False
 
     report = {}
-    report['report_id'] = gen_id(feed_type, phone_number)
+    report['report_id'] = report_id
     report['parent_id'] = parent_id
     report['client_ip'] = client_ip
     report['feed_type'] = feed_type
@@ -113,8 +122,8 @@ def do_post(holder, params, client_ip):
 
     holder.save_report(report)
 
-    if new_session:
-        ask_sender()
+    if get_conf('send_reply') and new_session:
+        ask_sender(db, phone_number)
 
     return (200, 'SMS received\n\n')
 

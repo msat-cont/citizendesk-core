@@ -140,23 +140,23 @@ class ReportHolder(object):
 
         parent_id = None
         if 'parent_id' in data:
-            parent_id = parent_id
+            parent_id = data['parent_id']
 
         client_ip = None
         if 'client_ip' in data:
-            client_ip = client_ip
+            client_ip = data['client_ip']
 
         current_timestap = datetime.datetime.now()
 
         produced = None
         if 'produced' in data:
-            importance = data['produced']
+            produced = data['produced']
         if not produced:
             produced = current_timestap
 
         session = None
         if 'session' in data:
-            importance = data['session']
+            session = data['session']
         if not session:
             session = report_id
 
@@ -193,9 +193,9 @@ class ReportHolder(object):
         document['publishers'] = [] # should be filled
         document['authors'] = [] # should be filled
         document['endorsers'] = [] # should be filled
-        for key in ['channels', 'publishers', 'authors', 'endorsers']:
-            if key in data:
-                document[key] = data[key]
+        #for key in ['channels', 'publishers', 'authors', 'endorsers']:
+        #    if key in data:
+        #        document[key] = data[key]
 
         # content
         document['original'] = data # general data tree
@@ -212,7 +212,7 @@ class ReportHolder(object):
         document['links'] = [] # link to referred sites, ...
         document['transcripts'] = [] # nothing here
         document['notices_inner'] = [] # nothing here
-        document['notices_outer'] = [{'type':'before', 'value':'blah blah'}] # nothing here
+        document['notices_outer'] = [] # [{'type':destination, 'value':notice}]
         document['comments'] = [] # comment in bml
         document['tags'] = [] # (hash)tags
         for key in ['place_names', 'timeline', 'time_names', 'citizens', 'subjects',
@@ -273,6 +273,7 @@ class ReportHolder(object):
         report = self.create_report(data)
         self.store_report(report)
 
+    '''
     def get_force_new_session(self, spec):
 
         force_new = False
@@ -313,14 +314,16 @@ class ReportHolder(object):
         if once:
             spec_use['value.once'] = True
         coll.remove(spec_use)
-
+    '''
 
     def find_last_session(self, spec):
         coll = self.get_collection('reports')
-        cursor = coll.find(spec, {'session':True, 'produced':True, '_id':False}).sort([('produced', -1)]).limit(1)
+        cursor = coll.find(spec, {'session':True, 'produced':True, '_id':True}).sort([('produced', -1)]).limit(1)
         if not cursor.count():
             return None
         report = cursor.next()
+        if '_id' in report:
+            report['report_id'] = report['_id']
         return report
 
     def provide_report(self, report_id):
