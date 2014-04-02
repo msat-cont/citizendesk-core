@@ -5,6 +5,11 @@
 
 import os, sys, datetime, random
 try:
+    import yaml
+except:
+    #logging.error('Can not load YAML support')
+    sys.exit(1)
+try:
     from flask import Blueprint, request
 except:
     logging.error('Flask module is not avaliable\n')
@@ -56,6 +61,8 @@ def load_send_sms_config(config_path):
         if (param in config_data) and config_data[param]:
             send_config[param] = config_data[param]
     set_conf('send_config', send_config)
+
+    set_conf('send_reply', True)
 
 config = {
     'feed_type': 'SMS',

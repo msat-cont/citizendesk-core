@@ -4,11 +4,6 @@
 #
 
 import os, sys, datetime, json
-try:
-    import yaml
-except:
-    #logging.error('Can not load YAML support')
-    sys.exit(1)
 
 from citizendesk.ingest.sms.connect import get_conf, gen_id, get_sms
 from citizendesk.ingest.sms.sms_replier import send_sms
