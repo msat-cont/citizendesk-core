@@ -11,6 +11,12 @@ GET, POST
 GET, PUT, PATCH, DELETE
 /feeds/twt/stream/<stream_id>/
 
+POST
+/feeds/twt/stream/<stream_id>/start
+
+POST
+/feeds/twt/stream/<stream_id>/stop
+
 '''
 
 import os, sys, datetime, json
@@ -105,9 +111,37 @@ def feed_twt_stream_post_one(stream_id):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
+@bp_feed_twt_stream.route('/feeds/twt/stream/<stream_id>/start', defaults={'switch_on':True}, methods=['POST'], strict_slashes=False)
+@bp_feed_twt_stream.route('/feeds/twt/stream/<stream_id>/stop', defaults={'switch_on':False}, methods=['POST'], strict_slashes=False)
+def feed_twt_stream_patch_one_emulate(stream_id, switch_on):
+    from citizendesk.feeds.twt.stream import process
+    from citizendesk.feeds.config import get_config
+
+    logger = get_logger()
+    client_ip = get_client_ip()
+
+    data = {
+        'control': {
+            'streamer_url': get_config('newstwister_url'),
+            'switch_on': switch_on
+        },
+    }
+
+    params = {'force': True}
+
+    res = process.do_patch_one(mongo_dbs.get_db().db, stream_id, data, params['force'])
+
+    if not res[0]:
+        ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
+        return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
+
+    ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
+    return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
+
 @bp_feed_twt_stream.route('/feeds/twt/stream/<stream_id>', defaults={}, methods=['PATCH'], strict_slashes=False)
 def feed_twt_stream_patch_one(stream_id):
     from citizendesk.feeds.twt.stream import process
+    from citizendesk.feeds.config import get_config
 
     logger = get_logger()
     client_ip = get_client_ip()
@@ -127,6 +161,9 @@ def feed_twt_stream_patch_one(stream_id):
             data = None
     if data is None:
         return (json.dumps('provided data are not valid json'), 404, {'Content-Type': 'application/json'})
+
+    if ('streamer_url' not in data) or (not data['streamer_url']):
+        data['streamer_url'] = get_config('newstwister_url')
 
     params = {'force': None}
     for key in params:

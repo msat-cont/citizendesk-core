@@ -78,7 +78,7 @@ def do_post(db, holder, params, client_ip):
     endorsers = []
 
     original = params['text']
-    texts = [params['text']]
+    texts = [{'original': params['text'], 'transcript': None}]
     tags = []
     if params['text']:
         for word in params['text'].split(' '):
@@ -92,11 +92,16 @@ def do_post(db, holder, params, client_ip):
     parent_id = None
     new_session = True
 
+    pinned_id = None
+    assignments = []
+
     last_report = get_sms(phone_number)
     if last_report:
         if is_within_session(last_report['produced'], received):
             session = last_report['session']
             parent_id = last_report['report_id']
+            pinned_id = last_report['pinned_id']
+            assignments = last_report['assignments']
             new_session = False
 
     report = {}
@@ -112,6 +117,9 @@ def do_post(db, holder, params, client_ip):
     report['original'] = original
     report['texts'] = texts
     report['tags'] = tags
+
+    report['pinned_id'] = pinned_id
+    report['assignments'] = assignments
 
     report['proto'] = False
 

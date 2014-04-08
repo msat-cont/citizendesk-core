@@ -10,13 +10,23 @@ _id/report_id: String # globally unique for any report from any feed
 parent_id: String # e.g. reply_to id for tweet conversations
 client_ip: String # IP address of the coming report
 feed_type: String # to know how to deal with it
+session: String # grouping reports together
+user_id: Integer or None # if a local user is a creator of this report
+pinned_id: Integer or None # id of a UI stream where the report
+language: String # en, ...
+
+# logs
 produced: DateTime # when the report came (SMS) or was created (tweet)
 created: DateTime # document creation
 modified: DateTime # last document modification
-session: String # grouping reports together
+published: Datetime # when Citizen Desk makes the report available
+
+# flags
 proto: Boolean # if the report has to be yet taken
-language: String # en, ...
+local: Boolean # if the report was created by editors
+summary: Boolean
 sensitive: Boolean # whether it is kind of "not at work" stuff
+is_published: Boolean # if the report is available for clients
 
 # status
 verification: String # new, verified, false
@@ -37,13 +47,12 @@ geolocations: [] # where it happened
 place_names: [] # free strings: town names, ...
 timeline: [] # when the reported events happened
 time_names: [] # recognized datetimes
-citizens: [{type:String, value:String}] # mentioned citizens, i.e. not (necessarily) the authors
+citizens_mentioned: [{type:String, value:String}] # mentioned citizens, i.e. not (necessarily) the authors
 subjects: [] # who/what are the perpetrators
 media: [] # local binaries with refs
-texts: [] # original textual data
+texts: [{'original': None, 'transcript': None}, ] # original and transcripted textual data
 sources: [] # links of the report itself
 links: [] # links to referred (external) sites
-transcripts: [] # updated/adjusted texts, by staff journalists
 notices_inner: [{who:String, what:String}] # texts by staff journalists, for internal use
 notices_outer: [{who:String, what:String}] # texts by staff journalists, for display
 comments: [{who:String, what:String}] # texts by (other) citizens
@@ -146,6 +155,14 @@ class ReportHolder(object):
         if 'client_ip' in data:
             client_ip = data['client_ip']
 
+        user_id = None
+        if 'user_id' in data:
+            user_id = data['user_id']
+
+        pinned_id = None
+        if 'pinned_id' in data:
+            pinned_id = data['pinned_id']
+
         current_timestap = datetime.datetime.now()
 
         produced = None
@@ -169,33 +186,52 @@ class ReportHolder(object):
         if 'proto' in data:
             proto_report = bool(data['proto'])
 
+        local_report = False
+        if 'local' in data:
+            local_report = bool(data['local'])
+
+        summary_report = False
+        if 'summary' in data:
+            summary_report = bool(data['summary'])
+
+        sensitive_report = False
+        if 'sensitive' in data:
+            sensitive_report = bool(data['sensitive'])
+
+        language = False
+        if 'language' in data:
+            language = data['language']
+
         document = {}
         # basic info
         document['_id'] = report_id
         document['parent_id'] = parent_id
+        document['user_id'] = user_id
+        document['pinned_id'] = pinned_id
         document['client_ip'] = client_ip
         document['feed_type'] = feed_type
         document['produced'] = produced
         document['created'] = current_timestap
         document['modified'] = current_timestap
+        document['published'] = None
+        document['is_published'] = False
         document['session'] = session
         document['proto'] = proto_report
-        document['language'] = None
-        document['sensitive'] = None
+        document['local'] = local_report
+        document['summary'] = summary_report
+        document['sensitive'] = sensitive_report
+        document['language'] = language
         # status
         document['verification'] = unverified
         document['importance'] = importance
         document['relevance'] = None
         document['checks'] = [] # nothing here; put here who did what checks!
-        document['assignments'] = [] # nothing here
+        document['assignments'] = [] # should be filled
         # citizens
         document['channels'] = [] # should be filled
         document['publishers'] = [] # should be filled
         document['authors'] = [] # should be filled
         document['endorsers'] = [] # should be filled
-        #for key in ['channels', 'publishers', 'authors', 'endorsers']:
-        #    if key in data:
-        #        document[key] = data[key]
 
         # content
         document['original'] = data # general data tree
@@ -204,19 +240,17 @@ class ReportHolder(object):
         document['place_names'] = [] # free strings: town names, ...
         document['timeline'] = [] # recognized datetimes, image exif data, ...
         document['time_names'] = [] # recognized datetimes
-        document['citizens'] = [] # mentioned citizens
+        document['citizens_mentioned'] = [] # mentioned citizens
         document['subjects'] = [] # recognized names
         document['media'] = [] # local binaries with refs, incl. metadata
-        document['texts'] = [] # selected text in bml, sent SMS, ...
+        document['texts'] = [] # [{'original': None, 'transcript': None}] selected text in bml, sent SMS, ...
         document['sources'] = [] # link to bml site, ...
         document['links'] = [] # link to referred sites, ...
-        document['transcripts'] = [] # nothing here
         document['notices_inner'] = [] # nothing here
         document['notices_outer'] = [] # [{'type':destination, 'value':notice}]
         document['comments'] = [] # comment in bml
         document['tags'] = [] # (hash)tags
-        for key in ['place_names', 'timeline', 'time_names', 'citizens', 'subjects',
-                    'transcripts', 'notices_inner', 'notices_outer']:
+        for key in ['place_names', 'timeline', 'time_names', 'citizens_mentioned', 'subjects', 'notices_inner', 'notices_outer']:
             if key in data:
                 document[key] = data[key]
 
@@ -227,7 +261,7 @@ class ReportHolder(object):
         if 'original' in data:
             document['original'] = data['original']
 
-        for part in ['channels', 'publishers', 'authors', 'endorsers']:
+        for part in ['channels', 'publishers', 'authors', 'endorsers', 'assignments']:
             value = []
             if part in data:
                 value = data[part]
@@ -318,7 +352,15 @@ class ReportHolder(object):
 
     def find_last_session(self, spec):
         coll = self.get_collection('reports')
-        cursor = coll.find(spec, {'session':True, 'produced':True, '_id':True}).sort([('produced', -1)]).limit(1)
+        requested_fields = {
+            'session': True,
+            'produced': True,
+            'pinned_id': True,
+            'assignments': True,
+            '_id': True
+        }
+
+        cursor = coll.find(spec, {}).sort([('produced', -1)]).limit(1)
         if not cursor.count():
             return None
         report = cursor.next()

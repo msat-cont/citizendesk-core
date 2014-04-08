@@ -49,9 +49,9 @@ def page_not_found(error):
     from citizendesk.common.utils import get_client_ip
     from citizendesk.common.utils import get_logger
 
-    for part in [request.url, request.method, request.path, request.full_path, request.content_type, request.get_data()]:
-        logger.info('page not found: ' + str(request.method) + ' on ' + str(request.url) + ', by ' + str(get_client_ip()))
+    logger = get_logger()
 
+    logger.info('page not found: ' + str(request.method) + ' on ' + str(request.url) + ', by ' + str(get_client_ip()))
     return 'page not found', 404
 
 def run_flask(dbname, server, mongo, debug=False):

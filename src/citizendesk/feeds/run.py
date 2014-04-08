@@ -7,6 +7,7 @@ MONGODB_SERVER_HOST = 'localhost'
 MONGODB_SERVER_PORT = 27017
 
 DB_NAME = 'citizendesk'
+NEWSTWISTER_URL = 'http://localhost:9054/'
 
 DEFAULT_HOST = 'localhost'
 DEFAULT_PORT = 9060
@@ -76,13 +77,16 @@ def check_client():
 
     logger.info('allowed ' + message)
 
-def prepare_reporting(mongo_addr, dbname):
+def prepare_reporting(mongo_addr, dbname, newstwister_url):
     from citizendesk.common.dbc import mongo_dbs
+    from citizendesk.feeds.config import set_config
     import citizendesk.feeds.twt.dispatch as twt_dispatch
 
     mongo_dbs.set_dbname(dbname)
     DbHolder = namedtuple('DbHolder', 'db')
     mongo_dbs.set_db(DbHolder(db=MongoClient(mongo_addr[0], mongo_addr[1])[mongo_dbs.get_dbname()]))
+
+    set_config('newstwister_url', newstwister_url)
 
     twt_dispatch.setup_blueprints(app)
 
@@ -96,8 +100,8 @@ def page_not_found(error):
 
     return 'page not found', 404
 
-def run_flask(dbname, server, mongo, debug=False):
-    prepare_reporting(mongo, dbname)
+def run_flask(dbname, server, mongo, newstwister_url, debug=False):
+    prepare_reporting(mongo, dbname, newstwister_url)
     app.run(host=server[0], port=server[1], debug=debug)
 
 if __name__ == '__main__':
@@ -109,5 +113,5 @@ if __name__ == '__main__':
     default_mongo = (MONGODB_SERVER_HOST, MONGODB_SERVER_PORT)
 
     setup_logger()
-    run_flask(DB_NAME, server=default_server, mongo=default_mongo, debug=True)
+    run_flask(DB_NAME, server=default_server, mongo=default_mongo, newstwister_url=NEWSTWISTER_URL, debug=True)
 

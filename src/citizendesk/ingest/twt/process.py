@@ -38,12 +38,11 @@ geolocations: tweet: coordinates [(lon, lat)] or tweet: geo (lat, lon)
 place_names: tweet: place
 timeline: []
 time_names: []
-citizens: [{'authority': 'twitter', 'identifiers': [{type:id, value:tweet:entities:user_mentions:id_str}, {type:screen_name, value:tweet:entities:user_mentions:screen_name}]}]
+citizens_mentioned: [{'authority': 'twitter', 'identifiers': [{type:id, value:tweet:entities:user_mentions:id_str}, {type:screen_name, value:tweet:entities:user_mentions:screen_name}]}]
 subjects: []
 media: [tweet: entities: media: {'type':type, 'url':media_url where resize=='fit'}]
-texts: [tweet: text] plus replace links to their original values
+texts: [{tweet: text}] plus replace links to their original values
 links: [tweet: entities: urls: expanded_url]
-transcripts: []
 notices_inner: []
 notices_outer: []
 comments: [{}] # retweets
@@ -71,8 +70,19 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
         parent_id = tweet['in_reply_to_status_id']
 
     parent_tweet = get_tweet(gen_id(feed_type, parent_id)) if parent_id else None
-    if parent_tweet and ('session' in parent_tweet):
-        session_id = parent_tweet['session']
+    proto = True
+    pinned_id = None
+    assignments = []
+
+    if parent_tweet:
+        if 'session' in parent_tweet:
+            session_id = parent_tweet['session']
+        if 'proto' in parent_tweet:
+            proto = parent_tweet['proto']
+        if 'pinned_id' in parent_tweet:
+            pinned_id = parent_tweet['pinned_id']
+        if 'assignments' in parent_tweet:
+            assignments = parent_tweet['assignments']
 
     report = {
         'report_id': report_id,
@@ -82,7 +92,9 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
         'channels': [{'type': get_conf('channel_type'), 'value': endpoint_id, 'filter': feed_filter}],
         'publishers': [{'type': get_conf('publisher_type'), 'value': get_conf('publisher_feed')}],
         'session': session_id,
-        'proto': True,
+        'proto': proto,
+        'pinned_id': pinned_id,
+        'assignments': assignments,
         'original': tweet,
         'sources': []
     }
@@ -130,7 +142,7 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
                 for key in sorted(replace_set.keys(), reverse=True):
                     link_data = replace_set[key]
                     report_text = report_text[:link_data['indices'][0]] + link_data['url'] + report_text[link_data['indices'][1]:]
-            report['texts'] = [report_text]
+            report['texts'] = [{'original': report_text, 'transcript': None}]
 
         if report_entities:
             if ('hashtags' in report_entities) and report_entities['hashtags']:
@@ -173,7 +185,7 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
                 for one_citz in report_entities['user_mentions']:
                     mentioned_citz = {'user_id': one_citz['id_str'], 'user_name': one_citz['screen_name']}
                     rep_citizens.append({'authority': 'twitter', 'identifiers': mentioned_citz})
-            report['citizens'] = rep_citizens
+            report['citizens_mentioned'] = rep_citizens
 
         one_author_ids = [{'type':'user_id', 'value':tweet['user']['id_str']}, {'type':'user_name', 'value':tweet['user']['screen_name']}]
         rep_authors = [{'authority': 'twitter', 'identifiers': one_author_ids}]

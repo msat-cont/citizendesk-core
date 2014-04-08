@@ -12,6 +12,7 @@ MONGODB_SERVER_HOST = 'localhost'
 MONGODB_SERVER_PORT = 27017
 
 DB_NAME = 'citizendesk'
+NEWSTWISTER_URL = 'http://localhost:9054/'
 
 ALLOWED_CLIENTS = ['127.0.0.1']
 
@@ -31,6 +32,7 @@ class ConnectParams():
         self.mongo_host = MONGODB_SERVER_HOST
         self.mongo_port = MONGODB_SERVER_PORT
         self.db_name = DB_NAME
+        self.newstwister_url = NEWSTWISTER_URL
         self.log_path = None
         self.pid_path = None
         self.allowed = ALLOWED_CLIENTS
@@ -48,6 +50,8 @@ class ConnectParams():
         parser.add_argument('-m', '--mongo_host', help='host of mongodb, e.g. ' + str(MONGODB_SERVER_HOST), default=MONGODB_SERVER_HOST)
         parser.add_argument('-o', '--mongo_port', help='port of mongodb, e.g. ' + str(MONGODB_SERVER_PORT), type=int, default=MONGODB_SERVER_PORT)
         parser.add_argument('-b', '--db_name', help='database name, e.g. ' + str(DB_NAME), default=DB_NAME)
+
+        parser.add_argument('-n', '--newstwister_url', help='newstwister url, e.g. ' + str(NEWSTWISTER_URL), default=NEWSTWISTER_URL)
 
         parser.add_argument('-l', '--log_path', help='path to log file, e.g. ' + str(LOG_PATH))
         parser.add_argument('-i', '--pid_path', help='path to pid file, e.g. ' + str(PID_PATH))
@@ -70,6 +74,9 @@ class ConnectParams():
             self.mongo_port = int(args.mongo_port)
         if args.db_name:
             self.db_name = args.db_name
+
+        if args.newstwister_url:
+            self.newstwister_url = args.newstwister_url
 
         if args.log_path:
             self.log_path = args.log_path
@@ -143,6 +150,9 @@ class ConnectParams():
     def get_db_name(self):
         return self.db_name
 
+    def get_newstwister_url(self):
+        return self.newstwister_url
+
     def get_log_path(self):
         return self.log_path
 
@@ -171,7 +181,7 @@ def run_server():
 
     server_address = (params.get_web_host(), params.get_web_port())
     mongo_address = (params.get_mongo_host(), params.get_mongo_port())
-    run_flask(params.get_db_name(), server=server_address, mongo=mongo_address, debug=False)
+    run_flask(params.get_db_name(), server=server_address, mongo=mongo_address, newstwister_url=params.get_newstwister_url(), debug=False)
 
 if __name__ == '__main__':
     file_dir = os.path.dirname(os.path.realpath(__file__))
