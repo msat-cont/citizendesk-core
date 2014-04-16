@@ -13,7 +13,7 @@ def set_config(key, value):
 def get_config(key):
     global config
 
-    if key in config:
+    if key not in config:
         return None
 
     return config[key]
