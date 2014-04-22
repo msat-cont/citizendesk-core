@@ -28,7 +28,8 @@ assignments: []
 
 # citizens
 channels: [{type:twitter, value: endpoint: endpoint_id}]
-publishers: [{type:twitter, value:twitter stream}]
+#publishers: [{type:twitter, value:twitter stream}]
+publisher: 'twitter'
 authors: [{'authority': 'twitter', 'identifiers': [{type:id, value:tweet:user:id_str}, {type:screen_name, value:tweet:user:screen_name}]}]
 endorsers: [] # users that retweet
 
@@ -56,7 +57,7 @@ discarded: []
 import os, sys, datetime, json
 from citizendesk.ingest.twt.connect import get_conf, gen_id, get_tweet
 
-def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_ip):
+def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, request_id, feed_filter, client_ip):
 
     feed_type = get_conf('feed_type')
     report_id = gen_id(feed_type, tweet_id)
@@ -64,6 +65,8 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
         return (False, 'wrong tweet_id')
 
     session_id = report_id
+
+    one_channel = {'type': channel_type, 'value': endpoint_id, 'request': request_id, 'filter': feed_filter}
 
     parent_id = None
     if ('in_reply_to_status_id' in tweet) and tweet['in_reply_to_status_id']:
@@ -89,8 +92,8 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
         'parent_id': parent_id,
         'client_ip': client_ip,
         'feed_type': feed_type,
-        'channels': [{'type': get_conf('channel_type'), 'value': endpoint_id, 'filter': feed_filter}],
-        'publishers': [{'type': get_conf('publisher_type'), 'value': get_conf('publisher_feed')}],
+        'channels': [one_channel],
+        'publisher': get_conf('publisher'),
         'session': session_id,
         'proto': proto,
         'pinned_id': pinned_id,
@@ -183,7 +186,10 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
             rep_citizens = []
             if ('user_mentions' in report_entities) and report_entities['user_mentions']:
                 for one_citz in report_entities['user_mentions']:
-                    mentioned_citz = {'user_id': one_citz['id_str'], 'user_name': one_citz['screen_name']}
+                    mentioned_citz = [
+                        {'type': 'user_id', 'value': one_citz['id_str']},
+                        {'type': 'user_name', 'value': one_citz['screen_name']}
+                    ]
                     rep_citizens.append({'authority': 'twitter', 'identifiers': mentioned_citz})
             report['citizens_mentioned'] = rep_citizens
 
@@ -203,8 +209,7 @@ def process_new_tweet(holder, tweet_id, tweet, feed_filter, endpoint_id, client_
 
     return (True,)
 
-
-def do_post(holder, tweet_id, tweet, feed_filter, endpoint, client_ip):
+def do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_filter, client_ip):
     try:
         endpoint_id = endpoint['endpoint_id']
     except:
@@ -234,12 +239,11 @@ def do_post(holder, tweet_id, tweet, feed_filter, endpoint, client_ip):
 
     if tweet_report:
         main_report_id = tweet_report['report_id']
-        holder.add_channels(main_report_id, [{'type': get_conf('channel_type'), 'value': endpoint_id, 'filter': feed_filter}])
-        holder.add_publishers(main_report_id, [{'type': get_conf('publisher_type'), 'value': get_conf('publisher_feed')}])
+        holder.add_channels(main_report_id, [one_channel])
     else:
         main_tweet_id = retweeted_id if retweeted_id else tweet_id
         main_tweet = retweeted_tweet if retweeted_tweet else tweet
-        res = process_new_tweet(holder, main_tweet_id, main_tweet, feed_filter, endpoint_id, client_ip)
+        res = process_new_tweet(holder, main_tweet_id, main_tweet, channel_type, endpoint_id, request_id, feed_filter, client_ip)
         if (not res) or (not res[0]):
             return (False, res[1])
 

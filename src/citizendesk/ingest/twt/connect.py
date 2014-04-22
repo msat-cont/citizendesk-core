@@ -29,9 +29,7 @@ holder = ReportHolder()
 def get_conf(name):
     config = {
         'feed_type': 'tweet',
-        'channel_type': 'twitter',
-        'publisher_type': 'twitter',
-        'publisher_feed': 'twitter stream'
+        'publisher': 'twitter',
     }
 
     if name in config:
@@ -83,7 +81,7 @@ def take_twt(tweet_id):
     if not json_data:
         logger.info('data not provided in the request')
         return ('Data not provided', 404,)
-    for part in ['filter', 'tweet', 'endpoint']:
+    for part in ['filter', 'tweet', 'endpoint', 'type']:
         if (part not in json_data) or (not json_data[part]):
             logger.info('No ' + str(part) + ' provided')
             return ('No ' + str(part) + ' provided', 404,)
@@ -91,9 +89,13 @@ def take_twt(tweet_id):
     tweet = json_data['tweet']
     feed_filter = json_data['filter']
     endpoint = json_data['endpoint']
+    channel_type = json_data['type']
+    request_id = None
+    if ('request' in json_data) and json_data['request']:
+        request_id = json_data['request']
 
     try:
-        res = do_post(holder, tweet_id, tweet, feed_filter, endpoint, client_ip)
+        res = do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_filter, client_ip)
         if (not res) or (not res[0]):
             logger.info(str(res[1]))
             return (res[1], 404,)

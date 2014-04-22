@@ -8,11 +8,16 @@ Report structure:
 # basic info
 _id/report_id: String # globally unique for any report from any feed
 parent_id: String # e.g. reply_to id for tweet conversations
+#_id/report_id: Integer # globally unique for any report from any feed
+#parent_id: Integer # e.g. reply_to id for tweet conversations
+#original_id: String # id with respect to source
+#parent_original_id: String # id of parent with respect to source
 client_ip: String # IP address of the coming report
 feed_type: String # to know how to deal with it
 session: String # grouping reports together
 user_id: Integer or None # if a local user is a creator of this report
 pinned_id: Integer or None # id of a UI stream where the report
+coverage_id: Integer or None # id of a coverage
 language: String # en, ...
 
 # logs
@@ -37,7 +42,7 @@ assignments: [{type:String, name:String}]
 
 # citizens
 channels: [{type:String, value:String}] # bookmarklet, sms, twitter (endpoints), ...
-publishers: [{type:String, value:String}] # youtube, flickr, ...
+publisher: String # youtube, flickr, ...
 authors: [{type:String, value:String}] # who created the content
 endorsers: [{type:String, value:String}] # who supports/submits/reports the content
 
@@ -151,6 +156,10 @@ class ReportHolder(object):
         if 'parent_id' in data:
             parent_id = data['parent_id']
 
+        #original_id = None
+        #if 'original_id' in data:
+        #    original_id = data['original_id']
+
         client_ip = None
         if 'client_ip' in data:
             client_ip = data['client_ip']
@@ -162,6 +171,10 @@ class ReportHolder(object):
         pinned_id = None
         if 'pinned_id' in data:
             pinned_id = data['pinned_id']
+
+        coverage_id = None
+        if 'coverage_id' in data:
+            coverage_id = data['coverage_id']
 
         current_timestap = datetime.datetime.now()
 
@@ -202,12 +215,18 @@ class ReportHolder(object):
         if 'language' in data:
             language = data['language']
 
+        publisher = None
+        if 'publisher' in data:
+            publisher = data['publisher']
+
         document = {}
         # basic info
         document['_id'] = report_id
         document['parent_id'] = parent_id
+        #document['original_id'] = original_id
         document['user_id'] = user_id
         document['pinned_id'] = pinned_id
+        document['coverage_id'] = coverage_id
         document['client_ip'] = client_ip
         document['feed_type'] = feed_type
         document['produced'] = produced
@@ -229,7 +248,7 @@ class ReportHolder(object):
         document['assignments'] = [] # should be filled
         # citizens
         document['channels'] = [] # should be filled
-        document['publishers'] = [] # should be filled
+        document['publisher'] = publisher
         document['authors'] = [] # should be filled
         document['endorsers'] = [] # should be filled
 
@@ -261,7 +280,7 @@ class ReportHolder(object):
         if 'original' in data:
             document['original'] = data['original']
 
-        for part in ['channels', 'publishers', 'authors', 'endorsers', 'assignments']:
+        for part in ['channels', 'authors', 'endorsers', 'assignments']:
             value = []
             if part in data:
                 value = data[part]
@@ -488,6 +507,7 @@ class ReportHolder(object):
         timepoint = datetime.datetime.utcnow()
         coll.update({'_id': report_id}, {'$addToSet': {'channels': {'$each': channels}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
 
+    '''
     def add_publishers(self, report_id, publishers):
         if (not report_id) or (not publishers) or (type(publishers) is not list):
             return
@@ -495,6 +515,7 @@ class ReportHolder(object):
 
         timepoint = datetime.datetime.utcnow()
         coll.update({'_id': report_id}, {'$addToSet': {'publishers': {'$each': publishers}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+    '''
 
     def add_endorsers(self, report_id, endorsers):
         if (not report_id) or (not endorsers) or (type(endorsers) is not list):
