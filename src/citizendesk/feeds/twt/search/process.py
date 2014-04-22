@@ -22,123 +22,18 @@ except:
 from citizendesk.feeds.twt.stream.storage import collection, schema
 from citizendesk.common.utils import get_boolean as _get_boolean
 
-DEFAULT_LIMIT = 20
+DEFAULT_LIMIT = 30
 
 '''
-For this case, we have to check the status(es) on each GET request.
-And for POST requests, we have to stop the stream first if it is active and anything changes.
-Notice that a single oauth spec can only be used on a single stream.
+Request themselves are not stored in DB.
+The found tweets are put in via Newstwister and Citizen Desk ingest.
+Here we only return the status on the search.
 '''
-
-def do_get_one(db, doc_id):
-    '''
-    returns data of a single stream info
-    '''
-    if not controller:
-        return (False, 'external controller not available')
-    if not db:
-        return (False, 'inner application error')
-
-    if doc_id is not None:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
-
-    coll = db[collection]
-    doc = coll.find_one({'_id': doc_id})
-
-    if not doc:
-        return (False, 'stream info not found')
-
-    might_run = True
-    if ('control' not in doc) or (type(doc['control']) is not dict):
-        might_run = False
-
-    if might_run:
-        for key in schema['control']:
-            if (key not in doc['control']) or (not doc['control'][key]):
-                might_run = False
-                break
-
-    if might_run:
-        connector = controller.NewstwisterConnector(doc['control']['streamer_url'])
-        res = connector.request_status(doc['control']['process_id'])
-        # let None here when can not check that it runs
-        if res is not None:
-            doc['control']['switch_on'] = True if res else False
-        else:
-            doc['control']['switch_on'] = None
-        if res is False:
-            # update info in db when we know it has been stopped
-            timepoint = datetime.datetime.utcnow()
-            update_set = {'control.switch_on': False, 'control.process_id': None, 'logs.stopped': timepoint}
-            coll.update({'_id': doc_id}, {'$set': update_set}, upsert=False)
-
-    if ('spec' not in doc) or (type(doc['spec']) is not dict):
-        return (False, 'wrong stream info (spec) in db')
-    if ('control' not in doc) or (type(doc['control']) is not dict):
-        return (False, 'wrong stream info (control) in db')
-
-    return (True, doc)
-
-def do_get_list(db, offset=None, limit=None):
-    '''
-    returns data of a set of stream control
-    '''
-    if not controller:
-        return (False, 'external controller not available')
-    if not db:
-        return (False, 'inner application error')
-
-    coll = db[collection]
-    cursor = coll.find().sort([('_id', 1)])
-
-    total = cursor.count()
-
-    if limit is None:
-        limit = DEFAULT_LIMIT
-
-    if offset:
-        cursor = cursor.skip(offset)
-    if limit:
-        cursor = cursor.limit(limit)
-
-    docs = []
-    for entry in cursor:
-        if not entry:
-            continue
-        if ('spec' not in entry) or (type(entry['spec']) is not dict):
-            continue
-        if ('control' not in entry) or (type(entry['control']) is not dict):
-            continue
-
-        might_run = True
-        for key in schema['control']:
-            if (key not in entry['control']) or (not entry['control'][key]):
-                might_run = False
-                break
-
-        if might_run:
-            connector = controller.NewstwisterConnector(entry['control']['streamer_url'])
-            res = connector.request_status(entry['control']['process_id'])
-            # let None here when can not check that it runs
-            if res is not None:
-                entry['control']['switch_on'] = True if res else False
-            else:
-                entry['control']['switch_on'] = None
-            if res is False:
-                # update info in db when we know it has been stopped
-                timepoint = datetime.datetime.utcnow()
-                update_set = {'control.switch_on': False, 'control.process_id': None, 'logs.stopped': timepoint}
-                coll.update({'_id': entry['_id']}, {'$set': update_set}, upsert=False)
-
-        docs.append(entry)
-
-    return (True, docs, {'total': total})
 
 def _check_schema(spec, ctrl):
+    '''
+    TODO: move the thorough checking from Newstwister to here,
+          and only keep simple key-value checking in the Newstwister itself.
 
     if spec:
         if ('oauth_id' in spec) and (spec['oauth_id'] is not None):
@@ -155,18 +50,20 @@ def _check_schema(spec, ctrl):
         if ('switch_on' in ctrl) and (ctrl['switch_on'] is not None):
             if type(ctrl['switch_on']) not in [bool]:
                 return (False, '"control.switch_on" has to be boolean')
+    '''
 
     return (True,)
 
-def do_post_one(db, doc_id=None, data=None):
+def do_post_search(db, user_id, request_id, search_spec):
     '''
-    sets data of a single stream info
+    executes twitter search
     '''
     if not controller:
         return (False, 'external controller not available')
     if not db:
         return (False, 'inner application error')
 
+    '''
     if data is None:
         return (False, 'data not provided')
 
@@ -268,7 +165,9 @@ def do_post_one(db, doc_id=None, data=None):
     doc_id = coll.save(doc)
 
     return (True, {'_id': doc_id})
+    '''
 
+'''
 def _prepare_filter(filter_spec):
     filter_use = {}
     if type(filter_spec) is not dict:
@@ -312,9 +211,6 @@ def _prepare_filter(filter_spec):
     return filter_use
 
 def do_patch_one(db, doc_id=None, data=None, force=None):
-    '''
-    starts/stops the stream
-    '''
     try:
         from citizendesk.feeds.twt.filter.storage import get_one as filter_get_one
     except:
@@ -462,46 +358,5 @@ def do_patch_one(db, doc_id=None, data=None, force=None):
         coll.update({'_id': doc_id}, {'$set': update_set}, upsert=False)
 
     return (True, {'_id': doc_id})
-
-def do_delete_one(db, doc_id):
-    '''
-    deletes data of a single stream info
-    '''
-    if not controller:
-        return (False, 'external controller not available')
-    if not db:
-        return (False, 'inner application error')
-
-    if doc_id is not None:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
-
-    coll = db[collection]
-
-    doc = coll.find_one({'_id': doc_id})
-    if not doc:
-        return (False, 'requested stream not found')
-
-    might_run = True
-    if ('control' not in doc) or (type(doc['control']) is not dict):
-        might_run = False
-
-    if might_run:
-        for key in schema['control']:
-            if (key not in doc['control']) or (not doc['control'][key]):
-                might_run = False
-                break
-
-    if might_run:
-        connector = controller.NewstwisterConnector(doc['control']['streamer_url'])
-        res = connector.request_stop(doc['control']['process_id'])
-        if not res:
-            return (False, 'can not stop the stream')
-
-    coll.remove({'_id': doc_id})
-
-    return (True, {'_id': doc_id})
+'''
 

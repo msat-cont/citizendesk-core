@@ -11,7 +11,7 @@ except:
     unicode = str
 
 FEED_TYPE = 'tweet'
-CHANNEL_TYPE = 'twitter'
+PUBLISHER_TYPE = 'twitter'
 
 collection = 'reports'
 

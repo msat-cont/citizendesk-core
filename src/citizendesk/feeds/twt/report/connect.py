@@ -9,10 +9,12 @@ GET, PATCH,
 /feeds/twt/report/<report_id>/
 
 GET
-/feeds/twt/endpoint/<endpoint_id>/
+/feeds/twt/endpoint/stream/<endpoint_id>/
+/feeds/twt/endpoint/search/<endpoint_id>/
 
 GET
-/feeds/twt/endpoint/<endpoint_id>/proto/<is_proto>/
+/feeds/twt/endpoint/stream/<endpoint_id>/proto/<is_proto>/
+/feeds/twt/endpoint/search/<endpoint_id>/proto/<is_proto>/
 
 GET
 /feeds/twt/session/<session_id>/
@@ -52,9 +54,11 @@ def feed_twt_report_get_one(report_id):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
-@bp_feed_twt_report.route('/feeds/twt/endpoint/<endpoint_id>', defaults={'is_proto': None}, methods=['GET'], strict_slashes=False)
-@bp_feed_twt_report.route('/feeds/twt/endpoint/<endpoint_id>/proto/<is_proto>', defaults={}, methods=['GET'], strict_slashes=False)
-def feed_twt_report_get_list(endpoint_id, is_proto):
+@bp_feed_twt_report.route('/feeds/twt/endpoint/stream/<endpoint_id>', defaults={'endpoint_type': 'stream', 'is_proto': None}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_report.route('/feeds/twt/endpoint/stream/<endpoint_id>/proto/<is_proto>', defaults={'endpoint_type': 'stream'}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_report.route('/feeds/twt/endpoint/search/<endpoint_id>', defaults={'endpoint_type': 'search', 'is_proto': None}, methods=['GET'], strict_slashes=False)
+@bp_feed_twt_report.route('/feeds/twt/endpoint/search/<endpoint_id>/proto/<is_proto>', defaults={'endpoint_type': 'search'}, methods=['GET'], strict_slashes=False)
+def feed_twt_report_get_list(endpoint_type, endpoint_id, is_proto):
     from citizendesk.feeds.twt.report import process
 
     logger = get_logger()
@@ -77,7 +81,7 @@ def feed_twt_report_get_list(endpoint_id, is_proto):
         if key in request.args:
             other[key] = request.args.get(key)
 
-    res = process.do_get_list(mongo_dbs.get_db().db, endpoint_id, is_proto, params['offset'], params['limit'], params['sort'], other)
+    res = process.do_get_list(mongo_dbs.get_db().db, endpoint_type, endpoint_id, is_proto, params['offset'], params['limit'], params['sort'], other)
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}

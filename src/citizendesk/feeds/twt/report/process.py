@@ -10,7 +10,7 @@ try:
 except:
     unicode = str
 
-from citizendesk.feeds.twt.report.storage import collection, schema, FEED_TYPE, CHANNEL_TYPE
+from citizendesk.feeds.twt.report.storage import collection, schema, FEED_TYPE, PUBLISHER_TYPE
 from citizendesk.common.utils import get_boolean as _get_boolean
 
 DEFAULT_LIMIT = 20
@@ -62,14 +62,14 @@ def _get_sort(param):
 
     return def_list
 
-def do_get_list(db, stream_id, proto=None, offset=None, limit=None, sort=None, other=None):
+def do_get_list(db, endpoint_type, endpoint_id, proto=None, offset=None, limit=None, sort=None, other=None):
     '''
-    returns data of a set of reports saved by the stream
+    returns data of a set of reports saved by a stream or a search
     '''
     if not db:
         return (False, 'inner application error')
 
-    list_spec = {'feed_type': FEED_TYPE, 'channels': {'$elemMatch': {'type': CHANNEL_TYPE, 'value': stream_id}}}
+    list_spec = {'feed_type': FEED_TYPE, 'channels': {'$elemMatch': {'type': endpoint_type, 'value': endpoint_id}}}
     if proto is not None:
         try:
             proto = bool(_get_boolean(proto))

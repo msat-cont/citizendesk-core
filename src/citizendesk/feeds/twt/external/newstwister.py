@@ -8,6 +8,31 @@ class NewstwisterConnector():
     def __init__(self, base_url):
         self.ctrl_base_url = base_url
 
+    def request_search(self, user_id, request_id, search_spec):
+        start_url = self.ctrl_base_url
+        if not start_url.endswith('/'):
+            start_url += '/'
+        start_url += '_search'
+
+        params = {}
+        params['user_id'] = user_id
+        params['request_id'] = request_id
+        params['search_spec'] = search_spec
+
+        search_status = None
+        try:
+            post_data = json.dumps(params)
+            req = urllib2.Request(search_url, post_data, {'Content-Type': 'application/json'})
+            response = urllib2.urlopen(req)
+            search_result = response.read()
+            search_status = json.loads(search_result)
+            if type(search_status) is not dict:
+                search_status = None
+        except Exception as exc:
+            search_status = None
+
+        return search_status
+
     def request_start(self, endpoint_id, oauth_params, filter_params):
         # make connection to twister_main
         # take response from connection
