@@ -77,6 +77,7 @@ def feed_twt_search_one_post():
 @bp_feed_twt_search.route('/feeds/twt/search/<user_id>/request/<request_id>/', defaults={}, methods=['POST', 'SEARCH'], strict_slashes=False)
 def feed_twt_search_one_search():
     from citizendesk.feeds.twt.search import process
+    from citizendesk.feeds.config import get_config
 
     logger = get_logger()
     client_ip = get_client_ip()

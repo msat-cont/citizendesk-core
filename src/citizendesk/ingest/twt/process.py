@@ -103,7 +103,10 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
     }
     try:
         if 'created_at' in tweet:
-            report['produced'] = tweet['created_at']
+            try:
+                report['produced'] = datetime.datetime.strptime(tweet['created_at'], "%a %b %d %H:%M:%S +0000 %Y")
+            except:
+                report['produced'] = None
         else:
             report['produced'] = None
         if not report['produced']:
@@ -239,6 +242,7 @@ def do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_fi
 
     if tweet_report:
         main_report_id = tweet_report['report_id']
+        one_channel = {'type': channel_type, 'value': endpoint_id, 'request': request_id, 'filter': feed_filter}
         holder.add_channels(main_report_id, [one_channel])
     else:
         main_tweet_id = retweeted_id if retweeted_id else tweet_id

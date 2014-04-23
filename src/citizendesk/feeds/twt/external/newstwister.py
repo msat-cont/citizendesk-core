@@ -9,10 +9,10 @@ class NewstwisterConnector():
         self.ctrl_base_url = base_url
 
     def request_search(self, user_id, request_id, search_spec):
-        start_url = self.ctrl_base_url
-        if not start_url.endswith('/'):
-            start_url += '/'
-        start_url += '_search'
+        search_url = self.ctrl_base_url
+        if not search_url.endswith('/'):
+            search_url += '/'
+        search_url += '_search'
 
         params = {}
         params['user_id'] = user_id

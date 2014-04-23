@@ -19,7 +19,7 @@ try:
 except:
     long = int
 
-from citizendesk.feeds.twt.stream.storage import collection, schema
+from citizendesk.feeds.twt.search.storage import collection, schema
 from citizendesk.common.utils import get_boolean as _get_boolean
 
 DEFAULT_LIMIT = 30
@@ -30,7 +30,7 @@ The found tweets are put in via Newstwister and Citizen Desk ingest.
 Here we only return the status on the search.
 '''
 
-def _parse_data(self, search_spec):
+def _parse_data(search_spec):
     parsed = {}
 
     if type(search_spec) is not dict:
@@ -174,9 +174,9 @@ def do_post_search(db, searcher_url, user_id, request_id, search_spec):
                 pass
 
     try:
-        parsed_spec = _parse_data(search_spec)
-        if not parsed_spec[0]:
-            return parsed_spec
+        parsed_res = _parse_data(search_spec)
+        if not parsed_res[0]:
+            return parsed_res
     except:
         return (False, 'could not parse the search specification data')
 
@@ -188,6 +188,7 @@ def do_post_search(db, searcher_url, user_id, request_id, search_spec):
     updated = timepoint
     searched = None
     '''
+    parsed_spec = parsed_res[1]
 
     connector = controller.NewstwisterConnector(searcher_url)
     res = connector.request_search(user_id, request_id, parsed_spec)
