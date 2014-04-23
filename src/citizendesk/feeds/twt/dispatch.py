@@ -11,6 +11,7 @@ requests:
 /feeds/twt/report/
 /feeds/twt/endpoint/
 /feeds/twt/session/
+/feeds/twt/search/
 
 '''
 
@@ -26,5 +27,8 @@ def setup_blueprints(app):
 
     import citizendesk.feeds.twt.report.connect as twt_report_connect
     twt_report_connect.setup_blueprints(app)
+
+    import citizendesk.feeds.twt.search.connect as twt_search_connect
+    twt_search_connect.setup_blueprints(app)
 
     return

@@ -13,8 +13,6 @@ POST, SEARCH
 
 '''
 
-# TODO: connect the feeds dispatcher, and make sure that 'SEARCH' is supported, even by the X-override scheme
-
 import os, sys, datetime, json
 from bson import json_util
 try:
@@ -35,6 +33,7 @@ def setup_blueprints(app):
 @bp_feed_twt_search.route('/feeds/twt/search/', defaults={}, methods=['POST', 'SEARCH'], strict_slashes=False)
 def feed_twt_search_one_post():
     from citizendesk.feeds.twt.search import process
+    from citizendesk.feeds.config import get_config
 
     logger = get_logger()
     client_ip = get_client_ip()
@@ -62,7 +61,11 @@ def feed_twt_search_one_post():
     except:
         return (json.dumps('provided data should contain "user_id", "request_id", "search_spec" parts'), 404, {'Content-Type': 'application/json'})
 
-    res = process.do_post_search(mongo_dbs.get_db().db, user_id, request_id, search_spec)
+    searcher_url = get_config('newstwister_url')
+    if ('searcher_url' in data) and data['searcher_url']:
+        searcher_url = data['searcher_url']
+
+    res = process.do_post_search(mongo_dbs.get_db().db, searcher_url, user_id, request_id, search_spec)
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
@@ -94,7 +97,9 @@ def feed_twt_search_one_search():
     if data is None:
         return (json.dumps('provided data are not valid json'), 404, {'Content-Type': 'application/json'})
 
-    res = process.do_post_search(mongo_dbs.get_db().db, user_id, request_id, data)
+    searcher_url = get_config('newstwister_url')
+
+    res = process.do_post_search(mongo_dbs.get_db().db, searcher_url, user_id, request_id, data)
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}

@@ -41,7 +41,8 @@ class HTTPMethodOverrideMiddleware(object):
         'DELETE',
         'PUT',
         'PATCH',
-        'OPTIONS'
+        'OPTIONS',
+        'SEARCH'
     ])
     bodyless_methods = frozenset(['GET', 'HEAD', 'OPTIONS', 'DELETE'])
 

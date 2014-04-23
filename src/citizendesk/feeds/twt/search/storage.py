@@ -15,7 +15,7 @@ try:
 except:
     long = int
 
-collection = None
+collection = 'twt_searches'
 
 schema = {
     'user_id': 1,
