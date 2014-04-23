@@ -66,7 +66,7 @@ def load_send_sms_config(config_path):
 
 config = {
     'feed_type': 'SMS',
-    'channel_type': 'SMS',
+    'publisher': 'SMS gateway',
     'send_reply': False,
     'reply_message': None,
     'time_delay': DEFAULT_TIME_DELAY,
@@ -94,11 +94,10 @@ def gen_id(feed_type, citizen):
     id_value += ':' + ''.join(rnd_list)
     return id_value
 
-def get_sms(phone_number):
+def get_sms(channel_type, phone_number):
     FEED_TYPE = get_conf('feed_type')
-    CHANNEL_TYPE = get_conf('channel_type')
 
-    sess_spec = {'feed_type': FEED_TYPE, 'channels': {'$elemMatch': {'type': CHANNEL_TYPE, 'value': phone_number}}}
+    sess_spec = {'feed_type': FEED_TYPE, 'channels': {'$elemMatch': {'type': channel_type, 'value': phone_number}}}
     return holder.find_last_session(sess_spec)
 
 sms_take = Blueprint('sms_take', __name__)

@@ -65,15 +65,14 @@ def ask_sender(db, phone_number):
 
 def do_post(db, holder, params, client_ip):
     feed_type = get_conf('feed_type')
-    channel_type = get_conf('channel_type')
+    publisher = get_conf('publisher')
     feed_filter = None
 
     feed_name = params['feed']
     phone_number = params['phone']
     received = params['time']
 
-    channels = [{'type': channel_type, 'value': phone_number, 'filter': feed_name}]
-    publishers = []
+    channels = [{'type': feed_name, 'value': phone_number, 'filter': None, 'request': None}]
     authors = [{'authority': 'telco', 'identifiers': [{'type': 'phone_number', 'value': phone_number}]}]
     endorsers = []
 
@@ -95,7 +94,7 @@ def do_post(db, holder, params, client_ip):
     pinned_id = None
     assignments = []
 
-    last_report = get_sms(phone_number)
+    last_report = get_sms(feed_name, phone_number)
     if last_report:
         if is_within_session(last_report['produced'], received):
             session = last_report['session']
@@ -112,6 +111,7 @@ def do_post(db, holder, params, client_ip):
     report['feed_spec'] = None
     report['produced'] = received
     report['session'] = session
+    report['publisher'] = publisher
     report['channels'] = channels
     report['authors'] = authors
     report['original'] = original
