@@ -1,4 +1,7 @@
 #!/bin/sh
+#
+# creates the user of the Citizen Desk system
+#
 
 HOMEDIR=/opt/citizendesk
 mkdir -p $HOMEDIR
