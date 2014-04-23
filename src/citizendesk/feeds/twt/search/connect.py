@@ -75,7 +75,7 @@ def feed_twt_search_one_post():
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
 @bp_feed_twt_search.route('/feeds/twt/search/<user_id>/request/<request_id>/', defaults={}, methods=['POST', 'SEARCH'], strict_slashes=False)
-def feed_twt_search_one_search():
+def feed_twt_search_one_search(user_id, request_id):
     from citizendesk.feeds.twt.search import process
     from citizendesk.feeds.config import get_config
 
