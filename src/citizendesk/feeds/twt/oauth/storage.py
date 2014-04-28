@@ -4,6 +4,7 @@
 #
 
 import datetime
+from bson.objectid import ObjectId
 
 try:
     unicode
@@ -32,6 +33,11 @@ def get_one(db, doc_id):
     '''
     if not db:
         return (False, 'inner application error')
+
+    try:
+        doc_id = ObjectId(doc_id)
+    except:
+        pass
 
     if type(doc_id) in [str, unicode]:
         if doc_id.isdigit():
