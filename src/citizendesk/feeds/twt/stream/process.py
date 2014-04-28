@@ -4,6 +4,8 @@
 #
 
 import datetime
+from bson.objectid import ObjectId
+
 try:
     from citizendesk.feeds.twt.external import newstwister as controller
 except:
@@ -340,11 +342,14 @@ def do_patch_one(db, doc_id=None, data=None, force=None):
     if doc_id is None:
         return (False, 'stream _id not provided')
 
-    if doc_id.isdigit():
-        try:
-            doc_id = int(doc_id)
-        except:
-            pass
+    try:
+        doc_id = ObjectId(doc_id)
+    except:
+        if doc_id.isdigit():
+            try:
+                doc_id = int(doc_id)
+            except:
+                pass
 
     try:
         force_val = bool(_get_boolean(force))
