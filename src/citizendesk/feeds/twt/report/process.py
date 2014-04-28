@@ -115,6 +115,13 @@ def do_get_list(db, endpoint_type, endpoint_id, proto=None, offset=None, limit=N
             if (type(entry['texts']) not in [list]):
                 continue
             for one_text in entry['texts']:
+                source = None
+                if ('sources' in entry) and (type(entry['sources']) is list):
+                    if len(entry['sources']) and (entry['sources'][0]):
+                        source = entry['sources'][0]
+                if source:
+                    if (type(one_text) is dict):
+                        one_text['source'] = source
                 docs.append(one_text)
 
     return (True, docs, {'total': total})
