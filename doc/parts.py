@@ -3,6 +3,37 @@
 # corresponding parts of Citizen Desk output vs. Liveblog chaining
 #
 
+'''
+blog/coverage list:
+http://localhost:9060/outgest/liveblog/coverage
+
+http://localhost:9060/outgest/liveblog/coverage?X-Filter=Title,Description
+http://sourcefabric.superdesk.pro/resources/LiveDesk/Blog?X-Filter=Title,Description
+... list all active coverages
+{
+    total: 30
+    limit: 30
+    offset: 0
+    BlogList:
+    [
+        {
+            href: url to blog data, e.g. 'http://localhost:9060/streams/liveblog/coverage/1'
+            Description: string
+            Title: string
+        },
+        ...
+    ]
+}
+
+one blog/coverage:
+http://localhost:9060/streams/liveblog/coverage/1
+
+
+
+
+
+'''
+
 lb_blog_list = {
     'lb_link': 'http://sourcefabric.superdesk.pro/resources/LiveDesk/Blog/',
     'lb_content': {
@@ -17,7 +48,11 @@ lb_blog = {
         'Id': '1',
         'IsLive': True,
         'Description': 'Welcome to our live election night coverage! ...',
+        'EmbedConfig': None, # (string)
         'Title': 'Election Night 2013',
+        'CreatedOn': '7/1/13 3:54 PM',
+        'LiveOn': None, # not to include if None
+        'UpdatedOn': None, # not to include if None
         'Post': {'href': '//sourcefabric.superdesk.pro/resources/LiveDesk/Blog/1/Post/'},
         'PostPublished': {'href': '//sourcefabric.superdesk.pro/resources/LiveDesk/Blog/1/Post/'},
     },
@@ -46,9 +81,9 @@ regarding CId:
 
 *   probably no order
 
-*   we should probably save citizen info even when just partial as 'shadows',
+*   we should probably save citizen info even when just partial as 'aliases',
     each citizen activity casts her/his shadow;
-    for a proto-report, we probably should only create/cast the shadow, when it gets taken.
+    for a proto-report, we probably should only create/cast the alias, when it gets taken.
 
 
 {
