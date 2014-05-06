@@ -191,7 +191,7 @@ def do_post_search(db, searcher_url, user_id, request_id, search_spec):
     parsed_spec = parsed_res[1]
 
     connector = controller.NewstwisterConnector(searcher_url)
-    res = connector.request_search(user_id, request_id, parsed_spec)
+    res = connector.request_search(user_id, request_id, parsed_spec, search_spec)
 
     if not res:
         return (False, 'error during search request dispatching')

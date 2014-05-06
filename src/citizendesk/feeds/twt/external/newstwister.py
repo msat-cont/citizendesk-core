@@ -8,7 +8,7 @@ class NewstwisterConnector():
     def __init__(self, base_url):
         self.ctrl_base_url = base_url
 
-    def request_search(self, user_id, request_id, search_spec):
+    def request_search(self, user_id, request_id, search_spec, search_original):
         search_url = self.ctrl_base_url
         if not search_url.endswith('/'):
             search_url += '/'
@@ -18,6 +18,7 @@ class NewstwisterConnector():
         params['user_id'] = user_id
         params['request_id'] = request_id
         params['search_spec'] = search_spec
+        params['search_spec_original'] = search_original
 
         search_status = None
         try:
@@ -33,7 +34,7 @@ class NewstwisterConnector():
 
         return search_status
 
-    def request_start(self, endpoint_id, oauth_params, filter_params):
+    def request_start(self, endpoint_id, oauth_params, filter_params, filter_original):
         # make connection to twister_main
         # take response from connection
 
@@ -45,6 +46,7 @@ class NewstwisterConnector():
         params = {}
         params['oauth_info'] = oauth_params
         params['stream_filter'] = filter_params
+        params['stream_spec_original'] = filter_original
         params['endpoint'] = {'endpoint_id': endpoint_id}
 
         node_status = None

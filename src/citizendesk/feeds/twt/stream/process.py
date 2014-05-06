@@ -273,15 +273,18 @@ def do_post_one(db, doc_id=None, data=None):
 
 def _prepare_filter(filter_spec):
     filter_use = {}
+    filter_original = {}
     if type(filter_spec) is not dict:
         return filter_use
 
     if ('language' in filter_spec) and filter_spec['language']:
         if type(filter_spec['language']) in [str, unicode]:
             filter_use['language'] = filter_spec['language']
+            filter_original['language'] = filter_spec['language']
 
     if ('locations' in filter_spec) and (type(filter_spec['locations']) is list):
         locations = []
+        locations_original = []
         for item in filter_spec['locations']:
             if type(item) is not dict:
                 continue
@@ -299,19 +302,23 @@ def _prepare_filter(filter_spec):
                 continue
             item_location = ','.join([str(item[x]) for x in ['west', 'south', 'east', 'north']])
             locations.append(item_location)
+            locations_original.append(item)
 
         if locations:
             filter_use['locations'] = ','.join(locations)
+            filter_original['locations'] = locations_original
 
     if ('track' in filter_spec) and (type(filter_spec['track']) is list):
         if filter_spec['track']:
             filter_use['track'] = ','.join([str(x) for x in filter_spec['track']])
+            filter_original['track'] = filter_spec['track']
 
     if ('follow' in filter_spec) and (type(filter_spec['follow']) is list):
         if filter_spec['follow']:
             filter_use['follow'] = ','.join([str(x) for x in filter_spec['follow']])
+            filter_original['follow'] = filter_spec['follow']
 
-    return filter_use
+    return (filter_use, filter_original)
 
 def do_patch_one(db, doc_id=None, data=None, force=None):
     '''
@@ -412,9 +419,10 @@ def do_patch_one(db, doc_id=None, data=None, force=None):
             return (False, 'set oauth without "spec" part')
 
     filter_spec = {}
+    filter_spec_original = {}
     if filter_info and filter_info['spec']:
         try:
-            filter_spec = _prepare_filter(filter_info['spec'])
+            filter_spec, filter_spec_original = _prepare_filter(filter_info['spec'])
         except:
             return (False, 'can not prepare filter params')
 
@@ -453,7 +461,7 @@ def do_patch_one(db, doc_id=None, data=None, force=None):
     if should_run:
         new_stream_url = doc['control']['streamer_url']
         connector = controller.NewstwisterConnector(new_stream_url)
-        res = connector.request_start(str(doc_id), oauth_info['spec'], filter_spec)
+        res = connector.request_start(str(doc_id), oauth_info['spec'], filter_spec, filter_spec_original)
         if not res:
             return (False, 'can not start the stream')
         try:
