@@ -16,9 +16,9 @@ collection = 'twt_filters'
 schema = {
     '_id': 1,
     'spec': {
-        'follow': [6253282],
+        'follow': [{'user_name':'sourcefabric', 'user_id':121151264}],
         'track': ['citizen desk', 'citizendesk'],
-        'locations': [{'west': -74, 'east': -73, 'south': 40, 'north': 41}],
+        'locations': [{'name': 'New York', 'west': -74, 'east': -73, 'south': 40, 'north': 41}],
         'language': 'en'
     },
     'logs': {

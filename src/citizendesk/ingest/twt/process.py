@@ -57,6 +57,100 @@ discarded: []
 import os, sys, datetime, json
 from citizendesk.ingest.twt.connect import get_conf, gen_id, get_tweet
 
+def find_search_reason(criteria, expanded_text, authors, recipients):
+    reasons = []
+
+    expanded_text = expanded_text.lower()
+
+    # we use screen_names here
+    tweet_authors = []
+    for one_author in authors:
+        if one_author['authority'] != 'twitter':
+            continue
+        for one_author_spec in one_author['identifiers']:
+            if one_author_spec['type'] == 'user_name':
+                tweet_authors.append(one_author_spec['value'].lower())
+
+    tweet_recipients = []
+    for one_recipient in recipients:
+        if one_recipient['authority'] != 'twitter':
+            continue
+        for one_recipient_spec in one_recipient['identifiers']:
+            if one_recipient_spec['type'] == 'user_name':
+                tweet_recipient.append(one_recipient_spec['value'].lower())
+
+    if ('query' in criteria) and (type(criteria['query']) is dict):
+
+        if 'contains' in criteria['query']:
+            term_parts = criteria['query']['contains']
+            if type(term_parts) not in [list, tuple]:
+                term_parts = []
+            for one_term in term_parts:
+                if not one_term:
+                    continue
+                if str(one_term).lower() in expanded_text:
+                    reasons.append(one_term)
+
+        if 'from' in criteria['query']:
+            from_part = criteria['query']['from']
+            if from_part:
+                if str(from_part).lower() in tweet_authors:
+                    reasons.append(from_part)
+
+        if 'to' in criteria['query']:
+            to_part = criteria['query']['to']
+            if to_part:
+                if str(to_part).lower() in tweet_recipients:
+                    reasons.append(to_part)
+
+    return reasons
+
+def find_stream_reason(criteria, expanded_text, authors, recipients):
+    reasons = []
+
+    expanded_text = expanded_text.lower()
+
+    term_parts = []
+    if 'track' in criteria:
+        term_parts = criteria['track']
+        if type(term_parts) not in [list, tuple]:
+            term_parts = []
+
+    for term_tuple in term_parts:
+        term_tuple = term_tuple.strip()
+        if not term_tuple:
+            continue
+        tuple_present = True
+        for one_term in term_tuple.split(' '):
+            if not one_term:
+                continue
+            if str(one_term).lower() not in expanded_text:
+                tuple_present = False
+                break
+        if tuple_present:
+            reasons.append(term_tuple)
+
+    # do we have screen_names or user_ids here; by now we use user_ids?
+    tweet_authors = []
+    for one_author in authors:
+        if one_author['authority'] != 'twitter':
+            continue
+        for one_author_spec in one_author['identifiers']:
+            if one_author_spec['type'] == 'user_id': # 'user_name'
+                tweet_authors.append(one_author_spec['value'].lower())
+
+    follow_parts = []
+    if 'follow' in criteria:
+        follow_parts = criteria['follow']
+        if type(follow_parts) not in [list, tuple]:
+            follow_parts = []
+
+    for one_follow in follow_parts:
+        if str(one_follow).lower() in tweet_authors:
+            reasons.append(one_follow)
+
+    return reasons
+
 def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, request_id, feed_filter, client_ip):
 
     feed_type = get_conf('feed_type')
