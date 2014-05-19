@@ -359,6 +359,10 @@ def _prepare_filter(db, connector, filter_spec):
                 one_follow_id = _get_twt_user_id(db, connector, one_follow_name)
                 if not one_follow_id:
                     return (False, 'can not prepare filter: can not get twt user id for twt user name "' + str(one_follow_name) + '"')
+                try:
+                    one_follow_id = str(one_follow_id)
+                except:
+                    return (False, 'can not prepare filter: can not set user id to be followed as a string, on: "' + str(one_follow_name) + '"')
                 follow_ids.append(one_follow_id)
             filter_use['follow'] = ','.join([str(x) for x in follow_ids])
             filter_original['follow'] = filter_spec['follow']
