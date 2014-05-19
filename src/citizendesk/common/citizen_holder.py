@@ -19,6 +19,7 @@ locations (town, country, any, time_zone),
 time_zone
 languages
 description
+sources
 home_pages
 
 
@@ -28,6 +29,7 @@ reliable: Boolean
 verified: Boolean
 places: List,
 comments: List,
+links: List,
 
 # logs
 produced: DateTime # when the user info came (SMS sender) or was created (tweet user)
@@ -61,7 +63,7 @@ identifiers: [{type:String, value:String, valid_from:Datetime, invalid_from:Date
 import os, sys, datetime
 from citizendesk.common.dbc import mongo_dbs
 
-COLL_ALIASES = 'aliases'
+COLL_ALIASES = 'citizen_aliases'
 COLL_CITIZENS = 'citizens'
 UNVERIFIED = 'unverified'
 UPDATED_FIELD = 'modified'
@@ -150,6 +152,7 @@ class CitizenHolder(object):
             'time_zone': None,
             'languages': [],
             'description': None,
+            'sources': [],
             'home_pages': [],
             'local': False,
 
@@ -158,6 +161,7 @@ class CitizenHolder(object):
             'verified': False,
             'places': [],
             'comments': [],
+            'links': [],
             'sensitive': None
         }
 
@@ -177,7 +181,9 @@ class CitizenHolder(object):
             'avatars',
             'locations',
             'languages',
-            'home_pages'
+            'sources',
+            'home_pages',
+            'links'
         ]
 
         for key in parts_scalar:
@@ -211,6 +217,7 @@ class CitizenHolder(object):
             'avatars',
             'locations',
             'languages',
+            'sources',
             'home_pages'
         ]
 

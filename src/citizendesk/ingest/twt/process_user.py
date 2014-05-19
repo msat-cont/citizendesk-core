@@ -6,6 +6,8 @@
 If the user info is already saved, only update the provider-based parts.
 '''
 
+TWT_USER_LINK_PREFIX = 'https://twitter.com/'
+
 import os, sys, datetime, json
 from citizendesk.ingest.twt.connect import get_conf
 
@@ -68,6 +70,8 @@ def parse_user_info(authority, user_id, user_info, client_ip):
                         one_name = one_url['display_url']
                     home_pages.append({'link': one_link, 'name': one_name})
 
+    sources = [TWT_USER_LINK_PREFIX + str(screen_name)]
+
     alias = {
         'authority': authority,
         'identifiers': identifiers,
@@ -78,6 +82,7 @@ def parse_user_info(authority, user_id, user_info, client_ip):
         'time_zone': time_zone,
         'languages': languages,
         'description': description,
+        'sources': sources,
         'home_pages': home_pages
     }
 
