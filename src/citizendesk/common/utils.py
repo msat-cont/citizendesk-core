@@ -139,6 +139,39 @@ def get_boolean(value):
 
     return None
 
+def get_sort(param):
+    def_list = []
+
+    if not param:
+        return def_list
+
+    try:
+        item_set = param.split(',')
+    except:
+        return def_list
+
+    for item in item_set:
+        if not item:
+            continue
+        parts = item.split(':')
+        if 2 != len(parts):
+            continue
+        if not parts[0]:
+            continue
+        if not parts[1]:
+            continue
+        order = None
+        if parts[1][0] in ['1', '+', 'a', 'A']:
+            order = 1
+        if parts[1][0] in ['0', '-', 'd', 'D']:
+            order = -1
+        if not order:
+            continue
+
+        def_list.append((parts[0], order))
+
+    return def_list
+
 def daemonize(work_dir, pid_path):
     global logger
 

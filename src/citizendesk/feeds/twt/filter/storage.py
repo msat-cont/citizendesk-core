@@ -16,8 +16,8 @@ collection = 'twt_filters'
 schema = {
     '_id': 1,
     'spec': {
-        'follow': [{'user_name':'sourcefabric', 'user_id':121151264}],
-        'track': ['citizen desk', 'citizendesk'],
+        'follow': ['sourcefabric'], # notice that this shall be translated into ids before sending to Newstwister, e.g. 121151264,
+        'track': ['citizen desk', '#citizendesk', '@sourcefabric'],
         'locations': [{'name': 'New York', 'west': -74, 'east': -73, 'south': 40, 'north': 41}],
         'language': 'en'
     },

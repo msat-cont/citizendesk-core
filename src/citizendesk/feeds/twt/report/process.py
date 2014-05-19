@@ -12,6 +12,7 @@ except:
 
 from citizendesk.feeds.twt.report.storage import collection, schema, FEED_TYPE, PUBLISHER_TYPE
 from citizendesk.common.utils import get_boolean as _get_boolean
+from citizendesk.common.utils import get_sort as _get_sort
 
 DEFAULT_LIMIT = 20
 
@@ -33,34 +34,6 @@ def do_get_one(db, doc_id):
         return (False, 'report not found')
 
     return (True, doc)
-
-def _get_sort(param):
-    def_list = []
-
-    if not param:
-        return def_list
-
-    for item in param.split(','):
-        if not item:
-            continue
-        parts = item.split(':')
-        if 2 != len(parts):
-            continue
-        if not parts[0]:
-            continue
-        if not parts[1]:
-            continue
-        order = None
-        if parts[1][0] in ['1', '+', 'a', 'A']:
-            order = 1
-        if parts[1][0] in ['0', '-', 'd', 'D']:
-            order = -1
-        if not order:
-            continue
-
-        def_list.append((parts[0], order))
-
-    return def_list
 
 def do_get_list(db, endpoint_type, endpoint_id, proto=None, offset=None, limit=None, sort=None, other=None):
     '''
