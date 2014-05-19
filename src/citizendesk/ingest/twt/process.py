@@ -31,6 +31,7 @@ channels: [{type:twitter, value: endpoint: endpoint_id}]
 #publishers: [{type:twitter, value:twitter stream}]
 publisher: 'twitter'
 authors: [{'authority': 'twitter', 'identifiers': [{type:id, value:tweet:user:id_str}, {type:screen_name, value:tweet:user:screen_name}]}]
+recipients: []
 endorsers: [] # users that retweet
 
 # content
@@ -297,6 +298,16 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
                 one_cont_ids = [{'type':'user_id', 'value':one_cont['id_str']}, {'type':'user_name', 'value':one_cont['screen_name']}]
                 rep_authors.append({'authority': 'twitter', 'identifiers': one_cont_ids})
         report['authors'] = rep_authors
+
+        recipient_id = None
+        recipient_name = None
+        if 'in_reply_to_user_id_str' in tweet:
+            recipient_id = tweet['in_reply_to_user_id_str']
+        if 'in_reply_to_screen_name' in tweet:
+            recipient_name = tweet['in_reply_to_screen_name']
+        if recipient_id and recipient_name:
+            one_recp_ids = [{'type':'user_id', 'value':recipient_id}, {'type':'user_name', 'value':recipient_name}]
+            report['recipients'] = ({'authority': 'twitter', 'identifiers': one_recp_ids})
 
     except Exception as exc:
         sys.stderr.write(str(exc) + '\n')
