@@ -41,10 +41,12 @@ checks: [{type:String, status:String, validator:String}]
 assignments: [{type:String, name:String}]
 
 # citizens
-channels: [{type:String, value:String}] # bookmarklet, sms, twitter (endpoints), ...
+channels: [{type:String, value:String, filter, reasons(not reliable)}] # bookmarklet, sms, twitter (endpoints), ...
 publisher: String # youtube, flickr, ...
 authors: [{type:String, value:String}] # who created the content
+recipients: [{type:String, value:String}] # who are targeted
 endorsers: [{type:String, value:String}] # who supports/submits/reports the content
+
 
 # content
 original: Any tree # original structured data
@@ -52,7 +54,7 @@ geolocations: [] # where it happened
 place_names: [] # free strings: town names, ...
 timeline: [] # when the reported events happened
 time_names: [] # recognized datetimes
-citizens_mentioned: [{type:String, value:String}] # mentioned citizens, i.e. not (necessarily) the authors
+citizens_mentioned: [{type:String, value:String}] # mentioned citizens, i.e. not (necessarily) the authors or recipients
 subjects: [] # who/what are the perpetrators
 media: [] # local binaries with refs
 texts: [{'original': None, 'transcript': None}, ] # original and transcripted textual data
@@ -250,6 +252,7 @@ class ReportHolder(object):
         document['channels'] = [] # should be filled
         document['publisher'] = publisher
         document['authors'] = [] # should be filled
+        document['recipients'] = [] # should be filled
         document['endorsers'] = [] # should be filled
 
         # content
@@ -280,7 +283,7 @@ class ReportHolder(object):
         if 'original' in data:
             document['original'] = data['original']
 
-        for part in ['channels', 'authors', 'endorsers', 'assignments']:
+        for part in ['channels', 'authors', 'recipients', 'endorsers', 'assignments']:
             value = []
             if part in data:
                 value = data[part]
