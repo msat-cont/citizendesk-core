@@ -271,18 +271,57 @@ def do_post_one(db, doc_id=None, data=None):
 
     return (True, {'_id': doc_id})
 
-def _prepare_filter(filter_spec):
+def _get_twt_user_id(db, connector, user_name):
+    # try to take from db
+    # if did not got: try to ask Newstwister
+    # if Newstwister provides it: ask db again
+    from citizendesk.feeds.twt.report.storage import get_one_by_name as get_one_user_by_name
+
+    for attempt_rank in range(2):
+        # try to get user info before and after asking Newstwister
+        user_info = None
+        user_res = get_one_user_by_name(db, user_name)
+        if user_res and user_res[0]:
+            user_info = user_res[1]
+
+        identifiers = None
+        if user_info and (type(user_info) is dict) and ('identifiers' in user_info):
+            identifiers = user_info['identifiers']
+        if type(identifiers) in (list, tuple):
+            for test_user_name in identifiers:
+                if type(test_user_name) is not dict:
+                    continue
+                if 'user_id' not in test_user_name:
+                    continue
+                if 'user_name' not in test_user_name:
+                    continue
+                if user_name != test_user_name['user_name']:
+                    continue
+                return test_user_name['user_id']
+
+        if not attempt_rank:
+            # ask Newstwister just once (if user info was not already stored in db)
+            search_spec = {}
+            search_spec['alias_name'] = user_name
+
+            ask_res = connector.request_user(search_spec)
+            if not ask_res:
+                return None
+
+    return None
+
+def _prepare_filter(db, connector, filter_spec):
     filter_use = {}
     filter_original = {}
     if type(filter_spec) is not dict:
-        return filter_use
+        return (False, 'can not prepare filter: unknown filter data format')
 
     if ('language' in filter_spec) and filter_spec['language']:
         if type(filter_spec['language']) in [str, unicode]:
             filter_use['language'] = filter_spec['language']
             filter_original['language'] = filter_spec['language']
 
-    if ('locations' in filter_spec) and (type(filter_spec['locations']) is list):
+    if ('locations' in filter_spec) and (type(filter_spec['locations']) in (list, tuple)):
         locations = []
         locations_original = []
         for item in filter_spec['locations']:
@@ -308,17 +347,23 @@ def _prepare_filter(filter_spec):
             filter_use['locations'] = ','.join(locations)
             filter_original['locations'] = locations_original
 
-    if ('track' in filter_spec) and (type(filter_spec['track']) is list):
+    if ('track' in filter_spec) and (type(filter_spec['track']) in (list, tuple)):
         if filter_spec['track']:
             filter_use['track'] = ','.join([str(x) for x in filter_spec['track']])
             filter_original['track'] = filter_spec['track']
 
-    if ('follow' in filter_spec) and (type(filter_spec['follow']) is list):
+    if ('follow' in filter_spec) and (type(filter_spec['follow']) in (list, tuple)):
         if filter_spec['follow']:
-            filter_use['follow'] = ','.join([str(x) for x in filter_spec['follow']])
+            follow_ids = []
+            for one_follow_name in filter_spec['follow']:
+                one_follow_id = _get_twt_user_id(db, connector, one_follow_name)
+                if not one_follow_id:
+                    return (False, 'can not prepare filter: can not get twt user id for twt user name "' + str(one_follow_name) + '"')
+                follow_ids.append(one_follow_id)
+            filter_use['follow'] = ','.join([str(x) for x in follow_ids])
             filter_original['follow'] = filter_spec['follow']
 
-    return (filter_use, filter_original)
+    return (True, filter_use, filter_original)
 
 def do_patch_one(db, doc_id=None, data=None, force=None):
     '''
@@ -400,6 +445,12 @@ def do_patch_one(db, doc_id=None, data=None, force=None):
         if (not filter_id) or (not oauth_id):
             return (False, 'Can not start the stream without assigned filter_id and oauth_id')
 
+    new_stream_url = None
+    connector = None
+    if should_run:
+        new_stream_url = doc['control']['streamer_url']
+        connector = controller.NewstwisterConnector(new_stream_url)
+
     # load the supplemental data
     filter_info = None
     oauth_info = None
@@ -420,11 +471,19 @@ def do_patch_one(db, doc_id=None, data=None, force=None):
 
     filter_spec = {}
     filter_spec_original = {}
-    if filter_info and filter_info['spec']:
+    if should_run and filter_info and filter_info['spec']:
         try:
-            filter_spec, filter_spec_original = _prepare_filter(filter_info['spec'])
+            prep_res = _prepare_filter(db, connector, filter_info['spec'])
+            if not prep_res[0]:
+                return (False, res[1])
+            filter_spec = res[1]
+            filter_spec_original = res[2]
         except:
             return (False, 'can not prepare filter params')
+        if not filter_spec:
+            return (False, 'no filter spec was prepared')
+        if not filter_spec_original:
+            return (False, 'no filter spec original was prepared')
 
     # check if the oauth_id is not used by any other running feed
     if should_run:
@@ -459,8 +518,6 @@ def do_patch_one(db, doc_id=None, data=None, force=None):
         coll.update({'_id': doc_id}, {'$set': update_set}, upsert=False)
 
     if should_run:
-        new_stream_url = doc['control']['streamer_url']
-        connector = controller.NewstwisterConnector(new_stream_url)
         res = connector.request_start(str(doc_id), oauth_info['spec'], filter_spec, filter_spec_original)
         if not res:
             return (False, 'can not start the stream')

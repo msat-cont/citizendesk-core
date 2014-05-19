@@ -59,11 +59,8 @@ def _check_schema(spec):
             if type(spec['follow']) is not list:
                 return (False, '"spec.follow" field has to be list')
             for value in spec['follow']:
-                if type(value) not in [str, unicode, int, long]:
-                    return (False, '"spec.follow" field has to be list of integers')
-                if type(value) in [str, unicode]:
-                    if not value.isdigit():
-                        return (False, '"spec.follow" field values have to be digital is set as strings')
+                if type(value) not in [str, unicode]:
+                    return (False, '"spec.follow" field has to be list of strings')
         if spec['track']:
             if type(spec['track']) is not list:
                 return (False, '"spec.track" field has to be list')
