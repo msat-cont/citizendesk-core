@@ -12,6 +12,7 @@ requests:
 /feeds/twt/endpoint/
 /feeds/twt/session/
 /feeds/twt/search/
+/feeds/twt/citizen_alias/
 
 '''
 
@@ -30,5 +31,8 @@ def setup_blueprints(app):
 
     import citizendesk.feeds.twt.search.connect as twt_search_connect
     twt_search_connect.setup_blueprints(app)
+
+    import citizendesk.feeds.twt.citizen_alias.connect as twt_citizen_alias_connect
+    twt_citizen_alias_connect.setup_blueprints(app)
 
     return

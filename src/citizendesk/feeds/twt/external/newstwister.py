@@ -25,8 +25,6 @@ class NewstwisterConnector():
             response = urllib2.urlopen(req)
             search_result = response.read()
             search_status = json.loads(search_result)
-            if type(search_status) is not dict:
-                search_status = None
         except Exception as exc:
             search_status = None
 

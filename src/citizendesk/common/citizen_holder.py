@@ -111,8 +111,6 @@ class CitizenHolder(object):
 
         cursor = coll.find(alias_spec).sort([('produced', 1)])
         for entry in cursor:
-            entry['report_id'] = entry['_id']
-            del(entry['_id'])
             aliases.append(entry)
 
         return aliases
@@ -205,6 +203,21 @@ class CitizenHolder(object):
         return alias
 
     def update_alias(self, alias, alias_info):
+        alias = self.adjust_alias(alias, alias_info)
+        if not alias:
+            return False
+
+        print(alias)
+        #try:
+        if True:
+            collection = self.get_collection('aliases')
+            collection.update({'_id': alias['_id']}, alias, upsert=False)
+        #except:
+        #    return False
+
+        return True
+
+    def adjust_alias(self, alias, alias_info):
         parts_scalar = [
             'name_first',
             'name_flast',
@@ -214,6 +227,7 @@ class CitizenHolder(object):
         ]
 
         parts_vector = [
+            'identifiers',
             'avatars',
             'locations',
             'languages',
@@ -240,5 +254,5 @@ class CitizenHolder(object):
                     if one_value:
                         alias[key].append(one_value)
 
-        return True
+        return alias
 

@@ -14,8 +14,8 @@ try:
 except:
     unicode = str
 
-from citizendesk.feeds.twt.report.storage import collection, schema, AUTHORITY
-from citizendesk.feeds.twt.report.storage import get_one_by_id, get_one_by_name
+from citizendesk.feeds.twt.citizen_alias.storage import collection, schema, AUTHORITY
+from citizendesk.feeds.twt.citizen_alias.storage import get_one_by_id, get_one_by_name
 from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_sort as _get_sort
 

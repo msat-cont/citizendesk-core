@@ -27,6 +27,7 @@ def parse_user_info(authority, user_id, user_info, client_ip):
         identifiers.append({'type':'user_id', 'value':id_str})
     if screen_name:
         identifiers.append({'type':'user_name', 'value':screen_name})
+        identifiers.append({'type':'user_name_lc', 'value':screen_name.lower()})
     if not identifiers:
         return (False, 'no alias identifiers provided')
 

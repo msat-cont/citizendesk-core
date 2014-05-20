@@ -54,7 +54,7 @@ def get_one_by_name(db, alias_name):
 
     coll = db[collection]
 
-    spec = {'authority': AUTHORITY, 'identifiers': {'type':'user_name', 'value':alias_name}}
+    spec = {'authority': AUTHORITY, 'identifiers': {'type':'user_name_lc', 'value':alias_name.lower()}}
     doc = coll.find_one(spec)
 
     if not doc:

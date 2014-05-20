@@ -106,6 +106,8 @@ def feed_twt_citizen_alias_get_list():
         return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
 
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
+    if 3 >= len(res):
+        ret_data['_meta']['list'] = res[2]
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
 @bp_feed_twt_citizen_alias.route('/feeds/twt/citizen/alias/id/<alias_value>/request/', defaults={'alias_type': 'alias_id'}, methods=['POST'], strict_slashes=False)
@@ -125,6 +127,6 @@ def feed_twt_citizen_alias_request_one(alias_type, alias_value):
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
         return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
 
-    ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
+    ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
