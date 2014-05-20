@@ -106,8 +106,8 @@ def find_search_reason(criteria, expanded_text, authors, endorsers, recipients):
 
     expanded_text = expanded_text.lower()
 
-    tweet_authors = _take_twt_user_names(authors, endorsers)
-    tweet_recipients = _take_twt_user_names(recipients)
+    tweet_authors = _take_twt_user_names([authors, endorsers])
+    tweet_recipients = _take_twt_user_names([recipients])
 
     if ('query' in criteria) and (type(criteria['query']) is dict):
 
@@ -162,7 +162,7 @@ def find_stream_reason(criteria, expanded_text, authors, endorsers, recipients):
         if tuple_present:
             reasons_track.append(term_tuple)
 
-    tweet_borders = _take_twt_user_names(authors, endorsers, recipients)
+    tweet_borders = _take_twt_user_names([authors, endorsers, recipients])
 
     follow_parts = []
     if 'follow' in criteria:
@@ -186,8 +186,10 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
     session_id = report_id
 
     parent_id = None
-    if ('in_reply_to_status_id' in tweet) and tweet['in_reply_to_status_id']:
-        parent_id = tweet['in_reply_to_status_id']
+    if ('in_reply_to_status_id_str' in tweet) and tweet['in_reply_to_status_id_str']:
+        parent_id = tweet['in_reply_to_status_id_str']
+    if parent_id:
+        session_id = gen_id(feed_type, parent_id)
 
     parent_tweet = get_tweet(gen_id(feed_type, parent_id)) if parent_id else None
     proto = True
@@ -252,7 +254,7 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
                 report['geolocations'] = [{'lon': coordinates[0], 'lat': coordinates[1]}]
 
         expanded_text = _get_expanded_text(tweet)
-        report['texts'] = [{'original': report_text, 'transcript': None}]
+        report['texts'] = [{'original': expanded_text, 'transcript': None}]
 
         report_entities = tweet['entities']
         if report_entities:
