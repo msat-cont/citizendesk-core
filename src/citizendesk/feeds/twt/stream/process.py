@@ -479,11 +479,11 @@ def do_patch_one(db, doc_id=None, data=None, force=None):
         try:
             prep_res = _prepare_filter(db, connector, filter_info['spec'])
             if not prep_res[0]:
-                return (False, res[1])
-            filter_spec = res[1]
-            filter_spec_original = res[2]
-        except:
-            return (False, 'can not prepare filter params')
+                return (False, prep_res[1])
+            filter_spec = prep_res[1]
+            filter_spec_original = prep_res[2]
+        except Exception as exc:
+            return (False, 'can not prepare filter params: ' + str(exc))
         if not filter_spec:
             return (False, 'no filter spec was prepared')
         if not filter_spec_original:
