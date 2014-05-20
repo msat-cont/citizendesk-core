@@ -141,8 +141,12 @@ class ReportHolder(object):
         return None
 
     def store_report(self, document):
-        collection = self.get_collection('reports')
-        collection.save(document)
+        try:
+            collection = self.get_collection('reports')
+            collection.save(document)
+        except:
+            return False
+        return True
 
     def create_report(self, data):
         if not 'feed_type' in data:
@@ -327,7 +331,11 @@ class ReportHolder(object):
 
     def save_report(self, data):
         report = self.create_report(data)
-        self.store_report(report)
+        if not report:
+            return False
+        res = self.store_report(report)
+
+        return res
 
     '''
     def get_force_new_session(self, spec):
@@ -397,7 +405,7 @@ class ReportHolder(object):
         if not report:
             return None
         report['report_id'] = report['_id']
-        del(report['_id'])
+        #del(report['_id'])
         return report
 
     def provide_session(self, session_id):
@@ -407,7 +415,7 @@ class ReportHolder(object):
         cursor = coll.find({'session':session_id}).sort([('produced', 1)])
         for entry in cursor:
             entry['report_id'] = entry['_id']
-            del(entry['_id'])
+            #del(entry['_id'])
             reports.append(entry)
         return reports
 
@@ -428,7 +436,7 @@ class ReportHolder(object):
 
         for entry in cursor:
             entry['report_id'] = entry['_id']
-            del(entry['_id'])
+            #del(entry['_id'])
             reports.append(entry)
 
         return reports
@@ -450,7 +458,7 @@ class ReportHolder(object):
 
         for entry in cursor:
             entry['report_id'] = entry['_id']
-            del(entry['_id'])
+            #del(entry['_id'])
             reports.append(entry)
 
         return reports
@@ -475,7 +483,7 @@ class ReportHolder(object):
 
         for entry in cursor:
             entry['report_id'] = entry['_id']
-            del(entry['_id'])
+            #del(entry['_id'])
             reports.append(entry)
 
         return reports
@@ -497,7 +505,7 @@ class ReportHolder(object):
 
         for entry in cursor:
             entry['report_id'] = entry['_id']
-            del(entry['_id'])
+            #del(entry['_id'])
             reports.append(entry)
 
         return reports

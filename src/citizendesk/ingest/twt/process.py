@@ -55,30 +55,59 @@ viewed: []
 discarded: []
 '''
 
+SOURCE_START = 'https://twitter.com/'
+SOURCE_MIDDLE = '/status/'
+SOURCE_END = '/'
+
 import os, sys, datetime, json
 from citizendesk.ingest.twt.connect import get_conf, gen_id, get_tweet
 
-def find_search_reason(criteria, expanded_text, authors, recipients):
-    reasons = []
+def _get_expanded_text(original_tweet):
+    expanded_text = ''
+
+    report_entities = original_tweet['entities']
+    report_text = original_tweet['text']
+    if report_text:
+        if report_entities:
+            replace_set = {}
+            # change links to original links
+            all_url_sets = []
+            for link_entity_type in ['urls', 'media']:
+                if (link_entity_type in report_entities) and report_entities[link_entity_type]:
+                    all_url_sets.append(report_entities[link_entity_type])
+            for one_url_set in all_url_sets:
+                if one_url_set:
+                    for one_url in one_url_set:
+                        replace_set[one_url['indices'][0]] = {'indices': one_url['indices'], 'url': one_url['expanded_url']}
+            for key in sorted(replace_set.keys(), reverse=True):
+                link_data = replace_set[key]
+                report_text = report_text[:link_data['indices'][0]] + link_data['url'] + report_text[link_data['indices'][1]:]
+        expanded_text = report_text
+
+    return expanded_text
+
+def _take_twt_user_names(citizen_alias_lists):
+    names = []
+
+    # we use screen_names all here now
+    for one_set in citizen_alias_lists:
+        for one_alias in one_set:
+            if one_alias['authority'] != 'twitter':
+                continue
+            for one_alias_spec in one_alias['identifiers']:
+                if one_alias_spec['type'] == 'user_name':
+                    names.append(one_alias_spec['value'].lower())
+
+    return names
+
+def find_search_reason(criteria, expanded_text, authors, endorsers, recipients):
+    reasons_track = []
+    reasons_follow = []
 
     expanded_text = expanded_text.lower()
 
-    # we use screen_names here
-    tweet_authors = []
-    for one_author in authors:
-        if one_author['authority'] != 'twitter':
-            continue
-        for one_author_spec in one_author['identifiers']:
-            if one_author_spec['type'] == 'user_name':
-                tweet_authors.append(one_author_spec['value'].lower())
-
-    tweet_recipients = []
-    for one_recipient in recipients:
-        if one_recipient['authority'] != 'twitter':
-            continue
-        for one_recipient_spec in one_recipient['identifiers']:
-            if one_recipient_spec['type'] == 'user_name':
-                tweet_recipient.append(one_recipient_spec['value'].lower())
+    tweet_authors = _take_twt_user_names(authors, endorsers)
+    tweet_recipients = _take_twt_user_names(recipients)
 
     if ('query' in criteria) and (type(criteria['query']) is dict):
 
@@ -87,27 +116,29 @@ def find_search_reason(criteria, expanded_text, authors, recipients):
             if type(term_parts) not in [list, tuple]:
                 term_parts = []
             for one_term in term_parts:
+                one_term = one_term.strip()
                 if not one_term:
                     continue
                 if str(one_term).lower() in expanded_text:
-                    reasons.append(one_term)
+                    reasons_track.append(one_term)
 
         if 'from' in criteria['query']:
             from_part = criteria['query']['from']
             if from_part:
                 if str(from_part).lower() in tweet_authors:
-                    reasons.append(from_part)
+                    reasons_follow.append(from_part)
 
         if 'to' in criteria['query']:
             to_part = criteria['query']['to']
             if to_part:
                 if str(to_part).lower() in tweet_recipients:
-                    reasons.append(to_part)
+                    reasons_follow.append(to_part)
 
-    return reasons
+    return {'track': reasons_track, 'follow': reasons_follow}
 
-def find_stream_reason(criteria, expanded_text, authors, recipients):
-    reasons = []
+def find_stream_reason(criteria, expanded_text, authors, endorsers, recipients):
+    reasons_track = []
+    reasons_follow = []
 
     expanded_text = expanded_text.lower()
 
@@ -129,16 +160,9 @@ def find_stream_reason(criteria, expanded_text, authors, recipients):
                 tuple_present = False
                 break
         if tuple_present:
-            reasons.append(term_tuple)
+            reasons_track.append(term_tuple)
 
-    # do we have screen_names or user_ids here; by now we use user_ids?
-    tweet_authors = []
-    for one_author in authors:
-        if one_author['authority'] != 'twitter':
-            continue
-        for one_author_spec in one_author['identifiers']:
-            if one_author_spec['type'] == 'user_id': # 'user_name'
-                tweet_authors.append(one_author_spec['value'].lower())
+    tweet_borders = _take_twt_user_names(authors, endorsers, recipients)
 
     follow_parts = []
     if 'follow' in criteria:
@@ -147,12 +171,12 @@ def find_stream_reason(criteria, expanded_text, authors, recipients):
             follow_parts = []
 
     for one_follow in follow_parts:
-        if str(one_follow).lower() in tweet_authors:
-            reasons.append(one_follow)
+        if str(one_follow).lower() in tweet_borders:
+            reasons_follow.append(one_follow)
 
-    return reasons
+    return {'track': reasons_track, 'follow': reasons_follow}
 
-def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, request_id, feed_filter, client_ip):
+def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, request_id, feed_filter, endorsers, client_ip):
 
     feed_type = get_conf('feed_type')
     report_id = gen_id(feed_type, tweet_id)
@@ -160,8 +184,6 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
         return (False, 'wrong tweet_id')
 
     session_id = report_id
-
-    one_channel = {'type': channel_type, 'value': endpoint_id, 'request': request_id, 'filter': feed_filter}
 
     parent_id = None
     if ('in_reply_to_status_id' in tweet) and tweet['in_reply_to_status_id']:
@@ -187,15 +209,18 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
         'parent_id': parent_id,
         'client_ip': client_ip,
         'feed_type': feed_type,
-        'channels': [one_channel],
         'publisher': get_conf('publisher'),
         'session': session_id,
         'proto': proto,
         'pinned_id': pinned_id,
         'assignments': assignments,
         'original': tweet,
+        'endorsers': endorsers,
+        'recipients': [],
         'sources': []
     }
+
+    expanded_text = ''
     try:
         if 'created_at' in tweet:
             try:
@@ -209,7 +234,7 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
         report['language'] = tweet['lang']
 
         if tweet_id and ('user' in tweet) and (type(tweet['user']) is dict) and ('screen_name' in tweet['user']):
-            report['sources'] = ['http://twitter.com/' + str(tweet['user']['screen_name']) + '/status/' + str(tweet_id) + '/']
+            report['sources'] = [SOURCE_START + str(tweet['user']['screen_name']) + SOURCE_MIDDLE + str(tweet_id) + SOURCE_END]
 
         if 'possibly_sensitive' in tweet:
             report['sensitive'] = tweet['possibly_sensitive']
@@ -226,25 +251,10 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
                 coordinates = tweet['coordinates']['coordinates']
                 report['geolocations'] = [{'lon': coordinates[0], 'lat': coordinates[1]}]
 
-        report_entities = tweet['entities']
-        report_text = tweet['text']
-        if report_text:
-            if report_entities:
-                replace_set = {}
-                # change links to original links
-                all_url_sets = []
-                for link_entity_type in ['urls', 'media']:
-                    if (link_entity_type in report_entities) and report_entities[link_entity_type]:
-                        all_url_sets.append(report_entities[link_entity_type])
-                for one_url_set in all_url_sets:
-                    if one_url_set:
-                        for one_url in one_url_set:
-                            replace_set[one_url['indices'][0]] = {'indices': one_url['indices'], 'url': one_url['expanded_url']}
-                for key in sorted(replace_set.keys(), reverse=True):
-                    link_data = replace_set[key]
-                    report_text = report_text[:link_data['indices'][0]] + link_data['url'] + report_text[link_data['indices'][1]:]
-            report['texts'] = [{'original': report_text, 'transcript': None}]
+        expanded_text = _get_expanded_text(tweet)
+        report['texts'] = [{'original': report_text, 'transcript': None}]
 
+        report_entities = tweet['entities']
         if report_entities:
             if ('hashtags' in report_entities) and report_entities['hashtags']:
                 rep_tags = []
@@ -307,13 +317,31 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
             recipient_name = tweet['in_reply_to_screen_name']
         if recipient_id and recipient_name:
             one_recp_ids = [{'type':'user_id', 'value':recipient_id}, {'type':'user_name', 'value':recipient_name}]
-            report['recipients'] = ({'authority': 'twitter', 'identifiers': one_recp_ids})
+            report['recipients'].append({'authority': 'twitter', 'identifiers': one_recp_ids})
 
     except Exception as exc:
         sys.stderr.write(str(exc) + '\n')
         return (False, 'wrong tweet structure')
 
-    holder.save_report(report)
+    try:
+        one_channel = {'type': channel_type, 'value': endpoint_id, 'request': request_id, 'filter': feed_filter}
+
+        reasons = {}
+        if 'stream' == channel_type:
+            reasons = find_stream_reason(feed_filter, expanded_text, report['authors'], endorsers, report['recipients'])
+        if 'search' == channel_type:
+            reasons = find_search_reason(feed_filter, expanded_text, report['authors'], endorsers, report['recipients'])
+        one_channel['reasons'] = reasons
+
+        report['channels'] = [one_channel]
+
+    except Exception as exc:
+        sys.stderr.write(str(exc) + '\n')
+        return (False, 'can not extract the reasons')
+
+    res = holder.save_report(report)
+    if not res:
+        return (False, 'can not save the report')
 
     return (True,)
 
@@ -341,29 +369,51 @@ def do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_fi
         retweeted_id = None
         retweeted_tweet = None
 
-    # if tweet already saved, add publishers, channels part
+    # we need to have endorsers extracted early for extracting the reasons
+    report_endorsers = []
+    if retweeted_id:
+        try:
+            endorser_ids = [{'type':'user_id', 'value':tweet['user']['id_str']}, {'type':'user_name', 'value':tweet['user']['screen_name']}]
+            report_endorsers = [{'authority': 'twitter', 'identifiers': endorser_ids}]
+        except:
+            return (False, 'can not create endorsers',)
+
+    # if tweet already saved, add channels part
     main_report_id = gen_id(feed_type, (retweeted_id if retweeted_id else tweet_id))
     tweet_report = get_tweet(main_report_id)
 
     if tweet_report:
         main_report_id = tweet_report['report_id']
-        one_channel = {'type': channel_type, 'value': endpoint_id, 'request': request_id, 'filter': feed_filter}
+        one_channel = {'type': channel_type, 'value': endpoint_id, 'request': request_id, 'filter': feed_filter, 'reasons': {}}
+
+        try:
+            expanded_text = _get_expanded_text(tweet_report['original'])
+
+            reasons = {}
+            if 'stream' == channel_type:
+                reasons = find_stream_reason(feed_filter, expanded_text, tweet_report['authors'], report_endorsers, tweet_report['recipients'])
+            if 'search' == channel_type:
+                reasons = find_search_reason(feed_filter, expanded_text, tweet_report['authors'], report_endorsers, tweet_report['recipients'])
+            one_channel['reasons'] = reasons
+        except Exception as exc:
+            sys.stderr.write(str(exc) + '\n')
+            return (False, 'can extract the reasons')
+
         holder.add_channels(main_report_id, [one_channel])
+
+        # for a retweet, set endorsers for the original tweet
+        if retweeted_id:
+            try:
+                holder.add_endorsers(main_report_id, report_endorsers)
+            except:
+                return (False, 'can not add endorsers',)
+
     else:
         main_tweet_id = retweeted_id if retweeted_id else tweet_id
         main_tweet = retweeted_tweet if retweeted_tweet else tweet
-        res = process_new_tweet(holder, main_tweet_id, main_tweet, channel_type, endpoint_id, request_id, feed_filter, client_ip)
-        if (not res) or (not res[0]):
+        res = process_new_tweet(holder, main_tweet_id, main_tweet, channel_type, endpoint_id, request_id, feed_filter, report_endorsers, client_ip)
+        if not res[0]:
             return (False, res[1])
-
-    # for a retweet, set endorsers for the original tweet
-    if retweeted_id:
-        try:
-            endorser_ids = [{'type':'user_id', 'value':tweet['user']['id_str']}, {'type':'user_name', 'value':tweet['user']['screen_name']}]
-            rep_endorser = [{'authority': 'twitter', 'identifiers': endorser_ids}]
-            holder.add_endorsers(main_report_id, [rep_endorser])
-        except:
-            return (False, 'can not add endorsers',)
 
     return (True,)
 
