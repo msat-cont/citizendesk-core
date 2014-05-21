@@ -305,7 +305,7 @@ def _get_twt_user_id(db, connector, user_name):
             search_spec['alias_name'] = user_name
 
             ask_res = connector.request_user(search_spec)
-            if not ask_res:
+            if not ask_res[0]:
                 return None
 
     return None

@@ -19,6 +19,7 @@ class NewstwisterConnector():
         params['params'] = search_spec
 
         search_status = None
+        success = True
         try:
             post_data = json.dumps(params)
             req = urllib2.Request(search_url, post_data, {'Content-Type': 'application/json'})
@@ -26,9 +27,24 @@ class NewstwisterConnector():
             search_result = response.read()
             search_status = json.loads(search_result)
         except Exception as exc:
-            search_status = None
+            success = False
+            err_notice = ''
+            exc_other = ''
+            try:
+                exc_other += ' ' + str(exc.message).strip() + ','
+            except:
+                pass
+            try:
+                err_notice = str(exc.read()).strip()
+                exc_other += ' ' + err_notice + ','
+            except:
+                pass
+            if err_notice:
+                search_status = err_notice
+            else:
+                search_status = str(exc) + str(exc_other)
 
-        return search_status
+        return (success, search_status)
 
     def request_search(self, user_id, request_id, search_spec, search_original):
         search_url = self.ctrl_base_url

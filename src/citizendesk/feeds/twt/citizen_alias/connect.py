@@ -55,6 +55,7 @@ def feed_twt_citizen_alias_get_one(alias_type, alias_value):
 
     res = process.do_get_one(mongo_dbs.get_db().db, alias_type, alias_value)
 
+    err_reason = None
     err_msg = None
     if not res[0]:
         err_msg = res[1]
@@ -65,11 +66,18 @@ def feed_twt_citizen_alias_get_one(alias_type, alias_value):
         res_aux = process.do_request_one(mongo_dbs.get_db().db, searcher_url, alias_type, alias_value)
         if not res_aux[0]:
             err_msg = res_aux[1]
+            if 2 < len(res_aux):
+                err_reason = res_aux[2]
         else:
             res = process.do_get_one(mongo_dbs.get_db().db, alias_type, alias_value)
+            if not res[0]:
+                err_msg = res_aux[1]
+                err_reason = None
 
     if not res[0]:
-        ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
+        ret_data = {'_meta': {'schema': process.schema, 'message': err_msg}}
+        if err_reason:
+            ret_data['_meta']['reason'] = err_reason
         return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
 
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
@@ -125,6 +133,8 @@ def feed_twt_citizen_alias_request_one(alias_type, alias_value):
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
+        if 2 < len(res):
+            ret_data['_meta']['reason'] = res[2]
         return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
 
     ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}

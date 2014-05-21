@@ -131,8 +131,8 @@ def do_request_one(db, searcher_url, alias_type, alias_value):
     connector = controller.NewstwisterConnector(searcher_url)
     res = connector.request_user(search_spec)
 
-    if not res:
-        return (False, 'error during user-search request dispatching')
+    if not res[0]:
+        return (False, 'error during user-search request dispatching', str(res[1]))
 
-    return (True, res)
+    return (True, res[1])
 
