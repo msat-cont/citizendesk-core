@@ -55,6 +55,7 @@ def _parse_data(search_spec):
     if ('query' not in search_spec) or (type(search_spec['query']) is not dict):
         return (False, 'query dictionary should be provided in "search_spec" data')
     query_part = search_spec['query']
+    has_parts = False
 
     query_connective = ' '
     if ('having_any' in query_part) and query_part['having_any']:
@@ -81,8 +82,8 @@ def _parse_data(search_spec):
             screen_name = query_part[spec_key]
             if screen_name.startswith('@'):
                 screen_name = screen_name[1:]
-                if screen_name:
-                    query_terms.append(screen_name)
+            if screen_name:
+                query_terms.append(screen_name)
 
     if ('without' in query_part) and query_part['without']:
         query_terms.append('-' + query_part['without'])
