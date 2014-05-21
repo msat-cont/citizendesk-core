@@ -121,6 +121,9 @@ def find_search_reason(criteria, expanded_text, authors, endorsers, recipients):
                     continue
                 if str(one_term).lower() in expanded_text:
                     reasons_track.append(one_term)
+                    continue
+                if str(one_term).lower() in tweet_authors:
+                    reasons_track.append(one_term)
 
         if 'from' in criteria['query']:
             from_part = criteria['query']['from']
