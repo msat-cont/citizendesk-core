@@ -275,7 +275,12 @@ def _get_twt_user_id(db, connector, user_name):
     # try to take from db
     # if did not got: try to ask Newstwister
     # if Newstwister provides it: ask db again
-    from citizendesk.feeds.twt.report.storage import get_one_by_name as get_one_user_by_name
+    from citizendesk.feeds.twt.citizen_alias.storage import get_one_by_name as get_one_user_by_name
+
+    try:
+        user_name = user_name.lower()
+    except:
+        return None
 
     for attempt_rank in range(2):
         # try to get user info before and after asking Newstwister
@@ -288,21 +293,27 @@ def _get_twt_user_id(db, connector, user_name):
         if user_info and (type(user_info) is dict) and ('identifiers' in user_info):
             identifiers = user_info['identifiers']
         if type(identifiers) in (list, tuple):
+            found_user_id = None
+            found_user_name_lc = None
             for test_user_name in identifiers:
                 if type(test_user_name) is not dict:
                     continue
-                if 'user_id' not in test_user_name:
+                if 'type' not in test_user_name:
                     continue
-                if 'user_name' not in test_user_name:
+                if 'value' not in test_user_name:
                     continue
-                if user_name != test_user_name['user_name']:
-                    continue
-                return test_user_name['user_id']
+                if 'user_id' == test_user_name['type']:
+                    found_user_id = test_user_name['value']
+                if 'user_name_lc' == test_user_name['type']:
+                    found_user_name_lc = test_user_name['value']
+            if found_user_name_lc != user_name:
+                continue
+            return found_user_id
 
         if not attempt_rank:
             # ask Newstwister just once (if user info was not already stored in db)
             search_spec = {}
-            search_spec['alias_name'] = user_name
+            search_spec['user_name'] = user_name
 
             ask_res = connector.request_user(search_spec)
             if not ask_res[0]:
