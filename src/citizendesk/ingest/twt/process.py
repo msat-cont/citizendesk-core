@@ -58,6 +58,8 @@ discarded: []
 SOURCE_START = 'https://twitter.com/'
 SOURCE_MIDDLE = '/status/'
 SOURCE_END = '/'
+RESOLVE_HOSTS = ['bit.ly', 'bitly.com']
+RESOLVE_TIMEOUT = 1
 
 import os, sys, datetime, json
 import urllib2
@@ -78,15 +80,20 @@ def _resolve_url(url):
             last_host = request.get_host()
             last_type = request.get_type()
 
+            if last_host not in RESOLVE_HOSTS:
+                return last_url
+
             opener = urllib2.OpenerDirector()
             opener.add_handler(urllib2.HTTPHandler())
             opener.add_handler(urllib2.HTTPSHandler())
             opener.add_handler(urllib2.HTTPDefaultErrorHandler())
             try:
-                res = opener.open(HeadRequest(last_url))
-            except urllib2.HTTPError, res:
-                pass
-            res.close()
+                res = opener.open(HeadRequest(last_url), timeout = RESOLVE_TIMEOUT)
+                res.close()
+            except urllib2.URLError, exc:
+                return last_url
+            except urllib2.HTTPError, exc:
+                return last_url
 
             redirs = res.info().getheaders('location')
             if not redirs:
@@ -122,7 +129,11 @@ def _get_expanded_text(original_tweet):
             for one_url_set in all_url_sets:
                 if one_url_set:
                     for one_url in one_url_set:
-                        replace_set[one_url['indices'][0]] = {'indices': one_url['indices'], 'url': _resolve_url(one_url['expanded_url'])}
+                        if 'resolved_url' in one_url:
+                            use_url = one_url['resolved_url']
+                        else:
+                            use_url = _resolve_url(one_url['expanded_url'])
+                        replace_set[one_url['indices'][0]] = {'indices': one_url['indices'], 'url': use_url}
             for key in sorted(replace_set.keys(), reverse=True):
                 link_data = replace_set[key]
                 report_text = report_text[:link_data['indices'][0]] + link_data['url'] + report_text[link_data['indices'][1]:]
