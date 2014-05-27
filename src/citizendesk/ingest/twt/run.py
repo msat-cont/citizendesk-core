@@ -36,13 +36,14 @@ app = Flask(__name__)
 
 def prepare_reporting(mongo_addr, dbname):
     from citizendesk.common.dbc import mongo_dbs
-    from citizendesk.ingest.twt.connect import twt_take
+    from citizendesk.ingest.twt.connect import twt_take, twt_user_take
 
     mongo_dbs.set_dbname(dbname)
     DbHolder = namedtuple('DbHolder', 'db')
     mongo_dbs.set_db(DbHolder(db=MongoClient(mongo_addr[0], mongo_addr[1])[mongo_dbs.get_dbname()]))
 
     app.register_blueprint(twt_take)
+    app.register_blueprint(twt_user_take)
 
 @app.errorhandler(404)
 def page_not_found(error):

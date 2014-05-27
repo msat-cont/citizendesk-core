@@ -41,10 +41,12 @@ checks: [{type:String, status:String, validator:String}]
 assignments: [{type:String, name:String}]
 
 # citizens
-channels: [{type:String, value:String}] # bookmarklet, sms, twitter (endpoints), ...
+channels: [{type:String, value:String, filter, reasons(not reliable)}] # bookmarklet, sms, twitter (endpoints), ...
 publisher: String # youtube, flickr, ...
 authors: [{type:String, value:String}] # who created the content
+recipients: [{type:String, value:String}] # who are targeted
 endorsers: [{type:String, value:String}] # who supports/submits/reports the content
+
 
 # content
 original: Any tree # original structured data
@@ -52,7 +54,7 @@ geolocations: [] # where it happened
 place_names: [] # free strings: town names, ...
 timeline: [] # when the reported events happened
 time_names: [] # recognized datetimes
-citizens_mentioned: [{type:String, value:String}] # mentioned citizens, i.e. not (necessarily) the authors
+citizens_mentioned: [{type:String, value:String}] # mentioned citizens, i.e. not (necessarily) the authors or recipients
 subjects: [] # who/what are the perpetrators
 media: [] # local binaries with refs
 texts: [{'original': None, 'transcript': None}, ] # original and transcripted textual data
@@ -139,8 +141,12 @@ class ReportHolder(object):
         return None
 
     def store_report(self, document):
-        collection = self.get_collection('reports')
-        collection.save(document)
+        try:
+            collection = self.get_collection('reports')
+            collection.save(document)
+        except:
+            return False
+        return True
 
     def create_report(self, data):
         if not 'feed_type' in data:
@@ -250,6 +256,7 @@ class ReportHolder(object):
         document['channels'] = [] # should be filled
         document['publisher'] = publisher
         document['authors'] = [] # should be filled
+        document['recipients'] = [] # should be filled
         document['endorsers'] = [] # should be filled
 
         # content
@@ -280,7 +287,7 @@ class ReportHolder(object):
         if 'original' in data:
             document['original'] = data['original']
 
-        for part in ['channels', 'authors', 'endorsers', 'assignments']:
+        for part in ['channels', 'authors', 'recipients', 'endorsers', 'assignments']:
             value = []
             if part in data:
                 value = data[part]
@@ -324,7 +331,11 @@ class ReportHolder(object):
 
     def save_report(self, data):
         report = self.create_report(data)
-        self.store_report(report)
+        if not report:
+            return False
+        res = self.store_report(report)
+
+        return res
 
     '''
     def get_force_new_session(self, spec):
@@ -394,7 +405,7 @@ class ReportHolder(object):
         if not report:
             return None
         report['report_id'] = report['_id']
-        del(report['_id'])
+        #del(report['_id'])
         return report
 
     def provide_session(self, session_id):
@@ -404,7 +415,7 @@ class ReportHolder(object):
         cursor = coll.find({'session':session_id}).sort([('produced', 1)])
         for entry in cursor:
             entry['report_id'] = entry['_id']
-            del(entry['_id'])
+            #del(entry['_id'])
             reports.append(entry)
         return reports
 
@@ -425,7 +436,7 @@ class ReportHolder(object):
 
         for entry in cursor:
             entry['report_id'] = entry['_id']
-            del(entry['_id'])
+            #del(entry['_id'])
             reports.append(entry)
 
         return reports
@@ -447,7 +458,7 @@ class ReportHolder(object):
 
         for entry in cursor:
             entry['report_id'] = entry['_id']
-            del(entry['_id'])
+            #del(entry['_id'])
             reports.append(entry)
 
         return reports
@@ -472,7 +483,7 @@ class ReportHolder(object):
 
         for entry in cursor:
             entry['report_id'] = entry['_id']
-            del(entry['_id'])
+            #del(entry['_id'])
             reports.append(entry)
 
         return reports
@@ -494,7 +505,7 @@ class ReportHolder(object):
 
         for entry in cursor:
             entry['report_id'] = entry['_id']
-            del(entry['_id'])
+            #del(entry['_id'])
             reports.append(entry)
 
         return reports

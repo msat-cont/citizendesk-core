@@ -54,28 +54,29 @@ def do_get_list(db, offset=None, limit=None):
     return (True, docs, {'total': total})
 
 def _check_schema(spec):
+        some_data = False
 
-        if spec['follow']:
-            if type(spec['follow']) is not list:
+        if ('follow' in spec) and spec['follow']:
+            if type(spec['follow']) not in (list, tuple):
                 return (False, '"spec.follow" field has to be list')
             for value in spec['follow']:
-                if type(value) not in [str, unicode, int, long]:
-                    return (False, '"spec.follow" field has to be list of integers')
-                if type(value) in [str, unicode]:
-                    if not value.isdigit():
-                        return (False, '"spec.follow" field values have to be digital is set as strings')
-        if spec['track']:
-            if type(spec['track']) is not list:
+                some_data = True
+                if type(value) not in [str, unicode]:
+                    return (False, '"spec.follow" field has to be list of strings')
+        if ('track' in spec) and spec['track']:
+            if type(spec['track']) not in (list, tuple):
                 return (False, '"spec.track" field has to be list')
             for value in spec['track']:
+                some_data = True
                 if type(value) not in [str, unicode]:
                     return (False, '"spec.track" field has to be list of strings')
                 if ',' in value:
                     return (False, '"spec.track" field values can not contain comma "," since it is used as a value separator')
-        if spec['locations']:
-            if type(spec['locations']) is not list:
+        if ('locations' in spec) and spec['locations']:
+            if type(spec['locations']) not in (list, tuple):
                 return (False, '"spec.locations" field has to be list')
             for value in spec['locations']:
+                some_data = True
                 if type(value) not in [dict]:
                     return (False, '"spec.locations" field has to be list of dicts')
                 location_keys = ['west', 'east', 'north', 'south']
@@ -87,9 +88,12 @@ def _check_schema(spec):
                         return (False, '"spec.locations" field value keys have to be "west", "east", "south", "north"')
                     if type(value[key]) not in [int, long, float]:
                         return (False, '"spec.locations" field values have to be numbers')
-        if spec['language']:
+        if ('language' in spec) and spec['language']:
             if type(spec['language']) not in [str, unicode]:
                 return (False, '"spec.language" field has to be string')
+
+        if not some_data:
+            return (False, 'empty filter')
 
         return (True,)
 
@@ -147,9 +151,6 @@ def do_post_one(db, doc_id=None, data=None):
     res = _check_schema(doc['spec'])
     if not res[0]:
         return res
-    if doc['spec']['follow']:
-        follow_ints = [long(x) for x in doc['spec']['follow']]
-        doc['spec']['follow'] = follow_ints
 
     if not doc_id:
         try:
