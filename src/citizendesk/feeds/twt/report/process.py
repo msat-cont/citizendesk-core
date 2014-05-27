@@ -17,7 +17,7 @@ from citizendesk.common.utils import get_sort as _get_sort
 DEFAULT_LIMIT = 20
 
 '''
-Here we should list (saved) reports filtered according to _id of the requested stream.
+Here we should list (saved) reports filtered according to report_id of the requested stream.
 '''
 
 def do_get_one(db, doc_id):
@@ -28,7 +28,7 @@ def do_get_one(db, doc_id):
         return (False, 'inner application error')
 
     coll = db[collection]
-    doc = coll.find_one({'_id': doc_id})
+    doc = coll.find_one({'feed_type': FEED_TYPE, 'report_id': doc_id})
 
     if not doc:
         return (False, 'report not found')
@@ -162,7 +162,7 @@ def do_patch_one(db, doc_id=None, data=None):
 
     coll = db[collection]
 
-    coll.update({'_id': doc_id}, {'$set': {'proto': proto}}, upsert=False)
+    coll.update({'feed_type': FEED_TYPE, 'report_id': doc_id}, {'$set': {'proto': proto}}, upsert=False)
 
-    return (True, {'_id': doc_id})
+    return (True, {'report_id': doc_id})
 
