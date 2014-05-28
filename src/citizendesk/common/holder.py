@@ -339,49 +339,6 @@ class ReportHolder(object):
 
         return res
 
-    '''
-    def get_force_new_session(self, spec):
-
-        force_new = False
-
-        coll = self.get_collection('citizen_setting')
-        spec_use = {'type':'force_new_session'}
-        if 'channel' in spec:
-            if 'type' in spec['channel']:
-                spec_use['channel.type'] = spec['channel']['type']
-            if 'value' in spec['channel']:
-                spec_use['channel.type'] = spec['channel']['value']
-        if 'author' in spec:
-            if 'type' in spec['author']:
-                spec_use['author.type'] = spec['author']['type']
-            if 'value' in spec['channel']:
-                spec_use['author.type'] = spec['author']['value']
-        cursor = coll.find(spec_use, {'value': True, '_id':False})
-        for entry in cursor:
-            if ('value' in entry) and entry['value']:
-                if ('set' in entry['value']) and entry['value']['set']:
-                    force_new = True
-
-        return force_new
-
-    def clear_force_new_session(self, spec, once):
-        coll = self.get_collection('citizen_setting')
-        spec_use = {'type':'force_new_session'}
-        if 'channel' in spec:
-            if 'type' in spec['channel']:
-                spec_use['channel.type'] = spec['channel']['type']
-            if 'value' in spec['channel']:
-                spec_use['channel.type'] = spec['channel']['value']
-        if 'author' in spec:
-            if 'type' in spec['author']:
-                spec_use['author.type'] = spec['author']['type']
-            if 'value' in spec['channel']:
-                spec_use['author.type'] = spec['author']['value']
-        if once:
-            spec_use['value.once'] = True
-        coll.remove(spec_use)
-    '''
-
     def find_last_session(self, spec):
         coll = self.get_collection('reports')
         requested_fields = {
@@ -389,15 +346,14 @@ class ReportHolder(object):
             'produced': True,
             'pinned_id': True,
             'assignments': True,
+            'report_id': True,
             '_id': True
         }
 
-        cursor = coll.find(spec, {}).sort([('produced', -1)]).limit(1)
+        cursor = coll.find(spec, requested_fields).sort([('produced', -1)]).limit(1)
         if not cursor.count():
             return None
         report = cursor.next()
-        #if '_id' in report:
-        #    report['report_id'] = report['_id']
         return report
 
     def provide_report(self, feed_type, report_id):
@@ -406,8 +362,6 @@ class ReportHolder(object):
         report = coll.find_one({'feed_type': feed_type, 'report_id':report_id})
         if not report:
             return None
-        #report['report_id'] = report['_id']
-        #del(report['_id'])
         return report
 
     def provide_session(self, session_id):
@@ -416,8 +370,6 @@ class ReportHolder(object):
         coll = self.get_collection('reports')
         cursor = coll.find({'session':session_id}).sort([('produced', 1)])
         for entry in cursor:
-            #entry['report_id'] = entry['_id']
-            #del(entry['_id'])
             reports.append(entry)
         return reports
 
@@ -437,8 +389,6 @@ class ReportHolder(object):
             cursor = cursor.limit(limit)
 
         for entry in cursor:
-            #entry['report_id'] = entry['_id']
-            #del(entry['_id'])
             reports.append(entry)
 
         return reports
@@ -459,8 +409,6 @@ class ReportHolder(object):
             cursor = cursor.limit(limit)
 
         for entry in cursor:
-            #entry['report_id'] = entry['_id']
-            #del(entry['_id'])
             reports.append(entry)
 
         return reports
@@ -484,8 +432,6 @@ class ReportHolder(object):
             cursor = cursor.limit(limit)
 
         for entry in cursor:
-            #entry['report_id'] = entry['_id']
-            #del(entry['_id'])
             reports.append(entry)
 
         return reports
@@ -506,8 +452,6 @@ class ReportHolder(object):
             cursor = cursor.limit(limit)
 
         for entry in cursor:
-            #entry['report_id'] = entry['_id']
-            #del(entry['_id'])
             reports.append(entry)
 
         return reports
@@ -519,16 +463,6 @@ class ReportHolder(object):
 
         timepoint = datetime.datetime.utcnow()
         coll.update({'_id': report_id}, {'$addToSet': {'channels': {'$each': channels}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
-
-    '''
-    def add_publishers(self, report_id, publishers):
-        if (not report_id) or (not publishers) or (type(publishers) is not list):
-            return
-        coll = self.get_collection('reports')
-
-        timepoint = datetime.datetime.utcnow()
-        coll.update({'_id': report_id}, {'$addToSet': {'publishers': {'$each': publishers}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
-    '''
 
     def add_endorsers(self, feed_type, report_id, endorsers):
         if (not report_id) or (not endorsers) or (type(endorsers) is not list):
