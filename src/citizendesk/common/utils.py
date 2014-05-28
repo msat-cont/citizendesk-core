@@ -6,6 +6,13 @@
 import os, sys, time, signal
 import logging, logging.handlers
 
+from bson.objectid import ObjectId
+
+try:
+    unicode
+except:
+    unicode = str
+
 try:
     from flask import request
 except:
@@ -138,6 +145,24 @@ def get_boolean(value):
             return False
 
     return None
+
+def get_id_value(value):
+    if value is None:
+        return None
+
+    try:
+        value = ObjectId(value)
+    except:
+        pass
+
+    if type(value) in [str, unicode]:
+        if value.isdigit():
+            try:
+                value = int(value)
+            except:
+                pass
+
+    return value
 
 def get_sort(param):
     def_list = []

@@ -65,6 +65,8 @@ RESOLVE_TIMEOUT = 1
 
 import os, sys, datetime, json
 import urllib2
+
+from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.ingest.twt.connect import get_conf, gen_id, get_tweet
 
 class HeadRequest(urllib2.Request):
@@ -415,6 +417,9 @@ def do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_fi
         endpoint_id = endpoint['endpoint_id']
     except:
         return (False, 'endpoint[endpoint_id] not provided',)
+
+    endpoint_id = _get_id_value(endpoint_id)
+    request_id = _get_id_value(request_id)
 
     feed_type = get_conf('feed_type')
 
