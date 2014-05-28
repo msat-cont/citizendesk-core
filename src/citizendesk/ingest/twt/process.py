@@ -3,12 +3,13 @@
 # Citizen Desk
 #
 '''
-If the tweet is already saved, only add the feed_spec, publishers and channels part.
-Retweets: They probably should be put in as endorsing. And if they create a new text, put that text in as a comment.
+If the tweet is already saved, only add the channels part (incl. feed_spec).
+Retweets: They are just put in as endorsing.
 
 # basic info
-_id/report_id: tweet_id
-parent_id: tweet: in_reply_to_status_id
+_id: (automatic) object_id
+report_id: based on tweet_id; this is source-related field
+parent_id: tweet: in_reply_to_status_id; we need it as a link even when it is not in db
 client_ip: newstwister_ip
 feed_type: tweet
 produced:  tweet: created_at
@@ -35,6 +36,7 @@ recipients: []
 endorsers: [] # users that retweet
 
 # content
+original_id: tweet_id
 original: tweet
 geolocations: tweet: coordinates [(lon, lat)] or tweet: geo (lat, lon)
 place_names: tweet: place
@@ -63,6 +65,8 @@ RESOLVE_TIMEOUT = 1
 
 import os, sys, datetime, json
 import urllib2
+
+from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.ingest.twt.connect import get_conf, gen_id, get_tweet
 
 class HeadRequest(urllib2.Request):
@@ -274,6 +278,7 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
         'proto': proto,
         'pinned_id': pinned_id,
         'assignments': assignments,
+        'original_id': str(tweet_id),
         'original': tweet,
         'endorsers': endorsers,
         'recipients': [],
@@ -413,6 +418,9 @@ def do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_fi
     except:
         return (False, 'endpoint[endpoint_id] not provided',)
 
+    endpoint_id = _get_id_value(endpoint_id)
+    request_id = _get_id_value(request_id)
+
     feed_type = get_conf('feed_type')
 
     # check if the tweet is a new tweet, already saved tweet, a retweet, or a retweet on an already saved tweet
@@ -461,12 +469,12 @@ def do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_fi
             sys.stderr.write(str(exc) + '\n')
             return (False, 'can extract the reasons')
 
-        holder.add_channels(main_report_id, [one_channel])
+        holder.add_channels(feed_type, main_report_id, [one_channel])
 
         # for a retweet, set endorsers for the original tweet
         if retweeted_id:
             try:
-                holder.add_endorsers(main_report_id, report_endorsers)
+                holder.add_endorsers(feed_type, main_report_id, report_endorsers)
             except:
                 return (False, 'can not add endorsers',)
 

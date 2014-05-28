@@ -21,8 +21,9 @@ try:
 except:
     long = int
 
-from citizendesk.feeds.twt.stream.storage import collection, schema
+from citizendesk.feeds.twt.stream.storage import collection, schema, USE_SEQUENCES
 from citizendesk.common.utils import get_boolean as _get_boolean
+from citizendesk.common.utils import get_id_value as _get_id_value
 
 DEFAULT_LIMIT = 20
 
@@ -41,12 +42,7 @@ def do_get_one(db, doc_id):
     if not db:
         return (False, 'inner application error')
 
-    if doc_id is not None:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
+    doc_id = _get_id_value(doc_id)
 
     coll = db[collection]
     doc = coll.find_one({'_id': doc_id})
@@ -144,11 +140,11 @@ def _check_schema(spec, ctrl):
 
     if spec:
         if ('oauth_id' in spec) and (spec['oauth_id'] is not None):
-            if type(spec['oauth_id']) not in [int, long]:
-                return (False, '"spec.oauth_id" has to be integer _id of oauth info')
+            if type(spec['oauth_id']) not in [int, long, ObjectId]:
+                return (False, '"spec.oauth_id" has to be integer or ObjectId _id of oauth info')
         if ('filter_id' in spec) and (spec['filter_id'] is not None):
-            if type(spec['filter_id']) not in [int, long]:
-                return (False, '"spec.filter_id" has to be integer _id of filter info')
+            if type(spec['filter_id']) not in [int, long, ObjectId]:
+                return (False, '"spec.filter_id" has to be integer or ObjectId _id of filter info')
 
     if ctrl:
         if ('streamer_url' in ctrl) and (ctrl['streamer_url'] is not None):
@@ -175,12 +171,7 @@ def do_post_one(db, doc_id=None, data=None):
     if ('spec' not in data) or (type(data['spec']) is not dict):
         return (False, '"spec" part not provided')
 
-    if doc_id is not None:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
+    doc_id = _get_id_value(doc_id)
 
     coll = db[collection]
 
@@ -226,7 +217,7 @@ def do_post_one(db, doc_id=None, data=None):
     for key in schema['spec']:
         doc['spec'][key] = None
         if key in data['spec']:
-            doc['spec'][key] = data['spec'][key]
+            doc['spec'][key] = _get_id_value(data['spec'][key])
 
     res = _check_schema(doc['spec'], None)
     if not res[0]:
@@ -260,8 +251,11 @@ def do_post_one(db, doc_id=None, data=None):
 
     if not doc_id:
         try:
-            entry = db['counters'].find_and_modify(query={'_id': collection}, update={'$inc': {'next':1}}, new=True, upsert=True, full_response=False);
-            doc_id = entry['next']
+            if USE_SEQUENCES:
+                entry = db['counters'].find_and_modify(query={'_id': collection}, update={'$inc': {'next':1}}, new=True, upsert=True, full_response=False);
+                doc_id = entry['next']
+            else:
+                doc_id = ObjectId()
         except:
             return (False, 'can not create document id')
 
@@ -409,14 +403,7 @@ def do_patch_one(db, doc_id=None, data=None, force=None):
     if doc_id is None:
         return (False, 'stream _id not provided')
 
-    try:
-        doc_id = ObjectId(doc_id)
-    except:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
+    doc_id = _get_id_value(doc_id)
 
     try:
         force_val = bool(_get_boolean(force))
@@ -427,7 +414,7 @@ def do_patch_one(db, doc_id=None, data=None, force=None):
 
     entry = coll.find_one({'_id': doc_id})
     if not entry:
-        return (False, '"stream" of the provided _id not found')
+        return (False, '"stream" of the provided _id not found: ' + str(doc_id))
     if ('spec' not in entry) or (type(entry['spec']) is not dict):
         return (False, '"stream" of the provided _id does not contain "spec" part')
 
@@ -557,12 +544,7 @@ def do_delete_one(db, doc_id):
     if not db:
         return (False, 'inner application error')
 
-    if doc_id is not None:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
+    doc_id = _get_id_value(doc_id)
 
     coll = db[collection]
 

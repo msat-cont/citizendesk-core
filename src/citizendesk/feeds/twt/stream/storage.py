@@ -5,6 +5,8 @@
 
 import datetime
 
+USE_SEQUENCES = False
+
 try:
     unicode
 except:
@@ -18,7 +20,7 @@ except:
 collection = 'twt_streams'
 
 schema = {
-    '_id': 1,
+    '_id': 'ObjectId',
     'spec': {
         'oauth_id': '_id of oauth info',
         'filter_id': '_id of filter info'

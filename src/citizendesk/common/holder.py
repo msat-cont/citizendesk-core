@@ -6,7 +6,8 @@
 Report structure:
 
 # basic info
-_id/report_id: String # globally unique for any report from any feed
+_id: ObjectId # globally unique for any report from any feed
+report_id: String # based on particular feeds, for linking, session_id, ...
 parent_id: String # e.g. reply_to id for tweet conversations
 #_id/report_id: Integer # globally unique for any report from any feed
 #parent_id: Integer # e.g. reply_to id for tweet conversations
@@ -49,6 +50,7 @@ endorsers: [{type:String, value:String}] # who supports/submits/reports the cont
 
 
 # content
+original_id: String # if the original item has an id
 original: Any tree # original structured data
 geolocations: [] # where it happened
 place_names: [] # free strings: town names, ...
@@ -69,7 +71,7 @@ tags: [String] # (hash)tags. keywords, ...
 viewed: [String] # nothing here
 discarded: [String] # nothing here
 
-Citizen structure:
+Citizen structure; see citizen_holder for it:
 
 _id: ObjectId() # just a unique identifier
 nickname: String
@@ -162,9 +164,9 @@ class ReportHolder(object):
         if 'parent_id' in data:
             parent_id = data['parent_id']
 
-        #original_id = None
-        #if 'original_id' in data:
-        #    original_id = data['original_id']
+        original_id = None
+        if 'original_id' in data:
+            original_id = data['original_id']
 
         client_ip = None
         if 'client_ip' in data:
@@ -227,9 +229,8 @@ class ReportHolder(object):
 
         document = {}
         # basic info
-        document['_id'] = report_id
+        document['report_id'] = report_id
         document['parent_id'] = parent_id
-        #document['original_id'] = original_id
         document['user_id'] = user_id
         document['pinned_id'] = pinned_id
         document['coverage_id'] = coverage_id
@@ -260,6 +261,7 @@ class ReportHolder(object):
         document['endorsers'] = [] # should be filled
 
         # content
+        document['original_id'] = original_id
         document['original'] = data # general data tree
 
         document['geolocations'] = [] # POIs from tweets, image exif data, city names, ...
@@ -337,49 +339,6 @@ class ReportHolder(object):
 
         return res
 
-    '''
-    def get_force_new_session(self, spec):
-
-        force_new = False
-
-        coll = self.get_collection('citizen_setting')
-        spec_use = {'type':'force_new_session'}
-        if 'channel' in spec:
-            if 'type' in spec['channel']:
-                spec_use['channel.type'] = spec['channel']['type']
-            if 'value' in spec['channel']:
-                spec_use['channel.type'] = spec['channel']['value']
-        if 'author' in spec:
-            if 'type' in spec['author']:
-                spec_use['author.type'] = spec['author']['type']
-            if 'value' in spec['channel']:
-                spec_use['author.type'] = spec['author']['value']
-        cursor = coll.find(spec_use, {'value': True, '_id':False})
-        for entry in cursor:
-            if ('value' in entry) and entry['value']:
-                if ('set' in entry['value']) and entry['value']['set']:
-                    force_new = True
-
-        return force_new
-
-    def clear_force_new_session(self, spec, once):
-        coll = self.get_collection('citizen_setting')
-        spec_use = {'type':'force_new_session'}
-        if 'channel' in spec:
-            if 'type' in spec['channel']:
-                spec_use['channel.type'] = spec['channel']['type']
-            if 'value' in spec['channel']:
-                spec_use['channel.type'] = spec['channel']['value']
-        if 'author' in spec:
-            if 'type' in spec['author']:
-                spec_use['author.type'] = spec['author']['type']
-            if 'value' in spec['channel']:
-                spec_use['author.type'] = spec['author']['value']
-        if once:
-            spec_use['value.once'] = True
-        coll.remove(spec_use)
-    '''
-
     def find_last_session(self, spec):
         coll = self.get_collection('reports')
         requested_fields = {
@@ -387,25 +346,22 @@ class ReportHolder(object):
             'produced': True,
             'pinned_id': True,
             'assignments': True,
+            'report_id': True,
             '_id': True
         }
 
-        cursor = coll.find(spec, {}).sort([('produced', -1)]).limit(1)
+        cursor = coll.find(spec, requested_fields).sort([('produced', -1)]).limit(1)
         if not cursor.count():
             return None
         report = cursor.next()
-        if '_id' in report:
-            report['report_id'] = report['_id']
         return report
 
-    def provide_report(self, report_id):
+    def provide_report(self, feed_type, report_id):
         # output all report's data
         coll = self.get_collection('reports')
-        report = coll.find_one({'_id':report_id})
+        report = coll.find_one({'feed_type': feed_type, 'report_id':report_id})
         if not report:
             return None
-        report['report_id'] = report['_id']
-        #del(report['_id'])
         return report
 
     def provide_session(self, session_id):
@@ -414,31 +370,7 @@ class ReportHolder(object):
         coll = self.get_collection('reports')
         cursor = coll.find({'session':session_id}).sort([('produced', 1)])
         for entry in cursor:
-            entry['report_id'] = entry['_id']
-            #del(entry['_id'])
             reports.append(entry)
-        return reports
-
-    def list_channel_reports(self, channel=None, proto=None, offset=None, limit=None):
-        # output (proto)reports of a feed channel
-        reports = []
-        coll = self.get_collection('reports')
-
-        report_spec = {'channel':channel}
-        if proto is not None:
-            report_spec['proto'] = bool(proto)
-
-        cursor = coll.find(report_spec).sort([('produced', 1)])
-        if offset is not None:
-            cursor = cursor.skip(offset)
-        if limit is not None:
-            cursor = cursor.limit(limit)
-
-        for entry in cursor:
-            entry['report_id'] = entry['_id']
-            #del(entry['_id'])
-            reports.append(entry)
-
         return reports
 
     def list_feed_reports(self, feed_type, proto=None, offset=None, limit=None):
@@ -457,13 +389,31 @@ class ReportHolder(object):
             cursor = cursor.limit(limit)
 
         for entry in cursor:
-            entry['report_id'] = entry['_id']
-            #del(entry['_id'])
             reports.append(entry)
 
         return reports
 
-    def list_channel_reports(self, channel_type, channel_value=None, proto=None, offset=None, limit=None):
+    def list_channel_reports(self, channel=None, proto=None, offset=None, limit=None):
+        # output (proto)reports of a feed channel
+        reports = []
+        coll = self.get_collection('reports')
+
+        report_spec = {'channel':channel}
+        if proto is not None:
+            report_spec['proto'] = bool(proto)
+
+        cursor = coll.find(report_spec).sort([('produced', 1)])
+        if offset is not None:
+            cursor = cursor.skip(offset)
+        if limit is not None:
+            cursor = cursor.limit(limit)
+
+        for entry in cursor:
+            reports.append(entry)
+
+        return reports
+
+    def list_channel_spec_reports(self, channel_type, channel_value=None, proto=None, offset=None, limit=None):
         # output (proto)reports of a feed
         reports = []
         coll = self.get_collection('reports')
@@ -482,8 +432,6 @@ class ReportHolder(object):
             cursor = cursor.limit(limit)
 
         for entry in cursor:
-            entry['report_id'] = entry['_id']
-            #del(entry['_id'])
             reports.append(entry)
 
         return reports
@@ -504,13 +452,11 @@ class ReportHolder(object):
             cursor = cursor.limit(limit)
 
         for entry in cursor:
-            entry['report_id'] = entry['_id']
-            #del(entry['_id'])
             reports.append(entry)
 
         return reports
 
-    def add_channels(self, report_id, channels):
+    def add_channels(self, feed_type, report_id, channels):
         if (not report_id) or (not channels) or (type(channels) is not list):
             return
         coll = self.get_collection('reports')
@@ -518,17 +464,7 @@ class ReportHolder(object):
         timepoint = datetime.datetime.utcnow()
         coll.update({'_id': report_id}, {'$addToSet': {'channels': {'$each': channels}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
 
-    '''
-    def add_publishers(self, report_id, publishers):
-        if (not report_id) or (not publishers) or (type(publishers) is not list):
-            return
-        coll = self.get_collection('reports')
-
-        timepoint = datetime.datetime.utcnow()
-        coll.update({'_id': report_id}, {'$addToSet': {'publishers': {'$each': publishers}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
-    '''
-
-    def add_endorsers(self, report_id, endorsers):
+    def add_endorsers(self, feed_type, report_id, endorsers):
         if (not report_id) or (not endorsers) or (type(endorsers) is not list):
             return
         coll = self.get_collection('reports')
