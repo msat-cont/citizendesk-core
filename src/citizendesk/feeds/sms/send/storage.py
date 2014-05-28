@@ -19,12 +19,13 @@ collection = 'sms_sending'
 
 schema = {
     'control': {
-        'secret': 'a password for sms-gateway communication'
+        'sms_gateway_url': 'url for communication with sms gateway',
+        'sms_gateway_key': 'a password for sms-gateway communication'
     },
-    'contacts': {
+    'recipients': {
         'phone_numbers': ['+1234567890'],
         'local_groups': ['a_saved_group_of_citizens'],
-        'gateway_groups': ['gateway-based_group_of_citizens']
+        #'gateway_groups': ['gateway-based_group_of_citizens']
     },
     'message': 'the text to be sent as an sms'
 }

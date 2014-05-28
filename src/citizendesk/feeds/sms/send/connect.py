@@ -57,11 +57,17 @@ def feed_sms_send_one_post():
     except:
         return (json.dumps('provided data should contain "message", "recipients" parts'), 404, {'Content-Type': 'application/json'})
 
-    searcher_url = get_config('sms_gateway_url')
-    if ('sms_gateway_url' in data) and data['sms_gateway_url']:
-        searcher_url = data['sms_gateway_url']
+    sms_gateway_url = get_config('sms_gateway_url')
+    sms_gateway_key = get_config('sms_gateway_key')
 
-    res = process.do_post_send(mongo_dbs.get_db().db, sms_gateway_url, message, recipients)
+    if ('control' in data) and (type(data['control']) is dict):
+        control = data['control']
+        if ('sms_gateway_url' in control) and control['sms_gateway_url']:
+            sms_gateway_url = control['sms_gateway_url']
+        if ('sms_gateway_key' in control) and control['sms_gateway_key']:
+            sms_gateway_key = control['sms_gateway_key']
+
+    res = process.do_post_send(mongo_dbs.get_db().db, sms_gateway_url, sms_gateway_key, message, recipients)
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
