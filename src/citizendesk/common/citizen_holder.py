@@ -30,6 +30,10 @@ verified: Boolean
 places: List,
 comments: List,
 links: List,
+tags: List,
+
+#auto-generated on reports:
+tags_auto: List
 
 # logs
 produced: DateTime # when the user info came (SMS sender) or was created (tweet user)
@@ -137,14 +141,14 @@ class CitizenHolder(object):
         current_timestamp = datetime.datetime.now()
 
         alias = {
-            'change_id': 0, # TODO: get correct change id here!
+            #'change_id': 0, # TODO: get correct change id here!
             'authority': None,
             'identifiers': [],
             'avatars': [],
             'produced': None,
             'created': current_timestamp,
             'name_first': None,
-            'name_flast': None,
+            'name_last': None,
             'name_full': None,
             'locations': [],
             'time_zone': None,
@@ -160,6 +164,8 @@ class CitizenHolder(object):
             'places': [],
             'comments': [],
             'links': [],
+            'tags': [],
+            'tags_auto': [],
             'sensitive': None
         }
 
@@ -167,7 +173,7 @@ class CitizenHolder(object):
             'authority',
             'produced',
             'name_first',
-            'name_flast',
+            'name_last',
             'name_full',
             'time_zone',
             'description',
@@ -181,7 +187,9 @@ class CitizenHolder(object):
             'languages',
             'sources',
             'home_pages',
-            'links'
+            'links',
+            'tags',
+            'tags_auto'
         ]
 
         for key in parts_scalar:
@@ -207,20 +215,18 @@ class CitizenHolder(object):
         if not alias:
             return False
 
-        print(alias)
-        #try:
-        if True:
+        try:
             collection = self.get_collection('aliases')
             collection.update({'_id': alias['_id']}, alias, upsert=False)
-        #except:
-        #    return False
+        except:
+            return False
 
         return True
 
     def adjust_alias(self, alias, alias_info):
         parts_scalar = [
             'name_first',
-            'name_flast',
+            'name_last',
             'name_full',
             'time_zone',
             'description',
