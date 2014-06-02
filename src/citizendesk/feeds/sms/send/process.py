@@ -19,6 +19,8 @@ try:
 except:
     long = int
 
+from citizendesk.feeds.sms.common.utils import get_conf, gen_id, get_sms
+from citizendesk.feeds.sms.common.utils import extract_tags as _extract_tags
 from citizendesk.feeds.sms.send.storage import collection, schema
 from citizendesk.common.utils import get_boolean as _get_boolean
 
@@ -26,138 +28,153 @@ from citizendesk.common.utils import get_boolean as _get_boolean
 Sending message to the specified recipients via an external SMS gateway
 '''
 
-def gen_id():
-    return None
+def _prepare_sms_send_report(targets, recipients, message, user_id=None, language=None, sensitive=None, client_ip=None):
+    ''' preparing an sms-based report when the sms is sent not as a reply, i.e. starting a new session for it '''
 
-# this may should be put into a sms_utils.py file
-def _extract_tags(message):
-    return []
-
-# this may should be put into a sms_utils.py file
-def _extract_expand_links(message):
-    return []
-
-# TODO: these shall be two different methods/urls: "send" (with recipients), and "reply" with (parent_report)
-def _prepare_sms_report(recipients, message, parent_message=None, user_id=None, language=None, sensitive=None, client_ip=None):
-    ''' it may happen that the sms is a replay on something, we should cover it here '''
+    channel_type = get_conf('channel_type')
+    channel_value = get_conf('channel_value_send')
 
     channel = {
-        'type': 'gateway', # i.e. not sent directly from a phone; take the string from a config
-        'value':'sent', # 'received' for SMS we get; TODO: put this into sms ingest too!
-        'filter':None,
-        'reasons':None,
-        'request':None
+        'type': channel_type,
+        'value': channel_value,
+        'filter': None,
+        'reasons': None,
+        'request': None
     }
 
-    current_timestap = datetime.datetime.now()
+    current_timestamp = datetime.datetime.now()
 
     doc = {
-        'report_id': gen_id(), # to generate the report_id
+        'report_id': gen_id(channel_type, channel_value, targets, current_timestamp), # to generate the report_id
         'channels': [channel],
-        'recipients': [], # by the provided recipients
+        'recipients': recipients,
+        'targets': [], # here phone numbers and/or group_ids, for replies
         'authors': [], # no citizen here
         'endorsers': [], # no citizen here
-        'publisher': 'sms_gateway', # from config
-        'feed_type': 'SMS', # from config
-        'parent_id': None, # if a reply
-        'session': None, # by report_id, or if reply, take session_id of that parent/replied report
+        'publisher': get_conf('publisher'),
+        'feed_type': get_conf('feed_type'),
+        'parent_id': None, # not a reply here
+        'session': None,
         'user_id': user_id, # who requested the sending, if not automatic
-        'pinned_id': None, # if a reply, by the parent_message
-        'coverage_id': None, # if a reply, by the parent_message
-        'language': None, # if info provided
-        'produced': current_timestap, # now, may be after sending
-        'created': current_timestap, # now, may be after sending
-        'assignments': [], # if a reply, by the parent_message
-        'original': message,
+        'pinned_id': None,
+        'coverage_id': None,
+        'language': language,
+        'produced': current_timestamp,
+        'created': current_timestamp,
+        'assignments': [],
+        'original_id': None,
+        'original': {'message': message},
         'texts': [{'original': message, 'transcript': None}],
         'tags': [], # we shall extract possible #tags, alike at sms receiving
-        'links': [], # we shall extract possible (shortened) links; TODO: at sms receivng too!
         'is_published': False,
-        'sensitive': False, # if info provided
+        'sensitive': None,
         'summary': False,
         'local': True,
+        'targets': targets, # for local(ly created) reports
         'proto': False,
-        'client_ip': client_ip # just as logging
+        'client_ip': client_ip # for logging
     }
 
-    # notice: we may need to parse the text for shortened links there, to expand them; for sms receiving as well
-
-    for one_recipient in recipients:
-        doc['recipients'].append({'authority': 'telco', 'identifiers': [{'type':'phone_number', 'value':one_recipient}]})
-
-    if language:
-        doc['language'] = language
-
     if sensitive is not None:
-        doc['sensitive'] = sensitive
+        doc['sensitive'] = _get_boolean(sensitive)
 
-    if parent_message:
-        doc['parent_id'] = parent_message['report_id']
-
-    if parent_message:
-        doc['session'] = parent_message['session']
-    else:
-        doc['session'] = doc['report_id']
+    doc['session'] = doc['report_id']
 
     doc['tags'] = _extract_tags(message)
 
-    doc['links'] = _extract_expand_links(message)
-
-    if parent_message:
-        if ('pinned_id' in parent_message) and parent_message['pinned_id']:
-            doc['pinned_id'] = parent_message['pinned_id']
-        if ('coverage_id' in parent_message) and parent_message['coverage_id']:
-            doc['coverage_id'] = parent_message['coverage_id']
-
     return doc
 
-def do_post_search(db, sms_gateway_url, sms_gateway_key, message, recipients):
+def do_post_send(db, sms_gateway_url, sms_gateway_key, message, targets, user_id, language, sensitive, client_ip):
     if not controller:
-        return (False, '')
+        return (False, 'no sms gateway controller available')
     if not db:
-        return (False, '')
+        return (False, 'no database available')
 
     if not sms_gateway_url:
-        return (False, '')
+        return (False, 'no sms gateway url configured')
     if not sms_gateway_key:
-        return (False, '')
+        return (False, 'no sms gateway key configured')
 
     if not message:
-        return (False, '')
-    if not recipients:
-        return (False, '')
+        return (False, 'no message provided')
+    if not targets:
+        return (False, 'no targets provided')
 
-    if type(recipients) is not dict:
-        return (False, '')
-    if ('phone_numbers' not in recipients) or (type(recipients['phone_numbers']) not in [list, tuple]):
-        return (False, '')
+    use_targets = []
+    use_recipients = []
+    use_phone_numbers = []
 
-    '''
-    reports = []
-    for one_recipient in recipients['phone_numbers']:
-        one_rep = _prepare_sms_report([one_recipient], message)
-        reports.append(one_rep)
-    '''
+    if type(targets) not in [list, tuple]:
+        return (False, '')
+    for one_target in targets:
+        if type(one_target) is not dict:
+            continue
+        if 'type' not in one_target:
+            continue
+        if one_target['type'] != get_conf('alias_doctype'):
+            continue
+        if 'value' not in one_target:
+            continue
+
+        authority = get_conf('authority')
+        if ('authority' in alias) and alias['authority']:
+            authority = alias['authority']
+
+        alias = db.take_citizen_alias(one_target['value'])
+        if (type(alias) is not dict) or (not alias):
+            continue
+        if ('identifiers' not in alias) or (type(alias['identifiers']) not in [list, tuple]):
+            continue
+        one_phone_number = None
+        for one_identifier in alias['identifiers']:
+            if type(one_identifier) is not dict:
+                continue
+            if ('type' not in one_identifier) or ('value' not in one_identifier):
+                continue
+            if one_identifier['type'] != get_conf('phone_identifier_type'):
+                continue
+            try:
+                one_identifier_value = one_identifier['value'].strip()
+            except:
+                continue
+            if not one_identifier_value:
+                continue
+            one_phone_number = one_identifier_value
+            break
+        if not one_phone_number:
+            continue
+
+        one_recipient = {'authority': authority, 'identifiers': alias['identifiers']}
+
+        use_phone_numbers.append(one_phone_number)
+        use_recipients.append(one_recipient)
+        use_targets.append(one_target)
+
+    if not use_targets:
+        return (False, 'no valid recipient found')
+
     # putting all the recipients into a single report; and thus using its session for next communication with all the recipients
-    report = _prepare_sms_report(recipients['phone_numbers'], message)
+    try:
+        report = _prepare_sms_send_report(use_targets, use_recipients, message, user_id, language, sensitive, client_ip)
+    except:
+        report = None
     if not report:
-        return (False, '')
+        return (False, 'report could not be prepared')
 
     # we either save the report before sms sending, and deleting it if sending fails,
     # or we first send sms, and if success on it, we save the report then;
     # thus either transiently having a false report, or a possibility of not having the report
     # on sent sms if the report saving fails at the end (should not hopefully though)
 
-    db.save_report(report)
+    doc_id = db.save_report(report)
+    if not doc_id:
+        return (False, 'report could not be saved')
 
     connector = controller.SMSConnector(sms_gateway_url, sms_gateway_key)
-    res = connector.request_search(message, recipients)
-    if not res:
-        db.delete_report(report)
-        return (False, '')
-    if not res[0]:
-        db.delete_report(report)
-        return (False, '')
+    res = connector.request_search(message, {'phone_numbers': use_phone_numbers})
+    if (not res) or (not res[0]):
+        db.delete_report(doc_id)
+        return (False, 'message could not be sent')
 
-    return (True, report)
+    return (True, {'_id': doc_id})
 
