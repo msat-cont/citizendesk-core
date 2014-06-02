@@ -47,7 +47,7 @@ publisher: String # youtube, flickr, ...
 authors: [{type:String, value:String}] # who created the content
 recipients: [{type:String, value:String}] # who are targeted
 endorsers: [{type:String, value:String}] # who supports/submits/reports the content
-
+targets: [] # when local report, what are definitions of getting aliases
 
 # content
 original_id: String # if the original item has an id
@@ -145,10 +145,10 @@ class ReportHolder(object):
     def store_report(self, document):
         try:
             collection = self.get_collection('reports')
-            collection.save(document)
+            doc_id = collection.save(document)
         except:
             return False
-        return True
+        return doc_id
 
     def create_report(self, data):
         if not 'feed_type' in data:
@@ -184,13 +184,13 @@ class ReportHolder(object):
         if 'coverage_id' in data:
             coverage_id = data['coverage_id']
 
-        current_timestap = datetime.datetime.now()
+        current_timestamp = datetime.datetime.now()
 
         produced = None
         if 'produced' in data:
             produced = data['produced']
         if not produced:
-            produced = current_timestap
+            produced = current_timestamp
 
         session = None
         if 'session' in data:
@@ -237,8 +237,8 @@ class ReportHolder(object):
         document['client_ip'] = client_ip
         document['feed_type'] = feed_type
         document['produced'] = produced
-        document['created'] = current_timestap
-        document['modified'] = current_timestap
+        document['created'] = current_timestamp
+        document['modified'] = current_timestamp
         document['published'] = None
         document['is_published'] = False
         document['session'] = session
@@ -259,6 +259,7 @@ class ReportHolder(object):
         document['authors'] = [] # should be filled
         document['recipients'] = [] # should be filled
         document['endorsers'] = [] # should be filled
+        document['targets'] = [] # should be filled if local
 
         # content
         document['original_id'] = original_id
@@ -289,7 +290,7 @@ class ReportHolder(object):
         if 'original' in data:
             document['original'] = data['original']
 
-        for part in ['channels', 'authors', 'recipients', 'endorsers', 'assignments']:
+        for part in ['channels', 'authors', 'recipients', 'targets', 'endorsers', 'assignments']:
             value = []
             if part in data:
                 value = data[part]
@@ -338,6 +339,14 @@ class ReportHolder(object):
         res = self.store_report(report)
 
         return res
+
+    def delete_report(self, doc_id):
+        try:
+            collection = self.get_collection('reports')
+            collection.remove({'_id': doc_id})
+        except:
+            return False
+        return True
 
     def find_last_session(self, spec):
         coll = self.get_collection('reports')
@@ -462,7 +471,7 @@ class ReportHolder(object):
         coll = self.get_collection('reports')
 
         timepoint = datetime.datetime.utcnow()
-        coll.update({'_id': report_id}, {'$addToSet': {'channels': {'$each': channels}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+        coll.update({'feed_type': feed_type, 'report_id': report_id}, {'$addToSet': {'channels': {'$each': channels}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
 
     def add_endorsers(self, feed_type, report_id, endorsers):
         if (not report_id) or (not endorsers) or (type(endorsers) is not list):
@@ -470,5 +479,5 @@ class ReportHolder(object):
         coll = self.get_collection('reports')
 
         timepoint = datetime.datetime.utcnow()
-        coll.update({'_id': report_id}, {'$addToSet': {'endorsers': {'$each': endorsers}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+        coll.update({'feed_type': feed_type, 'report_id': report_id}, {'$addToSet': {'endorsers': {'$each': endorsers}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
 

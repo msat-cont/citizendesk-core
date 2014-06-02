@@ -134,7 +134,7 @@ class CitizenHolder(object):
             if not alias_info[need_key]:
                 return None
 
-        current_timestap = datetime.datetime.now()
+        current_timestamp = datetime.datetime.now()
 
         alias = {
             'change_id': 0, # TODO: get correct change id here!
@@ -142,7 +142,7 @@ class CitizenHolder(object):
             'identifiers': [],
             'avatars': [],
             'produced': None,
-            'created': current_timestap,
+            'created': current_timestamp,
             'name_first': None,
             'name_flast': None,
             'name_full': None,
