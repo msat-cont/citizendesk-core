@@ -10,7 +10,7 @@ from citizendesk.common.citizen_holder import CitizenHolder
 citizen_holder = CitizenHolder()
 
 config = {
-    'feed_type': 'SMS',
+    'feed_type': 'sms',
     'publisher': 'sms_gateway',
     'channel_type': 'gateway', # i.e. not sent directly from a phone
     'channel_value_send': 'sent', # 'sent' for sending
