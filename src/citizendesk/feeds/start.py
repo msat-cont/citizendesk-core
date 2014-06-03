@@ -20,6 +20,8 @@ LOG_PATH = '/opt/citizendesk/log/citizendesk/feeds_ifce.log'
 PID_PATH = '/opt/citizendesk/run/feeds_ifce.pid'
 HOME_DIR = '/tmp'
 
+SMS_CONFIG_PATH = '/opt/citizendesk/etc/citizendesk/sms_ifce.yaml'
+
 import os, sys, datetime, json, logging
 import time, atexit, signal
 import argparse
@@ -40,6 +42,7 @@ class ConnectParams():
         self.daemonize = False
         self.user_id = None
         self.group_id = None
+        self.sms_config_path = SMS_CONFIG_PATH
 
     def use_specs(self):
 
@@ -52,6 +55,7 @@ class ConnectParams():
         parser.add_argument('-b', '--db_name', help='database name, e.g. ' + str(DB_NAME), default=DB_NAME)
 
         parser.add_argument('-n', '--newstwister_url', help='newstwister url, e.g. ' + str(NEWSTWISTER_URL), default=NEWSTWISTER_URL)
+        parser.add_argument('-s', '--sms_config_path', help='sms config path, e.g. ' + str(SMS_CONFIG_PATH), default=SMS_CONFIG_PATH)
 
         parser.add_argument('-l', '--log_path', help='path to log file, e.g. ' + str(LOG_PATH))
         parser.add_argument('-i', '--pid_path', help='path to pid file, e.g. ' + str(PID_PATH))
@@ -77,6 +81,8 @@ class ConnectParams():
 
         if args.newstwister_url:
             self.newstwister_url = args.newstwister_url
+        if args.sms_config_path:
+            self.sms_config_path = args.sms_config_path
 
         if args.log_path:
             self.log_path = args.log_path
@@ -153,6 +159,9 @@ class ConnectParams():
     def get_newstwister_url(self):
         return self.newstwister_url
 
+    def get_sms_config_path(self):
+        return self.sms_config_path
+
     def get_log_path(self):
         return self.log_path
 
@@ -181,7 +190,7 @@ def run_server():
 
     server_address = (params.get_web_host(), params.get_web_port())
     mongo_address = (params.get_mongo_host(), params.get_mongo_port())
-    run_flask(params.get_db_name(), server=server_address, mongo=mongo_address, newstwister_url=params.get_newstwister_url(), debug=False)
+    run_flask(params.get_db_name(), server=server_address, mongo=mongo_address, newstwister_url=params.get_newstwister_url(), sms_config_path=params.get_sms_config_path(), debug=False)
 
 if __name__ == '__main__':
     file_dir = os.path.dirname(os.path.realpath(__file__))

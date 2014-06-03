@@ -18,7 +18,7 @@ class SMSConnector(object):
             return (False, 'wrong recipients specification')
 
         data = {
-            'secret"': str(self.api_key),
+            'secret': str(self.api_key),
             'message': message,
             'recipients': []
         }

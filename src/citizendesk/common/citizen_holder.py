@@ -8,7 +8,9 @@ Citizen alias structure:
 _id/alias_id: String # globally unique for any report from any feed
 cId
 authority: String # to know how to deal with it
-#user_id: Integer or None # if a local user is a creator of this alias info
+created_by: Integer or None # if a local user is a creator of this alias info
+updated_by: Integer or None # if a local user is a creator of this alias info
+active: Bool # whether the citizen alias is used (or deactivated otherwise)
 
 #provider-based:
 identifiers(user_name, user_id)
@@ -21,7 +23,6 @@ languages
 description
 sources
 home_pages
-
 
 #local-edited:
 notable: Boolean
@@ -121,12 +122,16 @@ class CitizenHolder(object):
 
     def save_alias(self, alias_info):
         alias = self.create_alias(alias_info)
-        self.store_alias(alias)
-        return True
+        res = self.store_alias(alias)
+        return res
 
     def store_alias(self, document):
         collection = self.get_collection('aliases')
-        collection.save(document)
+        try:
+            alias_id = collection.save(document)
+        except:
+            return None
+        return alias_id
 
     def create_alias(self, alias_info):
         if type(alias_info) is not dict:
@@ -143,6 +148,7 @@ class CitizenHolder(object):
         alias = {
             #'change_id': 0, # TODO: get correct change id here!
             'authority': None,
+            'active': True,
             'identifiers': [],
             'avatars': [],
             'produced': None,
@@ -157,6 +163,8 @@ class CitizenHolder(object):
             'sources': [],
             'home_pages': [],
             'local': False,
+            'created_by': None,
+            'updated_by': None,
 
             'notable': None,
             'reliable': None,
@@ -171,13 +179,16 @@ class CitizenHolder(object):
 
         parts_scalar = [
             'authority',
+            'active',
             'produced',
             'name_first',
             'name_last',
             'name_full',
             'time_zone',
             'description',
-            'local'
+            'local',
+            'created_by',
+            'updated_by'
         ]
 
         parts_vector = [
@@ -230,6 +241,7 @@ class CitizenHolder(object):
             'name_full',
             'time_zone',
             'description',
+            'updated_by'
         ]
 
         parts_vector = [

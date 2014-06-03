@@ -19,10 +19,12 @@ try:
 except:
     long = int
 
-from citizendesk.feeds.sms.common.utils import get_conf, gen_id, get_sms
+from citizendesk.feeds.sms.common.utils import get_conf, gen_id
 from citizendesk.feeds.sms.common.utils import extract_tags as _extract_tags
+from citizendesk.feeds.sms.common.utils import report_holder
 from citizendesk.feeds.sms.send.storage import collection, schema
 from citizendesk.common.utils import get_boolean as _get_boolean
+from citizendesk.common.utils import get_id_value as _get_id_value
 
 '''
 Sending message to the specified recipients via an external SMS gateway
@@ -100,9 +102,15 @@ def do_post_send(db, sms_gateway_url, sms_gateway_key, message, targets, user_id
     if not targets:
         return (False, 'no targets provided')
 
+    from citizendesk.feeds.sms.citizen_alias.storage import get_one_by_id as get_one_citizen_alias_by_id
+
     use_targets = []
     use_recipients = []
     use_phone_numbers = []
+
+    authority = get_conf('authority')
+    alias_doctype = get_conf('alias_doctype')
+    phone_identifier_type = get_conf('phone_identifier_type')
 
     if type(targets) not in [list, tuple]:
         return (False, '')
@@ -111,16 +119,16 @@ def do_post_send(db, sms_gateway_url, sms_gateway_key, message, targets, user_id
             continue
         if 'type' not in one_target:
             continue
-        if one_target['type'] != get_conf('alias_doctype'):
+        if one_target['type'] != alias_doctype:
             continue
         if 'value' not in one_target:
             continue
 
-        authority = get_conf('authority')
-        if ('authority' in alias) and alias['authority']:
-            authority = alias['authority']
-
-        alias = db.take_citizen_alias(one_target['value'])
+        one_target_id = _get_id_value(one_target['value'])
+        alias_res = get_one_citizen_alias_by_id(db, one_target_id)
+        if (not alias_res) or (not alias_res[0]):
+            continue
+        alias = alias_res[1]
         if (type(alias) is not dict) or (not alias):
             continue
         if ('identifiers' not in alias) or (type(alias['identifiers']) not in [list, tuple]):
@@ -131,7 +139,7 @@ def do_post_send(db, sms_gateway_url, sms_gateway_key, message, targets, user_id
                 continue
             if ('type' not in one_identifier) or ('value' not in one_identifier):
                 continue
-            if one_identifier['type'] != get_conf('phone_identifier_type'):
+            if one_identifier['type'] != phone_identifier_type:
                 continue
             try:
                 one_identifier_value = one_identifier['value'].strip()
@@ -166,15 +174,15 @@ def do_post_send(db, sms_gateway_url, sms_gateway_key, message, targets, user_id
     # thus either transiently having a false report, or a possibility of not having the report
     # on sent sms if the report saving fails at the end (should not hopefully though)
 
-    doc_id = db.save_report(report)
+    doc_id = report_holder.save_report(report)
     if not doc_id:
         return (False, 'report could not be saved')
 
     connector = controller.SMSConnector(sms_gateway_url, sms_gateway_key)
-    res = connector.request_search(message, {'phone_numbers': use_phone_numbers})
-    if (not res) or (not res[0]):
-        db.delete_report(doc_id)
-        return (False, 'message could not be sent')
+    res = connector.send_sms(message, {'phone_numbers': use_phone_numbers})
+    if not res[0]:
+        report_holder.delete_report(doc_id)
+        return (False, 'message could not be sent', res[1])
 
     return (True, {'_id': doc_id})
 

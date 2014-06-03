@@ -30,7 +30,7 @@ def setup_blueprints(app):
 @bp_feed_sms_send.route('/feeds/sms/send/', defaults={}, methods=['POST'], strict_slashes=False)
 def feed_sms_send_one_post():
     from citizendesk.feeds.sms.send import process
-    from citizendesk.feeds.config import get_config
+    from citizendesk.feeds.config import get_config as get_main_config
 
     logger = get_logger()
     client_ip = get_client_ip()
@@ -65,8 +65,8 @@ def feed_sms_send_one_post():
     if 'sensitive' in data:
         sensitive = data['sensitive']
 
-    sms_gateway_url = get_config('sms_gateway_url')
-    sms_gateway_key = get_config('sms_gateway_key')
+    sms_gateway_url = get_main_config('sms_gateway_url')
+    sms_gateway_key = get_main_config('sms_gateway_key')
 
     if ('control' in data) and (type(data['control']) is dict):
         control = data['control']
@@ -79,6 +79,8 @@ def feed_sms_send_one_post():
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
+        if 2 < len(res):
+            ret_data['_meta']['reason'] = res[2]
         return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
 
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}

@@ -3,6 +3,12 @@
 import os, sys, datetime, json, logging, random
 import urllib, urllib2
 
+from citizendesk.common.holder import ReportHolder
+report_holder = ReportHolder()
+
+from citizendesk.common.citizen_holder import CitizenHolder
+citizen_holder = CitizenHolder()
+
 config = {
     'feed_type': 'SMS',
     'publisher': 'sms_gateway',
@@ -51,5 +57,4 @@ def extract_tags(message):
             return []
 
     return tags
-
 
