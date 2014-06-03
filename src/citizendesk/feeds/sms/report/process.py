@@ -86,30 +86,19 @@ def do_get_list(db, spec_type, spec_id, offset=None, limit=None, sort=None, othe
         if not name_only:
             docs.append(entry)
         else:
-            if (not 'identifiers' in entry):
+            one_name = {
+                'original': None,
+                'authors': None,
+                'recipients': None,
+            }
+            if 'original' in entry:
+                one_name['original'] = entry['original']
+            if 'authors' in entry:
+                one_name['authors'] = entry['authors']
+            if 'recipients' in entry:
+                one_name['recipients'] = entry['recipients']
+            if (not one_name['original']) and (not one_name['authors']) and (not one_name['recipients']):
                 continue
-            if type(entry['identifiers']) not in (list, tuple):
-                continue
-            if not len(entry['identifiers']):
-                continue
-            if not entry['identifiers'][0]:
-                continue
-            one_name = entry['identifiers'][0]
-            if type(one_name) is not dict:
-                continue
-
-            description = None
-            if ('description' in entry) and entry['description']:
-                description = entry['description']
-            if description:
-                one_name['description'] = description
-            name_list = []
-            for name_key in ['name_first', 'name_last', 'name_full']:
-                if (name_key in entry) and entry[name_key]:
-                    name_list.append(entry[name_key])
-            if name_list:
-                one_name['names'] = ' - '.join(name_list)
-
             docs.append(one_name)
 
     return (True, docs, {'total': total})
