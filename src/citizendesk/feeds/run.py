@@ -77,7 +77,7 @@ def check_client():
     message = '' + str(request.method) + ' request on ' + str(request.url) + ', by ' + str(get_client_ip())
 
     allowed_ips = get_allowed_ips()
-    if allowed_ips and ('*' not in allowed_ips):
+    if (allowed_ips is not None) and ('*' not in allowed_ips):
         if not client_ip in allowed_ips:
             logger.info('unallowed ' + message)
             return make_response('Client not allowed\n\n', 403,)
@@ -115,6 +115,8 @@ def prepare_reporting(mongo_addr, dbname, newstwister_url, sms_config_path):
             set_config('sms_gateway_url', sms_config['gateway_url'])
         if ('gateway_key' in sms_config) and sms_config['gateway_key']:
             set_config('sms_gateway_key', sms_config['gateway_key'])
+        if ('allowed_ips' in sms_config) and sms_config['allowed_ips']:
+            set_config('sms_allowed_ips', sms_config['allowed_ips'])
 
     twt_dispatch.setup_blueprints(app)
     sms_dispatch.setup_blueprints(app)

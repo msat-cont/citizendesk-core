@@ -32,8 +32,16 @@ def feed_sms_send_one_post():
     from citizendesk.feeds.sms.send import process
     from citizendesk.feeds.config import get_config as get_main_config
 
+    sms_allowed_ips = get_main_config('sms_allowed_ips')
+    sms_gateway_url = get_main_config('sms_gateway_url')
+    sms_gateway_key = get_main_config('sms_gateway_key')
+
     logger = get_logger()
     client_ip = get_client_ip()
+    if (sms_allowed_ips is not None) and ('*' not in sms_allowed_ips):
+        if not client_ip in sms_allowed_ips:
+            logger.info('unallowed sms-send request from: ' + str(client_ip))
+            return (json.dumps('client not allowed'), 403, {'Content-Type': 'application/json'})
 
     try:
         data = request.get_json(True, False, False)
@@ -64,9 +72,6 @@ def feed_sms_send_one_post():
         language = data['language']
     if 'sensitive' in data:
         sensitive = data['sensitive']
-
-    sms_gateway_url = get_main_config('sms_gateway_url')
-    sms_gateway_key = get_main_config('sms_gateway_key')
 
     if ('control' in data) and (type(data['control']) is dict):
         control = data['control']

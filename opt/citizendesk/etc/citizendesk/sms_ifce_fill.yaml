@@ -2,4 +2,5 @@
 gateway_url: url_to_the_sms_gateway
 gateway_key: "secret_key"
 
+allowed_ips: ["127.0.0.1"]
 

@@ -51,7 +51,7 @@ def get_local_ips():
 
 def set_allowed_ips(addr_list):
     global allowed_ips
-    allowed_ips = addr_list if (type(addr_list) is list) else [addr_list]
+    allowed_ips = addr_list if (type(addr_list) in (list, tuple)) else [addr_list]
 
 def get_allowed_ips():
     global allowed_ips
