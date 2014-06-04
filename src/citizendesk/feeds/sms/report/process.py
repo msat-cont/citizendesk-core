@@ -59,12 +59,12 @@ def do_get_list(db, spec_type, spec_id, offset=None, limit=None, sort=None, othe
     if not sort_list:
         sort_list = [('produced', 1)]
 
-    name_only = False
-    if other and ('name_only' in other) and other['name_only']:
+    text_only = False
+    if other and ('text_only' in other) and other['text_only']:
         try:
-            name_only = bool(_get_boolean(other['name_only']))
+            text_only = bool(_get_boolean(other['text_only']))
         except:
-            name_only = False
+            text_only = False
 
     coll = db[collection]
     cursor = coll.find(list_spec).sort(sort_list)
@@ -83,22 +83,47 @@ def do_get_list(db, spec_type, spec_id, offset=None, limit=None, sort=None, othe
     for entry in cursor:
         if not entry:
             continue
-        if not name_only:
+        if not text_only:
             docs.append(entry)
         else:
-            one_name = {
+            one_text = {
                 'original': None,
                 'authors': None,
-                'recipients': None,
+                'recipients': None
             }
+            authors = []
+            recipients = []
             if 'original' in entry:
-                one_name['original'] = entry['original']
-            if 'authors' in entry:
-                one_name['authors'] = entry['authors']
-            if 'recipients' in entry:
-                one_name['recipients'] = entry['recipients']
-            if (not one_name['original']) and (not one_name['authors']) and (not one_name['recipients']):
+                one_text['original'] = entry['original']
+            if ('authors' in entry) and (type(entry['authors']) in (list, tuple)):
+                for one_author in entry['authors']:
+                    if (type(one_author) is dict) and ('identifiers' in one_author) and (one_author['identifiers']):
+                        one_alias_set = one_author['identifiers']
+                        if (type(one_alias_set) in (list, tuple)):
+                            for one_alias in one_alias_set:
+                                if (type(one_alias) is dict) and ('value' in one_alias) and (one_alias['value']):
+                                    authors.append(one_alias['value'])
+            if ('recipients' in entry) and (type(entry['recipients']) in (list, tuple)):
+                for one_recipient in entry['recipients']:
+                    if (type(one_recipient) is dict) and ('identifiers' in one_recipient) and (one_recipient['identifiers']):
+                        one_alias_set = one_recipient['identifiers']
+                        if (type(one_alias_set) in (list, tuple)):
+                            for one_alias in one_alias_set:
+                                if (type(one_alias) is dict) and ('value' in one_alias) and (one_alias['value']):
+                                    recipients.append(one_alias['value'])
+            if authors:
+                try:
+                    one_text['authors'] = ', '.join(authors)
+                except:
+                    pass
+            if recipients:
+                try:
+                    one_text['recipients'] = ', '.join(recipients)
+                except:
+                    pass
+            if (not one_text['original']) and (not one_text['authors']) and (not one_text['recipients']):
                 continue
-            docs.append(one_name)
+
+            docs.append(one_text)
 
     return (True, docs, {'total': total})

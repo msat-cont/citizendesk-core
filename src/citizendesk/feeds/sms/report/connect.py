@@ -71,7 +71,7 @@ def feed_sms_report_get_list(value_type, value_id):
         if key in request.args:
             params[key] = request.args.get(key)
 
-    other = {'name_only': None}
+    other = {'text_only': None}
     for key in other:
         if key in request.args:
             other[key] = request.args.get(key)
