@@ -21,6 +21,7 @@ except:
 
 from citizendesk.feeds.sms.common.utils import get_conf, gen_id
 from citizendesk.feeds.sms.common.utils import extract_tags as _extract_tags
+from citizendesk.feeds.sms.common.utils import get_phone_number_of_citizen_alias as _get_phone_number
 from citizendesk.feeds.sms.common.utils import report_holder
 from citizendesk.feeds.sms.send.storage import collection, schema
 from citizendesk.common.utils import get_boolean as _get_boolean
@@ -50,7 +51,6 @@ def _prepare_sms_send_report(targets, recipients, message, user_id=None, languag
         'report_id': gen_id(channel_type, channel_value, targets, current_timestamp), # to generate the report_id
         'channels': [channel],
         'recipients': recipients,
-        'targets': [], # here phone numbers and/or group_ids, for replies
         'authors': [], # no citizen here
         'endorsers': [], # no citizen here
         'publisher': get_conf('publisher'),
@@ -72,7 +72,7 @@ def _prepare_sms_send_report(targets, recipients, message, user_id=None, languag
         'sensitive': None,
         'summary': False,
         'local': True,
-        'targets': targets, # for local(ly created) reports
+        'targets': targets, # alias_ids and/or group_ids for replies, on sent reports
         'proto': False,
         'client_ip': client_ip # for logging
     }
@@ -131,24 +131,10 @@ def do_post_send(db, sms_gateway_url, sms_gateway_key, message, targets, user_id
         alias = alias_res[1]
         if (type(alias) is not dict) or (not alias):
             continue
-        if ('identifiers' not in alias) or (type(alias['identifiers']) not in [list, tuple]):
+        if ('identifiers' not in alias) or (not alias['identifiers']):
             continue
-        one_phone_number = None
-        for one_identifier in alias['identifiers']:
-            if type(one_identifier) is not dict:
-                continue
-            if ('type' not in one_identifier) or ('value' not in one_identifier):
-                continue
-            if one_identifier['type'] != phone_identifier_type:
-                continue
-            try:
-                one_identifier_value = one_identifier['value'].strip()
-            except:
-                continue
-            if not one_identifier_value:
-                continue
-            one_phone_number = one_identifier_value
-            break
+
+        one_phone_number = _get_phone_number(alias)
         if not one_phone_number:
             continue
 

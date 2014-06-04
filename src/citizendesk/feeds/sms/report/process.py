@@ -11,6 +11,7 @@ except:
     unicode = str
 
 from citizendesk.feeds.sms.report.storage import collection, schema, FEED_TYPE, PUBLISHER_TYPE
+from citizendesk.feeds.sms.report.storage import do_get_one_by_id
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_sort as _get_sort
@@ -28,17 +29,10 @@ def do_get_one(db, doc_id):
     if not db:
         return (False, 'inner application error')
 
-    coll = db[collection]
-
     doc_id = _get_id_value(doc_id)
+    res = do_get_one_by_id(db, doc_id)
 
-    spec = {'_id': doc_id, 'feed_type': FEED_TYPE}
-    doc = coll.find_one(spec)
-
-    if not doc:
-        return (False, 'report not found')
-
-    return (True, doc)
+    return res
 
 def do_get_list(db, spec_type, spec_id, offset=None, limit=None, sort=None, other=None):
     '''

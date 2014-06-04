@@ -13,8 +13,7 @@ config = {
     'feed_type': 'sms',
     'publisher': 'sms_gateway',
     'channel_type': 'gateway', # i.e. not sent directly from a phone
-    'channel_value_send': 'sent', # 'sent' for sending
-    'channel_value_reply': 'replied', # 'replied' for replying
+    'channel_value_send': 'sent', # 'sent' for sending (incl. replying)
     'channel_value_receive': 'received', # 'received' for SMS we get; use this in sms ingest too!
     'authority': 'telco',
     'alias_doctype': 'citizen_alias',
@@ -57,4 +56,32 @@ def extract_tags(message):
             return []
 
     return tags
+
+def get_phone_number_of_citizen_alias(citizen_alias):
+    ''' return the first phone number available if any '''
+
+    phone_identifier_type = get_conf('phone_identifier_type')
+
+    if (type(citizen_alias) is not dict) or (not citizen_alias):
+        return None
+
+    if ('identifiers' not in citizen_alias) or (type(citizen_alias['identifiers']) not in [list, tuple]):
+        return None
+
+    for one_identifier in citizen_alias['identifiers']:
+        if type(one_identifier) is not dict:
+            continue
+        if ('type' not in one_identifier) or ('value' not in one_identifier):
+            continue
+        if one_identifier['type'] != phone_identifier_type:
+            continue
+        try:
+            phone_number = one_identifier['value'].strip()
+        except:
+            continue
+        if not phone_number:
+            continue
+        return phone_number
+
+    return None
 
