@@ -5,8 +5,9 @@
 
 import os, sys, datetime, json
 
-from citizendesk.ingest.sms.connect import get_conf, gen_id, get_sms
-from citizendesk.ingest.sms.sms_replier import send_sms
+from citizendesk.ingest.sms.utils import holder
+from citizendesk.ingest.sms.utils import get_conf, gen_id, get_sms
+#from citizendesk.ingest.sms.sms_replier import send_sms
 
 COLL_REPLY_MESSAGES = 'reply_messages'
 
@@ -40,7 +41,7 @@ def is_within_session(last_received, current_received):
 
     return False
 
-def ask_sender(db, phone_number):
+def ask_sender(db, orig_report, alias_id, phone_number):
 
     message = get_conf('reply_message')
 
@@ -57,13 +58,63 @@ def ask_sender(db, phone_number):
 
     for param in ['method', 'url', 'phone_param', 'text_param']:
         if (param not in send_config) or (not send_config[param]):
-            False
+            return False
 
-    send_sms(send_config, phone_number, message)
+    use_targets = [{'type':'citizen_alias', 'value':alias_id}]
+    use_recipients = [{'authority':'telco', 'identifiers':[{'type':'phone_number', 'value':phone_number}]}]
+    use_phone_numbers = [phone_number]
+
+    doc = _prepare_sms_reply_report(orig_report, use_targets, use_recipients, message)
+
+    #send_sms(send_config, phone_number, message)
+    doc_id = report_holder.save_report(report)
+    if not doc_id:
+        return (False, 'report could not be saved')
+
+    connector = controller.SMSConnector(sms_gateway_url, sms_gateway_key)
+    res = connector.send_sms(message, {'phone_numbers': use_phone_numbers})
+    if not res[0]:
+        report_holder.delete_report(doc_id)
+        return (False, 'message could not be sent', res[1])
 
     return True
 
-def do_post(db, holder, params, client_ip):
+def assure_citizen_alias(phone_number):
+    ''' create citizen alias if does not exist yet '''
+
+    from citizendesk.feeds.sms.citizen_alias.storage import get_one_by_phone_number as get_one_citizen_alias_by_phone_number
+    alias_res = get_one_citizen_alias_by_phone_number(phone_number)
+    if alias_res[0]:
+        if (type(alias_res[1]) is not dict) or ('_id' not in alias_res[1]):
+            return (False, 'wrong loaded citizen alias structure')
+        return (True, {'_id': alias['_id']})
+
+    authority = get_conf('authority')
+    phone_identifier_type = get_conf('phone_identifier_type')
+
+    alias_new = {
+        'authority': authority,
+        'identifiers': [{'type':phone_identifier_type, 'value':phone_number}],
+        'verified': False,
+        'local': False
+    }
+
+    alias_id = citizen_holder.save_alias(alias_new)
+    if not alias_id:
+        return (False, 'can not save citizen alias info')
+
+    return (True, {'_id': alias_id})
+
+def do_post(db, params, client_ip):
+    '''
+    * find if following a previous report (incl. taking its session)
+    * create and save the report
+    * assure citizen_alias exists (i.e. create/save if does not yet)
+    * if starting a new session and with auto-replies:
+        * create a reply-report
+        * send a reply message (via gateway)
+    '''
+
     feed_type = get_conf('feed_type')
     publisher = get_conf('publisher')
     feed_filter = None
@@ -72,7 +123,18 @@ def do_post(db, holder, params, client_ip):
     phone_number = params['phone']
     received = params['time']
 
-    channels = [{'type': feed_name, 'value': phone_number, 'filter': None, 'request': None}]
+    timestamp = datetime.datetime.now()
+
+    alias_id = None
+    alias_res = assure_citizen_alias(phone_number)
+    if alias_res[0]:
+        alias_id = alias_res[1]
+
+    sms_filter = None
+    if feed_name:
+        sms_filter = {'feed_name': feed_name}
+
+    channels = [{'type': 'gateway', 'value': 'received', 'filter': sms_filter, 'request': None, 'reasons': None}]
     authors = [{'authority': 'telco', 'identifiers': [{'type': 'phone_number', 'value': phone_number}]}]
     endorsers = []
 
@@ -80,13 +142,9 @@ def do_post(db, holder, params, client_ip):
     texts = [{'original': params['text'], 'transcript': None}]
     tags = []
     if params['text']:
-        for word in params['text'].split(' '):
-            if word.startswith('#'):
-                use_tag = word[1:]
-                if use_tag:
-                    tags.append(use_tag)
+        tags = _extract_tags(params['text'])
 
-    report_id = gen_id(feed_type, phone_number)
+    report_id = gen_id(channel_type, channel_value, None, timestamp)
     session = report_id
     parent_id = None
     new_session = True
@@ -108,7 +166,6 @@ def do_post(db, holder, params, client_ip):
     report['parent_id'] = parent_id
     report['client_ip'] = client_ip
     report['feed_type'] = feed_type
-    report['feed_spec'] = None
     report['produced'] = received
     report['session'] = session
     report['publisher'] = publisher
@@ -123,10 +180,10 @@ def do_post(db, holder, params, client_ip):
 
     report['proto'] = False
 
-    holder.save_report(report)
+    report_id = holder.save_report(report)
 
     if get_conf('send_reply') and new_session:
-        ask_sender(db, phone_number)
+        ask_sender(db, report, alias_id, phone_number)
 
     return (200, 'SMS received\n\n')
 

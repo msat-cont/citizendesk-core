@@ -36,15 +36,15 @@ app = Flask(__name__)
 
 def prepare_reporting(mongo_addr, dbname, send_sms):
     from citizendesk.common.dbc import mongo_dbs
-    from citizendesk.ingest.sms.connect import sms_take, load_send_sms_config
+    from citizendesk.ingest.sms.utils import load_send_sms_config
+    from citizendesk.ingest.sms.connect import setup_blueprints
 
     mongo_dbs.set_dbname(dbname)
     DbHolder = namedtuple('DbHolder', 'db')
     mongo_dbs.set_db(DbHolder(db=MongoClient(mongo_addr[0], mongo_addr[1])[mongo_dbs.get_dbname()]))
 
     load_send_sms_config(send_sms)
-
-    app.register_blueprint(sms_take)
+    setup_blueprints(app)
 
 @app.errorhandler(404)
 def page_not_found(error):
