@@ -33,6 +33,7 @@ local: Boolean # if the report was created by editors
 summary: Boolean
 sensitive: Boolean # whether it is kind of "not at work" stuff
 is_published: Boolean # if the report is available for clients
+automatic: Boolean # if the report is created by an automated process, e.g. auto-reply
 
 # status
 verification: String # new, verified, false
@@ -211,6 +212,10 @@ class ReportHolder(object):
         if 'local' in data:
             local_report = bool(data['local'])
 
+        automatic_report = False
+        if 'automatic' in data:
+            automatic_report = bool(data['automatic'])
+
         summary_report = False
         if 'summary' in data:
             summary_report = bool(data['summary'])
@@ -244,6 +249,7 @@ class ReportHolder(object):
         document['session'] = session
         document['proto'] = proto_report
         document['local'] = local_report
+        document['automatic'] = automatic_report
         document['summary'] = summary_report
         document['sensitive'] = sensitive_report
         document['language'] = language

@@ -11,8 +11,8 @@ citizen_holder = CitizenHolder()
 
 config = {
     'feed_type': 'sms',
-    'publisher': 'sms_gateway',
-    'channel_type': 'gateway', # i.e. not sent directly from a phone
+    'publisher': 'sms_gateway', # i.e. not sent directly from a phone
+    'channel_type': 'sms', # whether sms, mms, ...
     'channel_value_send': 'sent', # 'sent' for sending (incl. replying)
     'channel_value_receive': 'received', # 'received' for SMS we get; use this in sms ingest too!
     'authority': 'telco',

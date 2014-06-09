@@ -12,6 +12,12 @@ from citizendesk.ingest.sms.utils import get_conf, gen_id, get_sms
 COLL_REPLY_MESSAGES = 'reply_messages'
 
 def is_within_session(last_received, current_received):
+    max_diff = get_conf('time_delay')
+    if 0 > max_diff:
+        return True
+    if 0 == max_diff:
+        return False
+
     if not last_received:
         return False
     if not current_received:
@@ -36,12 +42,44 @@ def is_within_session(last_received, current_received):
         return False
 
     time_diff = current_received - last_received
-    if time_diff.seconds <= get_conf('time_delay'):
+    if time_diff.seconds <= max_diff:
         return True
 
     return False
 
-def ask_sender(db, orig_report, alias_id, phone_number):
+def ask_sender(db, session_start, orig_report, alias_id, phone_number):
+    # by now: general config in a config file
+    # by phone_number: in citizen_alias structure
+
+    # message = None
+    # if session_start:
+    #   to_send = sms_reply_send()
+    #   to_send_spec = sms_reply_send(phone_number)
+    #   if to_send_spec is not None:
+    #       to_send = to_send_spec
+    #   if to_send:
+    #       message = sms_reply_message()
+    #       message_spec = sms_reply_message(phone_number)
+    #       if message_spec:
+    #           message = message_spec
+    # else:
+    #   to_send = sms_confirm_send()
+    #   to_send_spec = sms_confirm_send(phone_number)
+    #   if to_send_spec is not None:
+    #       to_send = to_send_spec
+    #   if to_send:
+    #       message = sms_confirm_message()
+    #       message_spec = sms_confirm_message(phone_number)
+    #       if message_spec:
+    #           message = message_spec
+
+    message = None
+    if session_start:
+        get_conf('send_reply')
+
+    else:
+        pass
+
 
     message = get_conf('reply_message')
 
@@ -107,42 +145,52 @@ def assure_citizen_alias(phone_number):
 
 def do_post(db, params, client_ip):
     '''
+    * assure citizen_alias exists (i.e. create/save if does not yet)
     * find if following a previous report (incl. taking its session)
     * create and save the report
-    * assure citizen_alias exists (i.e. create/save if does not yet)
     * if starting a new session and with auto-replies:
         * create a reply-report
         * send a reply message (via gateway)
     '''
 
+    # taking given params
     feed_type = get_conf('feed_type')
     publisher = get_conf('publisher')
-    feed_filter = None
 
     feed_name = params['feed']
     phone_number = params['phone']
     received = params['time']
+    message = params['text']
 
     timestamp = datetime.datetime.now()
 
+    # assuring the citizen
     alias_id = None
     alias_res = assure_citizen_alias(phone_number)
     if alias_res[0]:
         alias_id = alias_res[1]
 
+    # finding the followed report
+    last_report = get_sms(phone_number)
+    if last_report:
+        for key in ['produced', 'session', 'report_id']:
+            if key not in last_report:
+                last_report = None
+
+    # creating the report
     sms_filter = None
     if feed_name:
         sms_filter = {'feed_name': feed_name}
 
-    channels = [{'type': 'gateway', 'value': 'received', 'filter': sms_filter, 'request': None, 'reasons': None}]
+    channels = [{'type': 'sms', 'value': 'received', 'filter': sms_filter, 'request': None, 'reasons': None}]
     authors = [{'authority': 'telco', 'identifiers': [{'type': 'phone_number', 'value': phone_number}]}]
     endorsers = []
 
-    original = params['text']
-    texts = [{'original': params['text'], 'transcript': None}]
+    original = {'message': message}
+    texts = [{'original': message, 'transcript': None}]
     tags = []
-    if params['text']:
-        tags = _extract_tags(params['text'])
+    if message:
+        tags = _extract_tags(message)
 
     report_id = gen_id(channel_type, channel_value, None, timestamp)
     session = report_id
@@ -152,13 +200,14 @@ def do_post(db, params, client_ip):
     pinned_id = None
     assignments = []
 
-    last_report = get_sms(feed_name, phone_number)
     if last_report:
         if is_within_session(last_report['produced'], received):
             session = last_report['session']
             parent_id = last_report['report_id']
-            pinned_id = last_report['pinned_id']
-            assignments = last_report['assignments']
+            if 'pinned_id' in last_report:
+                pinned_id = last_report['pinned_id']
+            if 'assignments' in last_report:
+                assignments = last_report['assignments']
             new_session = False
 
     report = {}
@@ -182,8 +231,10 @@ def do_post(db, params, client_ip):
 
     report_id = holder.save_report(report)
 
-    if get_conf('send_reply') and new_session:
-        ask_sender(db, report, alias_id, phone_number)
+    # checking whether to send auto-reply; sending it if it shall be sent
+    #if get_conf('send_reply') and new_session:
+    #    ask_sender(db, report, alias_id, phone_number)
+    ask_sender(db, new_session, report, alias_id, phone_number)
 
     return (200, 'SMS received\n\n')
 

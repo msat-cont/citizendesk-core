@@ -45,6 +45,9 @@ modified: DateTime # last document modification
 local: Boolean # if the alias was created by editors
 sensitive: Boolean # whether it shall be kept secrete
 
+# configuration
+config: [{'type':'','value':''}] # for storing citizen_alias-related configuration
+
 Citizen structure:
 
 _id: ObjectId() # just a unique identifier
@@ -174,7 +177,8 @@ class CitizenHolder(object):
             'links': [],
             'tags': [],
             'tags_auto': [],
-            'sensitive': None
+            'sensitive': None,
+            'config': []
         }
 
         parts_scalar = [
@@ -200,7 +204,8 @@ class CitizenHolder(object):
             'home_pages',
             'links',
             'tags',
-            'tags_auto'
+            'tags_auto',
+            'config'
         ]
 
         for key in parts_scalar:

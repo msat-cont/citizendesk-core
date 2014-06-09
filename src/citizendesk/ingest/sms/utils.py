@@ -94,9 +94,48 @@ def gen_id(feed_type, citizen):
     id_value += ':' + ''.join(rnd_list)
     return id_value
 
-def get_sms(channel_type, phone_number):
+def get_sms(phone_number):
     FEED_TYPE = get_conf('feed_type')
+    session_info = None
 
-    sess_spec = {'feed_type': FEED_TYPE, 'channels': {'$elemMatch': {'type': channel_type, 'value': phone_number}}}
-    return holder.find_last_session(sess_spec)
+    sess_spec_sent = {
+        'feed_type': FEED_TYPE,
+        'channels': {'$elemMatch': {'value': 'sent'}},
+        'recipients': {'authority': 'telco', 'identifiers': {'type': 'phone_number', 'value': phone_number}}
+    }
+    res = holder.find_last_session(sess_spec_sent)
+    if (type(res) is not dict) or ('produced' not in res):
+        res = None
+    if res:
+        session_info = res
+
+    sess_spec_received = {
+        'feed_type': FEED_TYPE,
+        'channels': {'$elemMatch': {'value': 'received'}},
+        'authors': {'authority': 'telco', 'identifiers': {'type': 'phone_number', 'value': phone_number}}
+    }
+    res = holder.find_last_session(sess_spec_received)
+    if (type(res) is not dict) or ('produced' not in res):
+        res = None
+    if res:
+        if not session_info:
+            session_info = res
+        else:
+            if res['produced'] >= session_info['produced']:
+                session_info = res
+
+    return session_info
+
+def sms_reply_send(phone_number):
+    to_send = get_conf('send_reply')
+
+    to_send_general = db[COLL_CONFIG].find_one({'type': 'send_reply_sms'})
+    if to_send_general is not None:
+
+        specific_message = db[COLL_REPLY_MESSAGES].find_one({'phone_number': phone_number})
+        if specific_message and ('reply_message' in specific_message):
+            message = specific_message['reply_message']
+
+
+
 
