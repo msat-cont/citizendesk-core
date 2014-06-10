@@ -23,6 +23,7 @@ from citizendesk.feeds.sms.common.utils import get_conf, gen_id
 from citizendesk.feeds.sms.common.utils import extract_tags as _extract_tags
 from citizendesk.feeds.sms.common.utils import get_phone_number_of_citizen_alias as _get_phone_number
 from citizendesk.feeds.sms.common.utils import report_holder
+from citizendesk.feeds.sms.common.reports import prepare_sms_reply_report as _prepare_sms_reply_report
 from citizendesk.feeds.sms.send.storage import collection, schema
 from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_id_value as _get_id_value
@@ -30,75 +31,6 @@ from citizendesk.common.utils import get_id_value as _get_id_value
 '''
 Sending message to sms-report targets/recipients via an external SMS gateway
 '''
-
-def _prepare_sms_reply_report(report, targets, recipients, message, user_id=None, language=None, sensitive=None, client_ip=None):
-    ''' preparing an sms-based report when the sms is sent as a reply, i.e. continuing a previous session '''
-
-    if (type(report) is not dict):
-        return None
-    if ('session' not in report) or (not report['session']):
-        return None
-    if ('report_id' not in report) or (not report['report_id']):
-        return None
-
-    channel_type = get_conf('channel_type')
-    channel_value = get_conf('channel_value_send')
-
-    channel = {
-        'type': channel_type,
-        'value': channel_value,
-        'filter': None,
-        'reasons': None,
-        'request': None
-    }
-
-    current_timestamp = datetime.datetime.now()
-
-    doc = {
-        'report_id': gen_id(channel_type, channel_value, targets, current_timestamp), # to generate the report_id
-        'channels': [channel],
-        'recipients': recipients,
-        'authors': [], # no citizen here
-        'endorsers': [], # no citizen here
-        'publisher': get_conf('publisher'),
-        'feed_type': get_conf('feed_type'),
-        'parent_id': report['report_id'], # since a reply here
-        'session': report['session'], # since a reply here
-        'user_id': user_id, # who requested the sending, if not automatic
-        'pinned_id': None,
-        'coverage_id': None,
-        'language': language,
-        'produced': current_timestamp,
-        'created': current_timestamp,
-        'assignments': [],
-        'original_id': None,
-        'original': {'message': message},
-        'texts': [{'original': message, 'transcript': None}],
-        'tags': [], # we shall extract possible #tags, alike at sms receiving
-        'is_published': False,
-        'sensitive': None,
-        'summary': False,
-        'local': True,
-        'targets': targets, # alias_ids and/or group_ids for replies, on sent reports
-        'proto': False,
-        'client_ip': client_ip # for logging
-    }
-
-    if sensitive is not None:
-        doc['sensitive'] = _get_boolean(sensitive)
-
-    doc['tags'] = _extract_tags(message)
-
-    if ('pinned_id' in report) and report['pinned_id']:
-        doc['pinned_id'] = report['pinned_id']
-
-    if ('coverage_id' in report) and report['coverage_id']:
-        doc['coverage_id'] = report['coverage_id']
-
-    if ('assignments' in report) and report['assignments']:
-        doc['assignments'] = report['assignments']
-
-    return doc
 
 def do_post_reply(db, sms_gateway_url, sms_gateway_key, message, report_id, user_id, language, sensitive, client_ip):
     if not controller:

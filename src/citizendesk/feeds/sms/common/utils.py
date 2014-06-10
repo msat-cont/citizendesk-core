@@ -32,12 +32,12 @@ def get_conf(name):
         return config[name]
     return None
 
-def gen_id(channel_type, channel_value, targets, timestamp):
+def gen_id(feed_type, channel_type, channel_value, timestamp):
     rnd_list = [str(hex(i))[-1:] for i in range(16)]
     random.shuffle(rnd_list)
 
-    report_id = get_conf('feed_type') + ':' + channel_type + ':' + channel_value + ':'
-    report_id += timestamp.isoformat() + ':'
+    report_id = feed_type + '//' + channel_type + '/' + channel_value + '/'
+    report_id += timestamp.isoformat() + '/'
     report_id += ''.join(rnd_list)
 
     return report_id

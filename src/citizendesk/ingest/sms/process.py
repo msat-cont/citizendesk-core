@@ -5,15 +5,15 @@
 
 import os, sys, datetime, json
 
-from citizendesk.ingest.sms.utils import holder
-from citizendesk.ingest.sms.utils import get_conf, gen_id, get_sms
-#from citizendesk.ingest.sms.sms_replier import send_sms
+from citizendesk.ingest.sms.utils import holder as report_holder
+from citizendesk.ingest.sms.utils import get_sms
+from citizendesk.feeds.sms.common.reports import prepare_sms_reply_report as _prepare_sms_reply_report
+from citizendesk.feeds.sms.common.utils import get_conf, gen_id, citizen_holder
 
-COLL_REPLY_MESSAGES = 'reply_messages'
+def is_within_session(last_received, current_received, config):
+    max_diff = config['sms_session_duration']
 
-def is_within_session(last_received, current_received):
-    max_diff = get_conf('time_delay')
-    if 0 > max_diff:
+    if (0 > max_diff) or (max_diff is None):
         return True
     if 0 == max_diff:
         return False
@@ -42,90 +42,84 @@ def is_within_session(last_received, current_received):
         return False
 
     time_diff = current_received - last_received
-    if time_diff.seconds <= max_diff:
+    if time_diff.total_seconds() <= max_diff:
         return True
 
     return False
 
-def ask_sender(db, session_start, orig_report, alias_id, phone_number):
-    # by now: general config in a config file
+def ask_sender(db, session_start, orig_report, alias_info, phone_number, common_config):
+    # for now, general config in a config file, or 'cd_config' collection in 'sms' document
     # by phone_number: in citizen_alias structure
 
-    # message = None
-    # if session_start:
-    #   to_send = sms_reply_send()
-    #   to_send_spec = sms_reply_send(phone_number)
-    #   if to_send_spec is not None:
-    #       to_send = to_send_spec
-    #   if to_send:
-    #       message = sms_reply_message()
-    #       message_spec = sms_reply_message(phone_number)
-    #       if message_spec:
-    #           message = message_spec
-    # else:
-    #   to_send = sms_confirm_send()
-    #   to_send_spec = sms_confirm_send(phone_number)
-    #   if to_send_spec is not None:
-    #       to_send = to_send_spec
-    #   if to_send:
-    #       message = sms_confirm_message()
-    #       message_spec = sms_confirm_message(phone_number)
-    #       if message_spec:
-    #           message = message_spec
+    use_config = {
+        'sms_reply_send': None,
+        'sms_reply_message': None,
+        'sms_confirm_send': None,
+        'sms_confirm_message': None,
+    }
+
+    for one_key in use_config:
+        if key in common_config:
+            use_config[key] = common_config[key]
+
+    alias_config = {}
+    if ('config' in alias_info) and (type(alias_info['config']) is dict):
+        alias_config = alias_info['config']
+    for key in use_config:
+        if (key in alias_config) and (alias_config[key] is not None):
+            use_config[key] = alias_config[key]
 
     message = None
     if session_start:
-        get_conf('send_reply')
-
+        to_send = use_config['sms_reply_send']
+        if to_send:
+            message = use_config['sms_reply_message']
     else:
-        pass
-
-
-    message = get_conf('reply_message')
-
-    specific_message = db[COLL_REPLY_MESSAGES].find_one({'phone_number': phone_number})
-    if specific_message and ('reply_message' in specific_message):
-        message = specific_message['reply_message']
+        to_send = use_config['sms_confirm_send']
+        if to_send:
+            message = use_config['sms_confirm_message']
 
     if not message:
-        return False
+        return (True, None)
 
-    send_config = get_conf('send_config')
-    if not send_config:
-        return False
+    conf_alias_doctype = get_conf('alias_doctype')
+    conf_authority = get_conf('authority')
+    conf_phone_identifier_type = get_conf('phone_identifier_type')
 
-    for param in ['method', 'url', 'phone_param', 'text_param']:
-        if (param not in send_config) or (not send_config[param]):
-            return False
-
-    use_targets = [{'type':'citizen_alias', 'value':alias_id}]
-    use_recipients = [{'authority':'telco', 'identifiers':[{'type':'phone_number', 'value':phone_number}]}]
+    use_targets = [{'type':conf_alias_doctype, 'value':alias_info['_id']}]
+    use_recipients = [{'authority':conf_authority, 'identifiers':[{'type':conf_phone_identifier_type, 'value':phone_number}]}]
     use_phone_numbers = [phone_number]
 
     doc = _prepare_sms_reply_report(orig_report, use_targets, use_recipients, message)
+    if not doc:
+        return (False, 'automatic report could not be prepared')
+    doc['automatic'] = True
 
-    #send_sms(send_config, phone_number, message)
-    doc_id = report_holder.save_report(report)
+    doc_id = report_holder.save_report(doc)
     if not doc_id:
-        return (False, 'report could not be saved')
+        return (False, 'automatic report could not be saved')
+
+    sms_gateway_url = common_config['sms_gateway_url']
+    sms_gateway_key = common_config['sms_gateway_key']
 
     connector = controller.SMSConnector(sms_gateway_url, sms_gateway_key)
     res = connector.send_sms(message, {'phone_numbers': use_phone_numbers})
     if not res[0]:
         report_holder.delete_report(doc_id)
-        return (False, 'message could not be sent', res[1])
+        return (False, 'automatic message could not be sent', res[1])
 
-    return True
+    return (True, {'_id': doc_id})
 
-def assure_citizen_alias(phone_number):
+def assure_citizen_alias(db, phone_number):
     ''' create citizen alias if does not exist yet '''
 
     from citizendesk.feeds.sms.citizen_alias.storage import get_one_by_phone_number as get_one_citizen_alias_by_phone_number
-    alias_res = get_one_citizen_alias_by_phone_number(phone_number)
+    from citizendesk.feeds.sms.citizen_alias.storage import get_one_by_id as get_one_citizen_alias_by_id
+    alias_res = get_one_citizen_alias_by_phone_number(db, phone_number)
     if alias_res[0]:
         if (type(alias_res[1]) is not dict) or ('_id' not in alias_res[1]):
             return (False, 'wrong loaded citizen alias structure')
-        return (True, {'_id': alias['_id']})
+        return (True, alias)
 
     authority = get_conf('authority')
     phone_identifier_type = get_conf('phone_identifier_type')
@@ -141,9 +135,13 @@ def assure_citizen_alias(phone_number):
     if not alias_id:
         return (False, 'can not save citizen alias info')
 
-    return (True, {'_id': alias_id})
+    alias_res = get_one_citizen_alias_by_id(db, alias_id)
+    if (not alias_res[0]) or (type(alias_res[1]) is not dict) or ('_id' not in alias_res[1]):
+        return (False, 'wrong reloaded citizen alias structure')
 
-def do_post(db, params, client_ip):
+    return alias_res
+
+def do_post(db, params, main_config, client_ip):
     '''
     * assure citizen_alias exists (i.e. create/save if does not yet)
     * find if following a previous report (incl. taking its session)
@@ -166,24 +164,31 @@ def do_post(db, params, client_ip):
 
     # assuring the citizen
     alias_id = None
-    alias_res = assure_citizen_alias(phone_number)
+    alias_info = None
+    alias_res = assure_citizen_alias(db, phone_number)
     if alias_res[0]:
-        alias_id = alias_res[1]
+        alias_info = alias_res[1]
+        alias_id = alias_info['_id']
 
     # finding the followed report
-    last_report = get_sms(phone_number)
+    last_report = get_sms(feed_type, phone_number)
     if last_report:
         for key in ['produced', 'session', 'report_id']:
             if key not in last_report:
                 last_report = None
 
     # creating the report
+    authority = get_conf('authority')
+    phone_identifier_type = get_conf('phone_identifier_type')
+    channel_type = get_conf('channel_type')
+    channel_value_receive = get_conf('channel_value_receive')
+
     sms_filter = None
     if feed_name:
         sms_filter = {'feed_name': feed_name}
 
-    channels = [{'type': 'sms', 'value': 'received', 'filter': sms_filter, 'request': None, 'reasons': None}]
-    authors = [{'authority': 'telco', 'identifiers': [{'type': 'phone_number', 'value': phone_number}]}]
+    channels = [{'type': channel_type, 'value': channel_value_receive, 'filter': sms_filter, 'request': None, 'reasons': None}]
+    authors = [{'authority': authority, 'identifiers': [{'type': phone_identifier_type, 'value': phone_number}]}]
     endorsers = []
 
     original = {'message': message}
@@ -192,7 +197,7 @@ def do_post(db, params, client_ip):
     if message:
         tags = _extract_tags(message)
 
-    report_id = gen_id(channel_type, channel_value, None, timestamp)
+    report_id = gen_id(feed_type, channel_type, channel_value, timestamp)
     session = report_id
     parent_id = None
     new_session = True
@@ -201,7 +206,7 @@ def do_post(db, params, client_ip):
     assignments = []
 
     if last_report:
-        if is_within_session(last_report['produced'], received):
+        if is_within_session(last_report['produced'], received, main_config):
             session = last_report['session']
             parent_id = last_report['report_id']
             if 'pinned_id' in last_report:
@@ -229,12 +234,10 @@ def do_post(db, params, client_ip):
 
     report['proto'] = False
 
-    report_id = holder.save_report(report)
+    report_id = report_holder.save_report(report)
+    report = report_holder.provide_report(feed_type, report_id)
 
-    # checking whether to send auto-reply; sending it if it shall be sent
-    #if get_conf('send_reply') and new_session:
-    #    ask_sender(db, report, alias_id, phone_number)
-    ask_sender(db, new_session, report, alias_id, phone_number)
+    reply_res = ask_sender(db, new_session, report, alias_info, phone_number, main_config)
 
     return (200, 'SMS received\n\n')
 

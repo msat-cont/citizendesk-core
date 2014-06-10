@@ -1,6 +1,32 @@
 
+# from what IP addresses SMS sending can be requested
+allowed_ips: ["127.0.0.1"]
+
+# where the SMS gateway is located
 gateway_url: url_to_the_sms_gateway
+# API key for the SMS gateway
 gateway_key: "secret_key"
 
-allowed_ips: ["127.0.0.1"]
+
+# for SMS sending
+# should reply SMS at the start of a session be sent?
+reply_send: true
+# the defult message fot the reply SMS
+reply_message: "Dear citizen, could you tell us your name and location, please?"
+
+# should confirm SMS be sent when continuing a session?
+confirm_send: false
+# the defult message fot the confirmation SMS
+confirm_message: false
+
+
+# for receiving SMS from gateway connectors
+# inner configuration reflecting SMS receiving via gateways
+phone_param: phone
+text_param: text
+feed_param: feed
+time_param: time
+
+# in hours; max delay for SMS from citizens to be considered in the current session
+session_duration: 1
 

@@ -20,9 +20,13 @@ from citizendesk.common.holder import ReportHolder
 
 holder = ReportHolder()
 
-DEFAULT_TIME_DELAY = 1800
+COLL_CONFIG = 'cd_config'
+
+DEFAULT_TIME_DELAY = 1 # 1h
 
 def load_send_sms_config(config_path):
+    global config
+
     if not config_path:
         return
 
@@ -41,65 +45,48 @@ def load_send_sms_config(config_path):
     if not config_data:
         return False
 
-    if (not 'send_reply' in config_data) or (not config_data['send_reply']):
-        return False
+    sms_prefix = 'sms_'
+    for key in config:
+        take_key = key
+        if take_key.startswith(sms_prefix):
+            take_key = take_key[len(sms_prefix):]
+        if take_key in config_data:
+            config[key] = config_data[take_key]
 
-    if ('time_delay' in config_data) and (config_data['time_delay']):
-        try:
-            time_delay = 60 * int(config_data['time_delay'])
-            set_conf('time_delay', time_delay)
-        except:
-            pass
+    try:
+        if config['sms_session_duration'] is not None:
+            config['sms_session_duration'] = int(config['sms_session_duration'])
+    except:
+        config['sms_session_duration'] = None
 
-    if 'reply_message' in config_data:
-        reply_message = config_data['reply_message']
-        set_conf('reply_message', reply_message)
-
-    send_config = {}
-    for param in ['method', 'url', 'phone_param', 'text_param']:
-        send_config[param] = None
-        if (param in config_data) and config_data[param]:
-            send_config[param] = config_data[param]
-    set_conf('send_config', send_config)
-
-    set_conf('send_reply', True)
+    return True
 
 config = {
-    'feed_type': 'SMS',
-    'publisher': 'sms_gateway',
-    'send_reply': False,
-    'reply_message': None,
-    'time_delay': DEFAULT_TIME_DELAY,
-    'send_config': None
+    'sms_gateway_url': None,
+    'sms_gateway_key': None,
+    'sms_session_duration': DEFAULT_TIME_DELAY,
+    'sms_reply_send': None,
+    'sms_reply_message': None,
+    'sms_confirm_send': None,
+    'sms_confirm_message': None,
+    'phone_param': 'phone',
+    'text_param': 'text',
+    'feed_param': 'feed',
+    'time_param': 'time',
 }
 
-def set_conf(name, value):
-    global config
-
-    config[name] = value
-
-def get_conf(name):
+def get_config(name):
     global config
 
     if name in config:
         return config[name]
     return None
 
-def gen_id(feed_type, citizen):
-
-    rnd_list = [str(hex(i))[-1:] for i in range(16)]
-    random.shuffle(rnd_list)
-    id_value = '' + feed_type + ':' + citizen
-    id_value += ':' + datetime.datetime.now().isoformat()
-    id_value += ':' + ''.join(rnd_list)
-    return id_value
-
-def get_sms(phone_number):
-    FEED_TYPE = get_conf('feed_type')
+def get_sms(feed_type, phone_number):
     session_info = None
 
     sess_spec_sent = {
-        'feed_type': FEED_TYPE,
+        'feed_type': feed_type,
         'channels': {'$elemMatch': {'value': 'sent'}},
         'recipients': {'authority': 'telco', 'identifiers': {'type': 'phone_number', 'value': phone_number}}
     }
@@ -126,16 +113,34 @@ def get_sms(phone_number):
 
     return session_info
 
-def sms_reply_send(phone_number):
-    to_send = get_conf('send_reply')
+def get_sms_configuration():
 
-    to_send_general = db[COLL_CONFIG].find_one({'type': 'send_reply_sms'})
-    if to_send_general is not None:
+    sms_config = {
+        'sms_gateway_url': None,
+        'sms_gateway_key': None,
+        'sms_session_duration': None,
+        'sms_reply_send': None,
+        'sms_reply_message': None,
+        'sms_confirm_send': None,
+        'sms_confirm_message': None,
+    }
 
-        specific_message = db[COLL_REPLY_MESSAGES].find_one({'phone_number': phone_number})
-        if specific_message and ('reply_message' in specific_message):
-            message = specific_message['reply_message']
+    for one_key in sms_config:
+        one_value = get_config(one_key)
+        if one_value is not None:
+            sms_config[one_key] = one_value
 
+    found_config = db[COLL_CONFIG].find_one({'_type': 'sms'})
+    for key in sms_config:
+        if (key in found_config) and (found_config[key] is not None):
+            sms_config[key] = found_config[key]
 
+    try:
+        # delays within sessions specified in hours, put into secs
+        if (sms_config['sms_session_duration'] is not None) and (0 < sms_config['sms_session_duration']):
+            sms_config['sms_session_duration'] = sms_config['sms_session_duration'] * 3600
+    except:
+        sms_config['sms_session_duration'] = None
 
+    return sms_config
 

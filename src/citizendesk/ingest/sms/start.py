@@ -53,7 +53,7 @@ class ConnectParams():
         parser.add_argument('-l', '--log_path', help='path to log file, e.g. ' + str(LOG_PATH))
         parser.add_argument('-i', '--pid_path', help='path to pid file, e.g. ' + str(PID_PATH))
 
-        parser.add_argument('-s', '--send_sms', help='path to file with configuration of sms replies')
+        parser.add_argument('-s', '--send_sms', help='path to file with configuration of sms configs')
 
         parser.add_argument('-a', '--allowed', help='path to file with ip addresses of allowed clients')
 
