@@ -136,6 +136,11 @@ def do_post_one(db, alias_id, alias_spec, user_id):
 
     user_id = _get_id_value(user_id)
 
+    if not alias_id:
+        search_res = get_one_by_phone_number(db, use_phone_number)
+        if search_res[0]:
+            return (False, 'active citizen alias with given phone number already exists', search_res[1]['_id'])
+
     alias_doc = None
     if alias_id:
         alias_id = _get_id_value(alias_id)

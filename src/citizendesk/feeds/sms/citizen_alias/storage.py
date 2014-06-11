@@ -49,7 +49,7 @@ def get_one_by_id(db, alias_id):
 
     return (True, doc)
 
-def get_one_by_phone_number(db, phone_number):
+def get_one_by_phone_number(db, phone_number, active=True):
     '''
     returns data of a single sms citizen alias with given phone number
     '''
@@ -59,7 +59,7 @@ def get_one_by_phone_number(db, phone_number):
     coll = db[collection]
 
     phone_identifier_type = get_conf('phone_identifier_type')
-    spec = {'authority': AUTHORITY, 'identifiers': {'type':phone_identifier_type, 'value':phone_number}}
+    spec = {'active': active, 'authority': AUTHORITY, 'identifiers': {'type':phone_identifier_type, 'value':phone_number}}
     doc = coll.find_one(spec)
 
     if not doc:
