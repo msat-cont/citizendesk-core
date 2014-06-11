@@ -33,7 +33,7 @@ def ingest_sms_feed_take_one(feed_name):
     allowed_ips = get_allowed_ips()
     if (allowed_ips is not None) and ('*' not in allowed_ips):
         if not client_ip in allowed_ips:
-            logger.info('unallowed client from: '+ str(client_ip))
+            logger.info('unallowed client from: ' + str(client_ip))
             return ('Client not allowed\n\n', 403,)
     logger.info('allowed client from: '+ str(client_ip))
 
@@ -42,12 +42,15 @@ def ingest_sms_feed_take_one(feed_name):
         'text': 'text_param',
         'feed': 'feed_param',
         'time': 'time_param',
+        'pass': 'pass_param',
     }
     param_keys = {}
     for key in store_keys:
         param_keys[store_keys[key]] = key
 
-    main_config = get_sms_configuration()
+    main_config = get_sms_configuration(db)
+    sms_password_key = main_config['sms_password_key']
+
     for key in param_keys:
         take_key = 'sms_' + key
         if take_key in main_config:
@@ -59,6 +62,11 @@ def ingest_sms_feed_take_one(feed_name):
         part_param = param_keys[part_key]
         if store_key not in params:
             params[store_key] = None
+        if part_param in request.args:
+            try:
+                params[store_key] = str(request.args[part_param].encode('utf8'))
+            except:
+                pass
         if part_param in request.form:
             try:
                 params[store_key] = str(request.form[part_param].encode('utf8'))
@@ -66,12 +74,25 @@ def ingest_sms_feed_take_one(feed_name):
                 pass
 
     timepoint = datetime.datetime.now()
+    if params['time']:
+        try:
+            dt_format = '%Y-%m-%dT%H:%M:%S'
+            if '.' in params['time']:
+                dt_format = '%Y-%m-%dT%H:%M:%S.%f'
+            params['time'] = datetime.datetime.strptime(params['time'], dt_format)
+        except:
+            params['time'] = None
     if not params['time']:
         params['time'] = timepoint
 
     for part in ['phone', 'text']:
         if not params[part]:
             return ('No ' + str(part) + ' provided', 404)
+
+    if sms_password_key:
+        if sms_password_key != params['pass']:
+            logger.info('request with wrong pass-phrase from: ' + str(client_ip))
+            return ('wrong pass-phrase\n\n', 403,)
 
     try:
         res = do_post(db, params, main_config, client_ip)

@@ -17,6 +17,7 @@ except:
 
 from citizendesk.common.utils import get_logger
 from citizendesk.common.holder import ReportHolder
+from citizendesk.feeds.sms.common.utils import get_conf
 
 holder = ReportHolder()
 
@@ -69,26 +70,27 @@ config = {
     'sms_reply_message': None,
     'sms_confirm_send': None,
     'sms_confirm_message': None,
-    'phone_param': 'phone',
-    'text_param': 'text',
-    'feed_param': 'feed',
-    'time_param': 'time',
+    'sms_password_key': None,
+    'sms_phone_param': 'phone',
+    'sms_text_param': 'text',
+    'sms_feed_param': 'feed',
+    'sms_time_param': 'time',
+    'sms_pass_param': 'pass',
 }
 
-def get_config(name):
-    global config
-
-    if name in config:
-        return config[name]
-    return None
-
-def get_sms(feed_type, phone_number):
+def get_sms(phone_number):
     session_info = None
+
+    feed_type = get_conf('feed_type')
+    authority = get_conf('authority')
+    phone_identifier_type = get_conf('phone_identifier_type')
+    channel_value_send = get_conf('channel_value_send')
+    channel_value_receive = get_conf('channel_value_receive')
 
     sess_spec_sent = {
         'feed_type': feed_type,
-        'channels': {'$elemMatch': {'value': 'sent'}},
-        'recipients': {'authority': 'telco', 'identifiers': {'type': 'phone_number', 'value': phone_number}}
+        'channels': {'$elemMatch': {'value': channel_value_send}},
+        'recipients': {'$elemMatch': {'authority': authority, 'identifiers': {'type': phone_identifier_type, 'value': phone_number}}}
     }
     res = holder.find_last_session(sess_spec_sent)
     if (type(res) is not dict) or ('produced' not in res):
@@ -97,9 +99,9 @@ def get_sms(feed_type, phone_number):
         session_info = res
 
     sess_spec_received = {
-        'feed_type': FEED_TYPE,
-        'channels': {'$elemMatch': {'value': 'received'}},
-        'authors': {'authority': 'telco', 'identifiers': {'type': 'phone_number', 'value': phone_number}}
+        'feed_type': feed_type,
+        'channels': {'$elemMatch': {'value': channel_value_receive}},
+        'authors': {'$elemMatch': {'authority': authority, 'identifiers': {'type': phone_identifier_type, 'value': phone_number}}}
     }
     res = holder.find_last_session(sess_spec_received)
     if (type(res) is not dict) or ('produced' not in res):
@@ -113,27 +115,18 @@ def get_sms(feed_type, phone_number):
 
     return session_info
 
-def get_sms_configuration():
+def get_sms_configuration(db):
+    global config
 
-    sms_config = {
-        'sms_gateway_url': None,
-        'sms_gateway_key': None,
-        'sms_session_duration': None,
-        'sms_reply_send': None,
-        'sms_reply_message': None,
-        'sms_confirm_send': None,
-        'sms_confirm_message': None,
-    }
-
-    for one_key in sms_config:
-        one_value = get_config(one_key)
-        if one_value is not None:
-            sms_config[one_key] = one_value
+    sms_config = {}
+    for key in config:
+        sms_config[key] = config[key]
 
     found_config = db[COLL_CONFIG].find_one({'_type': 'sms'})
-    for key in sms_config:
-        if (key in found_config) and (found_config[key] is not None):
-            sms_config[key] = found_config[key]
+    if found_config and (type(found_config) is dict):
+        for key in sms_config:
+            if (key in found_config) and (found_config[key] is not None):
+                sms_config[key] = found_config[key]
 
     try:
         # delays within sessions specified in hours, put into secs

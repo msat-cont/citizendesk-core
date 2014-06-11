@@ -4,11 +4,17 @@
 #
 
 import os, sys, datetime, json
+try:
+    from citizendesk.feeds.sms.external import frontlinesms as controller
+except:
+    controller = None
 
 from citizendesk.ingest.sms.utils import holder as report_holder
 from citizendesk.ingest.sms.utils import get_sms
 from citizendesk.feeds.sms.common.reports import prepare_sms_reply_report as _prepare_sms_reply_report
 from citizendesk.feeds.sms.common.utils import get_conf, gen_id, citizen_holder
+from citizendesk.feeds.sms.common.utils import extract_tags as _extract_tags
+from citizendesk.common.utils import get_logger
 
 def is_within_session(last_received, current_received, config):
     max_diff = config['sms_session_duration']
@@ -58,7 +64,7 @@ def ask_sender(db, session_start, orig_report, alias_info, phone_number, common_
         'sms_confirm_message': None,
     }
 
-    for one_key in use_config:
+    for key in use_config:
         if key in common_config:
             use_config[key] = common_config[key]
 
@@ -81,6 +87,9 @@ def ask_sender(db, session_start, orig_report, alias_info, phone_number, common_
 
     if not message:
         return (True, None)
+
+    if not controller:
+        return (False, 'no sms gateway controller available')
 
     conf_alias_doctype = get_conf('alias_doctype')
     conf_authority = get_conf('authority')
@@ -119,7 +128,7 @@ def assure_citizen_alias(db, phone_number):
     if alias_res[0]:
         if (type(alias_res[1]) is not dict) or ('_id' not in alias_res[1]):
             return (False, 'wrong loaded citizen alias structure')
-        return (True, alias)
+        return (True, alias_res[1])
 
     authority = get_conf('authority')
     phone_identifier_type = get_conf('phone_identifier_type')
@@ -150,6 +159,7 @@ def do_post(db, params, main_config, client_ip):
         * create a reply-report
         * send a reply message (via gateway)
     '''
+    logger = get_logger()
 
     # taking given params
     feed_type = get_conf('feed_type')
@@ -157,8 +167,8 @@ def do_post(db, params, main_config, client_ip):
 
     feed_name = params['feed']
     phone_number = params['phone']
-    received = params['time']
     message = params['text']
+    received = params['time']
 
     timestamp = datetime.datetime.now()
 
@@ -171,7 +181,7 @@ def do_post(db, params, main_config, client_ip):
         alias_id = alias_info['_id']
 
     # finding the followed report
-    last_report = get_sms(feed_type, phone_number)
+    last_report = get_sms(phone_number)
     if last_report:
         for key in ['produced', 'session', 'report_id']:
             if key not in last_report:
@@ -197,7 +207,7 @@ def do_post(db, params, main_config, client_ip):
     if message:
         tags = _extract_tags(message)
 
-    report_id = gen_id(feed_type, channel_type, channel_value, timestamp)
+    report_id = gen_id(feed_type, channel_type, channel_value_receive, timestamp)
     session = report_id
     parent_id = None
     new_session = True
@@ -234,10 +244,18 @@ def do_post(db, params, main_config, client_ip):
 
     report['proto'] = False
 
-    report_id = report_holder.save_report(report)
+    report_doc_id = report_holder.save_report(report)
+    if not report_doc_id:
+        return (False, 'can not save SMS report')
+
     report = report_holder.provide_report(feed_type, report_id)
 
     reply_res = ask_sender(db, new_session, report, alias_info, phone_number, main_config)
+    if not reply_res[0]:
+        reason = str(reply_res[1])
+        if 2 < len(reply_res):
+            reason += ', ' + str(reply_res[2])
+        logger.warning('Issue during auto-reply SMS: ' + reason)
 
-    return (200, 'SMS received\n\n')
+    return (True, str(report_doc_id))
 
