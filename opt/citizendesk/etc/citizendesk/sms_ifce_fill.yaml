@@ -31,5 +31,5 @@ time_param: time
 pass_param: pass
 
 # in hours; max delay for SMS from citizens to be considered in the current session
-session_duration: 1
+session_duration: 24
 
