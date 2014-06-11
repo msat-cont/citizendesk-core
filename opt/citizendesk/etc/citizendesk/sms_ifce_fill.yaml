@@ -1,4 +1,9 @@
 
+# clients allowed to ask to send/reply SMS via feed-interface
+allowed_ips: ["127.0.0.1"]
+
+
+
 # for SMS sending through SMS gateways
 
 # where the SMS gateway is located
