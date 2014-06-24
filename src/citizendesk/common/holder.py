@@ -72,35 +72,7 @@ tags: [String] # (hash)tags. keywords, ...
 viewed: [String] # nothing here
 discarded: [String] # nothing here
 
-Citizen structure; see citizen_holder for it:
-
-_id: ObjectId() # just a unique identifier
-nickname: String
-identifiers: [{type:String, value:String, valid_from:Datetime, invalid_from:Datetime}]
-session_quit: Boolean # to not continue this session, False ... this should be on a citizen (contact)
-
-# it is e.g.
-{
-    'nickname': 'citizen X',
-    'identifiers':[
-        {'phone_number':'123456789', valid_from:'2000-01-01', invalid_from:'2012-12-19'},
-        {'twitter_id':'asdfghjkl', valid_from:'1970-01-01', invalid_from:None}
-    ]
-}
-
-Citizen settings:
-type: String
-spec: Dict
-value: Dict
-
-# it is e.g.
-{
-    {
-        'type':'force_new_session',
-        'spec': {'channel': {type:'SMS'}, 'author': {'type':'phone', 'value':'123456789'}},
-        'value':{'set':True, 'once':True}
-    }
-}
+Citizen structure; see citizen_holder for it;
 
 '''
 

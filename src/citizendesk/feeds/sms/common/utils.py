@@ -20,6 +20,8 @@ config = {
     'phone_identifier_type': 'phone_number'
 }
 
+PHONE_NUMBER_ID_KEYS = ['user_id', 'user_id_search', 'user_name', 'user_name_search']
+
 def set_conf(name, value):
     global config
 
@@ -65,18 +67,17 @@ def get_phone_number_of_citizen_alias(citizen_alias):
     if (type(citizen_alias) is not dict) or (not citizen_alias):
         return None
 
-    if ('identifiers' not in citizen_alias) or (type(citizen_alias['identifiers']) not in [list, tuple]):
+    if ('identifiers' not in citizen_alias) or (type(citizen_alias['identifiers']) is not dict):
         return None
 
-    for one_identifier in citizen_alias['identifiers']:
-        if type(one_identifier) is not dict:
+    for one_identifier_key in PHONE_NUMBER_ID_KEYS:
+        if one_identifier_key not in citizen_alias['identifiers']:
             continue
-        if ('type' not in one_identifier) or ('value' not in one_identifier):
-            continue
-        if one_identifier['type'] != phone_identifier_type:
+        phone_number = citizen_alias['identifiers'][one_identifier_key]
+        if not phone_number:
             continue
         try:
-            phone_number = one_identifier['value'].strip()
+            phone_number = phone_number.strip()
         except:
             continue
         if not phone_number:

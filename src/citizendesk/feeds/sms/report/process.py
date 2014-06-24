@@ -45,9 +45,9 @@ def do_get_list(db, spec_type, spec_id, offset=None, limit=None, sort=None, othe
     if 'session_id' == spec_type:
         list_spec['session'] = spec_id
     if 'sent_to' == spec_type:
-        list_spec['recipients.identifiers'] = {'type':'phone_number', 'value':spec_id}
+        list_spec['recipients.identifiers.user_id'] = spec_id
     if 'received_from' == spec_type:
-        list_spec['authors.identifiers'] = {'type':'phone_number', 'value':spec_id}
+        list_spec['authors.identifiers.user_id'] = spec_id
 
     sort_list = _get_sort(sort)
     if not sort_list:
@@ -93,18 +93,16 @@ def do_get_list(db, spec_type, spec_id, offset=None, limit=None, sort=None, othe
                 for one_author in entry['authors']:
                     if (type(one_author) is dict) and ('identifiers' in one_author) and (one_author['identifiers']):
                         one_alias_set = one_author['identifiers']
-                        if (type(one_alias_set) in (list, tuple)):
-                            for one_alias in one_alias_set:
-                                if (type(one_alias) is dict) and ('value' in one_alias) and (one_alias['value']):
-                                    authors.append(one_alias['value'])
+                        if type(one_alias_set) is dict:
+                            if ('user_id' in one_alias_set) and one_alias_set['user_id']:
+                                authors.append(one_alias_set['user_id'])
             if ('recipients' in entry) and (type(entry['recipients']) in (list, tuple)):
                 for one_recipient in entry['recipients']:
                     if (type(one_recipient) is dict) and ('identifiers' in one_recipient) and (one_recipient['identifiers']):
                         one_alias_set = one_recipient['identifiers']
-                        if (type(one_alias_set) in (list, tuple)):
-                            for one_alias in one_alias_set:
-                                if (type(one_alias) is dict) and ('value' in one_alias) and (one_alias['value']):
-                                    recipients.append(one_alias['value'])
+                        if type(one_alias_set) is dict:
+                            if ('user_id' in one_alias_set) and one_alias_set['user_id']:
+                                recipients.append(one_alias_set['user_id'])
             if authors:
                 try:
                     one_text['authors'] = ', '.join(authors)

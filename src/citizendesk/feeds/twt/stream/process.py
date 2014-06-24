@@ -286,22 +286,20 @@ def _get_twt_user_id(db, connector, user_name):
         identifiers = None
         if user_info and (type(user_info) is dict) and ('identifiers' in user_info):
             identifiers = user_info['identifiers']
-        if type(identifiers) in (list, tuple):
+        if type(identifiers) is dict:
             found_user_id = None
-            found_user_name_lc = None
-            for test_user_name in identifiers:
-                if type(test_user_name) is not dict:
-                    continue
-                if 'type' not in test_user_name:
-                    continue
-                if 'value' not in test_user_name:
-                    continue
-                if 'user_id' == test_user_name['type']:
-                    found_user_id = test_user_name['value']
-                if 'user_name_lc' == test_user_name['type']:
-                    found_user_name_lc = test_user_name['value']
-            if found_user_name_lc != user_name:
+            found_user_name_search = None
+            if 'user_id' not in identifiers:
                 continue
+            if 'user_name_search' not in identifiers:
+                continue
+            found_user_id = identifiers['user_id']
+            found_user_name_search = identifiers['user_name_search']
+            if (not found_user_id) or (not found_user_name_search):
+                continue
+            if found_user_name_search != user_name:
+                continue
+
             return found_user_id
 
         if not attempt_rank:

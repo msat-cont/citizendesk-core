@@ -12,7 +12,7 @@ except:
 from citizendesk.ingest.sms.utils import holder as report_holder
 from citizendesk.ingest.sms.utils import get_sms
 from citizendesk.feeds.sms.common.reports import prepare_sms_reply_report as _prepare_sms_reply_report
-from citizendesk.feeds.sms.common.utils import get_conf, gen_id, citizen_holder
+from citizendesk.feeds.sms.common.utils import get_conf, gen_id, citizen_holder, PHONE_NUMBER_ID_KEYS
 from citizendesk.feeds.sms.common.utils import extract_tags as _extract_tags
 from citizendesk.common.utils import get_logger
 
@@ -96,7 +96,10 @@ def ask_sender(db, session_start, orig_report, alias_info, phone_number, common_
     conf_phone_identifier_type = get_conf('phone_identifier_type')
 
     use_targets = [{'type':conf_alias_doctype, 'value':alias_info['_id']}]
-    use_recipients = [{'authority':conf_authority, 'identifiers':[{'type':conf_phone_identifier_type, 'value':phone_number}]}]
+    use_identifiers = {}
+    for use_identity_key in PHONE_NUMBER_ID_KEYS:
+        use_identifiers[use_identity_key] = phone_number
+    use_recipients = [{'authority':conf_authority, 'identifiers':use_identifiers}]
     use_phone_numbers = [phone_number]
 
     doc = _prepare_sms_reply_report(orig_report, use_targets, use_recipients, message)
@@ -133,9 +136,13 @@ def assure_citizen_alias(db, phone_number):
     authority = get_conf('authority')
     phone_identifier_type = get_conf('phone_identifier_type')
 
+    use_identifiers = {}
+    for use_identity_key in PHONE_NUMBER_ID_KEYS:
+        use_identifiers[use_identity_key] = phone_number
+
     alias_new = {
         'authority': authority,
-        'identifiers': [{'type':phone_identifier_type, 'value':phone_number}],
+        'identifiers': use_identifiers,
         'verified': False,
         'local': False
     }
@@ -197,8 +204,12 @@ def do_post(db, params, main_config, client_ip):
     if feed_name:
         sms_filter = {'feed_name': feed_name}
 
+    use_identifiers = {}
+    for use_identity_key in PHONE_NUMBER_ID_KEYS:
+        use_identifiers[use_identity_key] = phone_number
+
     channels = [{'type': channel_type, 'value': channel_value_receive, 'filter': sms_filter, 'request': None, 'reasons': None}]
-    authors = [{'authority': authority, 'identifiers': [{'type': phone_identifier_type, 'value': phone_number}]}]
+    authors = [{'authority': authority, 'identifiers': use_identifiers}]
     endorsers = []
 
     original = {'message': message}

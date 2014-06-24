@@ -12,7 +12,7 @@ except:
 
 from citizendesk.feeds.sms.citizen_alias.storage import collection, schema, AUTHORITY
 from citizendesk.feeds.sms.citizen_alias.storage import get_one_by_id, get_one_by_phone_number
-from citizendesk.feeds.sms.common.utils import get_conf, citizen_holder
+from citizendesk.feeds.sms.common.utils import get_conf, citizen_holder, PHONE_NUMBER_ID_KEYS
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_sort as _get_sort
@@ -89,14 +89,13 @@ def do_get_list(db, offset=None, limit=None, sort=None, other=None):
         else:
             if (not 'identifiers' in entry):
                 continue
-            if type(entry['identifiers']) not in (list, tuple):
+            if type(entry['identifiers']) is not dict:
                 continue
-            if not len(entry['identifiers']):
+            one_name = {}
+            if 'user_id' not in entry['identifiers']:
                 continue
-            if not entry['identifiers'][0]:
-                continue
-            one_name = entry['identifiers'][0]
-            if type(one_name) is not dict:
+            one_name['phone_number'] = entry['identifiers']['user_id']
+            if not one_name['phone_number']:
                 continue
 
             description = None
@@ -159,11 +158,14 @@ def do_post_one(db, alias_id, alias_spec, user_id):
         'verified': [bool]
     }
 
-    phone_identifier_type = get_conf('phone_identifier_type')
+    use_identifiers = {}
+    for use_idenity_key in PHONE_NUMBER_ID_KEYS:
+        use_identifiers[use_idenity_key] = use_phone_number
+
     if not alias_doc:
         alias_use = {
             'authority': AUTHORITY,
-            'identifiers': [{'type':phone_identifier_type, 'value':use_phone_number}],
+            'identifiers': use_identifiers,
             'verified': False,
             'local': True,
             'created_by': user_id
@@ -180,7 +182,7 @@ def do_post_one(db, alias_id, alias_spec, user_id):
 
     else:
         alias_use = alias_doc
-        alias_use['identifiers'] = [{'type':phone_identifier_type, 'value':use_phone_number}]
+        alias_use['identifiers'] = use_identifiers
         alias_use['updated_by'] = user_id
         alias_use['local'] = True
 

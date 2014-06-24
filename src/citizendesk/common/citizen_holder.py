@@ -13,7 +13,7 @@ updated_by: Integer or None # if a local user is a creator of this alias info
 active: Bool # whether the citizen alias is used (or deactivated otherwise)
 
 #provider-based:
-identifiers(user_name, user_id)
+identifiers(user_id, user_id_search, user_name, user_name_search)
 #produced
 avatars,
 names (first name, last name, full name),
@@ -54,15 +54,13 @@ _id: ObjectId() # just a unique identifier
 aliases: List of aliases, as described above
 
 
-nickname: String
-identifiers: [{type:String, value:String, valid_from:Datetime, invalid_from:Datetime}]
+aliases: [{citizen_alias_id:ObjectId, valid_from:Datetime, invalid_from:Datetime}]
 
 # it is e.g.
 {
-    'nickname': 'citizen X',
-    'identifiers':[
-        {'phone_number':'123456789', valid_from:'2000-01-01', invalid_from:'2012-12-19'},
-        {'twitter_id':'asdfghjkl', valid_from:'1970-01-01', invalid_from:None}
+    'aliases':[
+        {'citizen_alias_id': ObjectId(...), valid_from:'2000-01-01', invalid_from:'2012-12-19'},
+        {'citizen_alias_id': ObjectId(...), valid_from:'1970-01-01', invalid_from:None}
     ]
 }
 
@@ -98,14 +96,15 @@ class CitizenHolder(object):
 
         return None
 
-    def alias_present(self, authority, identifier):
+    def alias_present(self, authority, identifier_type, identifier_value):
         aliases = []
 
         coll = self.get_collection('aliases')
 
+        identifier_key = 'identifiers.' + str(identifier_type)
         alias_spec = {
             'authority': authority,
-            'identifiers': identifier
+            identifier_key: identifier_value
         }
 
         cursor = coll.find(alias_spec).sort([('produced', 1)])
@@ -143,7 +142,7 @@ class CitizenHolder(object):
             #'change_id': 0, # TODO: get correct change id here!
             'authority': None,
             'active': True,
-            'identifiers': [],
+            'identifiers': {},
             'avatars': [],
             'produced': None,
             'created': current_timestamp,
@@ -169,7 +168,7 @@ class CitizenHolder(object):
             'tags': [],
             'tags_auto': [],
             'sensitive': None,
-            'config': []
+            'config': {}
         }
 
         parts_scalar = [
@@ -187,7 +186,6 @@ class CitizenHolder(object):
         ]
 
         parts_vector = [
-            'identifiers',
             'avatars',
             'locations',
             'languages',
@@ -199,6 +197,7 @@ class CitizenHolder(object):
         ]
 
         parts_dict = [
+            'identifiers',
             'config'
         ]
 
@@ -252,7 +251,6 @@ class CitizenHolder(object):
         ]
 
         parts_vector = [
-            'identifiers',
             'avatars',
             'locations',
             'languages',
@@ -261,6 +259,7 @@ class CitizenHolder(object):
         ]
 
         parts_dict = [
+            'identifiers',
             'config'
         ]
 

@@ -58,8 +58,7 @@ def get_one_by_phone_number(db, phone_number, active=True):
 
     coll = db[collection]
 
-    phone_identifier_type = get_conf('phone_identifier_type')
-    spec = {'active': active, 'authority': AUTHORITY, 'identifiers': {'type':phone_identifier_type, 'value':phone_number}}
+    spec = {'active': active, 'authority': AUTHORITY, 'identifiers.user_id': phone_number}
     doc = coll.find_one(spec)
 
     if not doc:
