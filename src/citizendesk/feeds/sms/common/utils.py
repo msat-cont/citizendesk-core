@@ -17,7 +17,6 @@ config = {
     'channel_value_receive': 'received', # 'received' for SMS we get; use this in sms ingest too!
     'authority': 'telco',
     'alias_doctype': 'citizen_alias',
-    'phone_identifier_type': 'phone_number'
 }
 
 PHONE_NUMBER_ID_KEYS = ['user_id', 'user_id_search', 'user_name', 'user_name_search']
@@ -61,8 +60,6 @@ def extract_tags(message):
 
 def get_phone_number_of_citizen_alias(citizen_alias):
     ''' return the first phone number available if any '''
-
-    phone_identifier_type = get_conf('phone_identifier_type')
 
     if (type(citizen_alias) is not dict) or (not citizen_alias):
         return None

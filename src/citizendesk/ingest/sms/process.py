@@ -93,7 +93,6 @@ def ask_sender(db, session_start, orig_report, alias_info, phone_number, common_
 
     conf_alias_doctype = get_conf('alias_doctype')
     conf_authority = get_conf('authority')
-    conf_phone_identifier_type = get_conf('phone_identifier_type')
 
     use_targets = [{'type':conf_alias_doctype, 'value':alias_info['_id']}]
     use_identifiers = {}
@@ -134,7 +133,6 @@ def assure_citizen_alias(db, phone_number):
         return (True, alias_res[1])
 
     authority = get_conf('authority')
-    phone_identifier_type = get_conf('phone_identifier_type')
 
     use_identifiers = {}
     for use_identity_key in PHONE_NUMBER_ID_KEYS:
@@ -196,7 +194,6 @@ def do_post(db, params, main_config, client_ip):
 
     # creating the report
     authority = get_conf('authority')
-    phone_identifier_type = get_conf('phone_identifier_type')
     channel_type = get_conf('channel_type')
     channel_value_receive = get_conf('channel_value_receive')
 

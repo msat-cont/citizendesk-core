@@ -66,7 +66,6 @@ def do_post_reply(db, sms_gateway_url, sms_gateway_key, message, report_id, user
     channel_value_receive = get_conf('channel_value_receive')
     alias_doctype = get_conf('alias_doctype')
     authority = get_conf('authority')
-    phone_identifier_type = get_conf('phone_identifier_type')
 
     if type(report_source) is not dict:
         return (False, 'wrong structure of report')
@@ -99,16 +98,12 @@ def do_post_reply(db, sms_gateway_url, sms_gateway_key, message, report_id, user
             if (type(one_author) is dict) and ('authority' in one_author) and ('identifiers' in one_author):
                 if one_author['authority'] != authority:
                     continue
-                if type(one_author['identifiers']) not in (list, tuple):
+                if type(one_author['identifiers']) is not dict:
                     continue
-                for one_identity in one_author['identifiers']:
-                    if type(one_identity) is not dict:
+                if 'user_id' in one_author['identifiers']:
+                    one_phone_number = one_author['identifiers']['user_id']
+                    if not one_phone_number:
                         continue
-                    if ('type' not in one_identity) or ('value' not in one_identity):
-                        continue
-                    if one_identity['type'] != phone_identifier_type:
-                        continue
-                    one_phone_number = one_identity['value']
                     one_citizen_alias_res = get_one_citizen_alias_by_phone_number(db, one_phone_number)
                     if one_citizen_alias_res[0]:
                         citizen_aliases.append(one_citizen_alias_res[1])

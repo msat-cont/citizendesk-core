@@ -56,7 +56,6 @@ def do_post_send(db, sms_gateway_url, sms_gateway_key, message, targets, user_id
 
     authority = get_conf('authority')
     alias_doctype = get_conf('alias_doctype')
-    phone_identifier_type = get_conf('phone_identifier_type')
 
     if type(targets) not in [list, tuple]:
         return (False, '')
