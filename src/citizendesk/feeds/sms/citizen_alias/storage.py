@@ -10,7 +10,7 @@ try:
 except:
     unicode = str
 
-from citizendesk.feeds.sms.common.utils import get_conf
+from citizendesk.feeds.sms.common.utils import get_conf, normalize_phone_number
 
 AUTHORITY = 'telco'
 
@@ -56,9 +56,13 @@ def get_one_by_phone_number(db, phone_number, active=True):
     if not db:
         return (False, 'inner application error')
 
+    phone_number_normalized = normalize_phone_number(phone_number)
+    if not phone_number_normalized:
+        return (False, 'empty phone number')
+
     coll = db[collection]
 
-    spec = {'active': active, 'authority': AUTHORITY, 'identifiers.user_id': phone_number}
+    spec = {'active': active, 'authority': AUTHORITY, 'identifiers.user_id_search': phone_number_normalized}
     doc = coll.find_one(spec)
 
     if not doc:

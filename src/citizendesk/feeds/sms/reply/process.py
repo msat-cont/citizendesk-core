@@ -95,18 +95,12 @@ def do_post_reply(db, sms_gateway_url, sms_gateway_key, message, report_id, user
 
     if was_received and ('authors' in report_source) and (type(report_source['authors']) in (list, tuple)):
         for one_author in report_source['authors']:
-            if (type(one_author) is dict) and ('authority' in one_author) and ('identifiers' in one_author):
-                if one_author['authority'] != authority:
-                    continue
-                if type(one_author['identifiers']) is not dict:
-                    continue
-                if 'user_id' in one_author['identifiers']:
-                    one_phone_number = one_author['identifiers']['user_id']
-                    if not one_phone_number:
-                        continue
-                    one_citizen_alias_res = get_one_citizen_alias_by_phone_number(db, one_phone_number)
-                    if one_citizen_alias_res[0]:
-                        citizen_aliases.append(one_citizen_alias_res[1])
+            one_phone_number = _get_phone_number(one_author)
+            if not one_phone_number:
+                continue
+            one_citizen_alias_res = get_one_citizen_alias_by_phone_number(db, one_phone_number)
+            if one_citizen_alias_res[0]:
+                citizen_aliases.append(one_citizen_alias_res[1])
 
     if not citizen_aliases:
         return (False, 'not target suitable citizen alias found')

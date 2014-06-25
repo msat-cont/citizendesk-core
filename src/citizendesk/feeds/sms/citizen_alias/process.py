@@ -12,7 +12,8 @@ except:
 
 from citizendesk.feeds.sms.citizen_alias.storage import collection, schema, AUTHORITY
 from citizendesk.feeds.sms.citizen_alias.storage import get_one_by_id, get_one_by_phone_number
-from citizendesk.feeds.sms.common.utils import get_conf, citizen_holder, PHONE_NUMBER_ID_KEYS
+from citizendesk.feeds.sms.common.utils import get_conf, citizen_holder
+from citizendesk.feeds.sms.common.utils import create_identities as _create_phone_number_identities
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_sort as _get_sort
@@ -158,9 +159,7 @@ def do_post_one(db, alias_id, alias_spec, user_id):
         'verified': [bool]
     }
 
-    use_identifiers = {}
-    for use_idenity_key in PHONE_NUMBER_ID_KEYS:
-        use_identifiers[use_idenity_key] = use_phone_number
+    use_identifiers = _create_phone_number_identities(use_phone_number)
 
     if not alias_doc:
         alias_use = {

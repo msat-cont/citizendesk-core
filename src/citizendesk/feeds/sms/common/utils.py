@@ -19,7 +19,10 @@ config = {
     'alias_doctype': 'citizen_alias',
 }
 
-PHONE_NUMBER_ID_KEYS = ['user_id', 'user_id_search', 'user_name', 'user_name_search']
+PHONE_NUMBER_ID_KEYS = ['user_id', 'user_name']
+PHONE_NUMBER_SEARCH_KEYS = ['user_id_search', 'user_name_search']
+
+MAXLEN_SHORTCODES = 6
 
 def set_conf(name, value):
     global config
@@ -59,9 +62,12 @@ def extract_tags(message):
     return tags
 
 def get_phone_number_of_citizen_alias(citizen_alias):
-    ''' return the first phone number available if any '''
+    ''' return the first phone number available if any, used on sms-report authors and alike as well '''
 
     if (type(citizen_alias) is not dict) or (not citizen_alias):
+        return None
+
+    if ('authority' not in citizen_alias) or (citizen_alias['authority'] != get_conf('authority')):
         return None
 
     if ('identifiers' not in citizen_alias) or (type(citizen_alias['identifiers']) is not dict):
@@ -82,4 +88,34 @@ def get_phone_number_of_citizen_alias(citizen_alias):
         return phone_number
 
     return None
+
+def normalize_phone_number(phone_number):
+    if not phone_number:
+        return None
+
+    try:
+        phone_number = phone_number.strip().lstrip('+').lower()
+        if len(phone_number) > MAXLEN_SHORTCODES:
+            phone_number_stripped = phone_number.lstrip('0')
+            if phone_number_stripped:
+                phone_number = phone_number_stripped
+    except:
+        return None
+
+    if not phone_number:
+        return None
+
+    return phone_number
+
+def create_identities(phone_number):
+    phone_number_normalized = normalize_phone_number(phone_number)
+
+    identifiers = {}
+
+    for identity_key in PHONE_NUMBER_ID_KEYS:
+        identifiers[identity_key] = phone_number
+    for identity_key in PHONE_NUMBER_SEARCH_KEYS:
+        identifiers[identity_key] = phone_number_normalized
+
+    return identifiers
 

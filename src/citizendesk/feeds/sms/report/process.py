@@ -10,6 +10,7 @@ try:
 except:
     unicode = str
 
+from citizendesk.feeds.sms.common.utils import normalize_phone_number
 from citizendesk.feeds.sms.report.storage import collection, schema, FEED_TYPE, PUBLISHER_TYPE
 from citizendesk.feeds.sms.report.storage import do_get_one_by_id
 from citizendesk.common.utils import get_id_value as _get_id_value
@@ -45,9 +46,9 @@ def do_get_list(db, spec_type, spec_id, offset=None, limit=None, sort=None, othe
     if 'session_id' == spec_type:
         list_spec['session'] = spec_id
     if 'sent_to' == spec_type:
-        list_spec['recipients.identifiers.user_id'] = spec_id
+        list_spec['recipients.identifiers.user_id_search'] = normalize_phone_number(spec_id)
     if 'received_from' == spec_type:
-        list_spec['authors.identifiers.user_id'] = spec_id
+        list_spec['authors.identifiers.user_id_search'] = normalize_phone_number(spec_id)
 
     sort_list = _get_sort(sort)
     if not sort_list:
