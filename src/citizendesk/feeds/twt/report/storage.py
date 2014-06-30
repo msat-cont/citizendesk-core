@@ -15,7 +15,11 @@ PUBLISHER_TYPE = 'twitter'
 
 collection = 'reports'
 
+# this is for loading the whole reports
 schema = {
-    '_id': 'this is for loading the whole reports'
+    '_id': 'ObjectID',
+    'report_id': 'feed type-related string id',
+    'parent_id': 'for linking among reports even when they are not stored (yet)',
+    'session_id': 'grouping based on feed type-related ids',
 }
 

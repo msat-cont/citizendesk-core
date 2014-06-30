@@ -84,15 +84,13 @@ def do_get_list(db, offset=None, limit=None, sort=None, other=None):
         else:
             if (not 'identifiers' in entry):
                 continue
-            if type(entry['identifiers']) not in (list, tuple):
+            if type(entry['identifiers']) is not dict:
                 continue
-            if not len(entry['identifiers']):
-                continue
-            if not entry['identifiers'][0]:
-                continue
-            one_name = entry['identifiers'][0]
-            if type(one_name) is not dict:
-                continue
+            one_name = {}
+            if 'user_id' in entry['identifiers']:
+                one_name['user_id'] = entry['identifiers']['user_id']
+            if 'user_name' in entry['identifiers']:
+                one_name['user_name'] = entry['identifiers']['user_name']
 
             source = None
             if ('sources' in entry) and (type(entry['sources']) is list):

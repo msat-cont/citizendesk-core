@@ -24,6 +24,7 @@ MONGOHOST=localhost
 MONGOPORT=27017
 DBNAME=citizendesk
 NEWSTWISTER_URL="http://localhost:9054/"
+SMSCONF=/opt/citizendesk/etc/citizendesk/sms_ifce.yaml
 CLIENTS=/opt/citizendesk/etc/citizendesk/feed_allowed.conf
 USER=citizendesk
 GROUP=citizendesk
@@ -46,7 +47,7 @@ case "$1" in
     start-stop-daemon --start --quiet --pidfile $PIDFILE --startas $DAEMON -- \
         -w $WEBHOST -p $WEBPORT -i $PIDFILE -l $LOGFILE \
         -m $MONGOHOST -o $MONGOPORT -b $DBNAME -n $NEWSTWISTER_URL \
-        -d -u $USER -g $GROUP -a $CLIENTS || true
+        -d -u $USER -g $GROUP -a $CLIENTS -s $SMSCONF || true
 
     log_end_msg 0
     ;;

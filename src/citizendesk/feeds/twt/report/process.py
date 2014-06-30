@@ -10,14 +10,17 @@ try:
 except:
     unicode = str
 
+from bson.objectid import ObjectId
+
 from citizendesk.feeds.twt.report.storage import collection, schema, FEED_TYPE, PUBLISHER_TYPE
 from citizendesk.common.utils import get_boolean as _get_boolean
+from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_sort as _get_sort
 
 DEFAULT_LIMIT = 20
 
 '''
-Here we should list (saved) reports filtered according to _id of the requested stream.
+Here we should list (saved) reports filtered according to report_id of the requested stream.
 '''
 
 def do_get_one(db, doc_id):
@@ -27,8 +30,13 @@ def do_get_one(db, doc_id):
     if not db:
         return (False, 'inner application error')
 
+    doc_id = _get_id_value(doc_id)
+    spec_field = 'report_id'
+    if type(doc_id) is ObjectId:
+        spec_field = '_id'
+
     coll = db[collection]
-    doc = coll.find_one({'_id': doc_id})
+    doc = coll.find_one({'feed_type': FEED_TYPE, spec_field: doc_id})
 
     if not doc:
         return (False, 'report not found')
@@ -41,6 +49,8 @@ def do_get_list(db, endpoint_type, endpoint_id, proto=None, offset=None, limit=N
     '''
     if not db:
         return (False, 'inner application error')
+
+    endpoint_id = _get_id_value(endpoint_id)
 
     list_spec = {'feed_type': FEED_TYPE, 'channels': {'$elemMatch': {'type': endpoint_type, 'value': endpoint_id}}}
     if proto is not None:
@@ -106,6 +116,8 @@ def do_get_session(db, session, offset=None, limit=None):
     if not db:
         return (False, 'inner application error')
 
+    session = _get_id_value(session)
+
     list_spec = {'feed_type': FEED_TYPE, 'session': session}
 
     coll = db[collection]
@@ -140,11 +152,7 @@ def do_patch_one(db, doc_id=None, data=None):
         return (False, 'data not provided')
 
     if doc_id is not None:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
+        doc_id = _get_id_value(doc_id)
 
     if type(data) is not dict:
         return (False, 'data should be a dict')
@@ -162,7 +170,11 @@ def do_patch_one(db, doc_id=None, data=None):
 
     coll = db[collection]
 
-    coll.update({'_id': doc_id}, {'$set': {'proto': proto}}, upsert=False)
+    spec_field = 'report_id'
+    if type(doc_id) is ObjectId:
+        spec_field = '_id'
 
-    return (True, {'_id': doc_id})
+    coll.update({'feed_type': FEED_TYPE, spec_field: doc_id}, {'$set': {'proto': proto}}, upsert=False)
+
+    return (True, {'report_id': doc_id})
 

@@ -6,6 +6,10 @@
 import datetime
 from bson.objectid import ObjectId
 
+from citizendesk.common.utils import get_id_value as _get_id_value
+
+USE_SEQUENCES = False
+
 try:
     unicode
 except:
@@ -14,7 +18,7 @@ except:
 collection = 'twt_oauths'
 
 schema = {
-    '_id': 1,
+    '_id': 'ObjectId',
     'spec': {
         'consumer_key': 'YOUR TWITER Consumer key',
         'consumer_secret': 'YOUR TWITER Consumer secret',
@@ -34,17 +38,7 @@ def get_one(db, doc_id):
     if not db:
         return (False, 'inner application error')
 
-    try:
-        doc_id = ObjectId(doc_id)
-    except:
-        pass
-
-    if type(doc_id) in [str, unicode]:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
+    doc_id = _get_id_value(doc_id)
 
     coll = db[collection]
     doc = coll.find_one({'_id': doc_id})

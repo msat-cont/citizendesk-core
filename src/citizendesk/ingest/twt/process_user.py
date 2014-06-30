@@ -22,12 +22,13 @@ def parse_user_info(authority, user_id, user_info, client_ip):
 
     screen_name = user_info.get('screen_name')
 
-    identifiers = []
+    identifiers = {}
     if id_str:
-        identifiers.append({'type':'user_id', 'value':id_str})
+        identifiers['user_id'] = id_str
+        identifiers['user_id_search'] = id_str
     if screen_name:
-        identifiers.append({'type':'user_name', 'value':screen_name})
-        identifiers.append({'type':'user_name_lc', 'value':screen_name.lower()})
+        identifiers['user_name'] = screen_name
+        identifiers['user_name_search'] = screen_name.lower()
     if not identifiers:
         return (False, 'no alias identifiers provided')
 
@@ -103,7 +104,7 @@ def do_post(holder, user_id, user_info, client_ip):
     alias = res[1]
 
     # check if the alias is already saved
-    used_aliases = holder.alias_present(authority, {'type':'user_id', 'value':user_id})
+    used_aliases = holder.alias_present(authority, 'user_id', user_id)
     for one_alias in used_aliases:
         res = holder.update_alias(one_alias, alias)
         if not res:

@@ -18,7 +18,7 @@
 DAEMON=/opt/citizendesk/lib/citizendesk/ingest/sms/start.py
 PIDFILE=/opt/citizendesk/var/run/sms_ingestd.pid
 LOGFILE=/opt/citizendesk/var/log/citizendesk/sms_ingest.log
-SENDFILE=/opt/citizendesk/etc/citizendesk/send_sms.yaml
+SENDFILE=/opt/citizendesk/etc/citizendesk/sms_ifce.yaml
 WEBPORT=9056
 WEBHOST=localhost
 MONGOHOST=localhost

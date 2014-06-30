@@ -4,6 +4,7 @@
 #
 
 import datetime
+from bson.objectid import ObjectId
 
 try:
     unicode
@@ -15,7 +16,8 @@ try:
 except:
     long = int
 
-from citizendesk.feeds.twt.filter.storage import collection, schema, get_one
+from citizendesk.feeds.twt.filter.storage import collection, schema, get_one, USE_SEQUENCES
+from citizendesk.common.utils import get_id_value as _get_id_value
 
 DEFAULT_LIMIT = 20
 
@@ -111,12 +113,7 @@ def do_post_one(db, doc_id=None, data=None):
         return (False, '"spec" part not provided')
     spec = data['spec']
 
-    if doc_id is not None:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
+    doc_id = _get_id_value(doc_id)
 
     coll = db[collection]
 
@@ -154,8 +151,11 @@ def do_post_one(db, doc_id=None, data=None):
 
     if not doc_id:
         try:
-            entry = db['counters'].find_and_modify(query={'_id': collection}, update={'$inc': {'next':1}}, new=True, upsert=True, full_response=False);
-            doc_id = entry['next']
+            if USE_SEQUENCES:
+                entry = db['counters'].find_and_modify(query={'_id': collection}, update={'$inc': {'next':1}}, new=True, upsert=True, full_response=False)
+                doc_id = entry['next']
+            else:
+                doc_id = ObjectId()
         except:
             return (False, 'can not create document id')
 
@@ -172,12 +172,7 @@ def do_delete_one(db, doc_id):
     if not db:
         return (False, 'inner application error')
 
-    if doc_id is not None:
-        if doc_id.isdigit():
-            try:
-                doc_id = int(doc_id)
-            except:
-                pass
+    doc_id = _get_id_value(doc_id)
 
     coll = db[collection]
 

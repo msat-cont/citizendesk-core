@@ -3,12 +3,13 @@
 # Citizen Desk
 #
 '''
-If the tweet is already saved, only add the feed_spec, publishers and channels part.
-Retweets: They probably should be put in as endorsing. And if they create a new text, put that text in as a comment.
+If the tweet is already saved, only add the channels part (incl. feed_spec).
+Retweets: They are just put in as endorsing.
 
 # basic info
-_id/report_id: tweet_id
-parent_id: tweet: in_reply_to_status_id
+_id: (automatic) object_id
+report_id: based on tweet_id; this is source-related field
+parent_id: tweet: in_reply_to_status_id; we need it as a link even when it is not in db
 client_ip: newstwister_ip
 feed_type: tweet
 produced:  tweet: created_at
@@ -30,17 +31,18 @@ assignments: []
 channels: [{type:twitter, value: endpoint: endpoint_id}]
 #publishers: [{type:twitter, value:twitter stream}]
 publisher: 'twitter'
-authors: [{'authority': 'twitter', 'identifiers': [{type:id, value:tweet:user:id_str}, {type:screen_name, value:tweet:user:screen_name}]}]
+authors: [{'authority': 'twitter', 'identifiers': {user_id: tweet.user.id_str, user_name: tweet.user.screen_name}}]
 recipients: []
 endorsers: [] # users that retweet
 
 # content
+original_id: tweet_id
 original: tweet
 geolocations: tweet: coordinates [(lon, lat)] or tweet: geo (lat, lon)
 place_names: tweet: place
 timeline: []
 time_names: []
-citizens_mentioned: [{'authority': 'twitter', 'identifiers': [{type:id, value:tweet:entities:user_mentions:id_str}, {type:screen_name, value:tweet:entities:user_mentions:screen_name}]}]
+citizens_mentioned: [{'authority': 'twitter', 'identifiers': {user_id: tweet.entities.user_mentions.id_str, user_name: value.tweet.entities.user_mentions.screen_name}}]
 subjects: []
 media: [tweet: entities: media: {'type':type, 'url':media_url where resize=='fit'}]
 texts: [{tweet: text}] plus replace links to their original values
@@ -63,6 +65,8 @@ RESOLVE_TIMEOUT = 1
 
 import os, sys, datetime, json
 import urllib2
+
+from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.ingest.twt.connect import get_conf, gen_id, get_tweet
 
 class HeadRequest(urllib2.Request):
@@ -147,11 +151,17 @@ def _take_twt_user_names(citizen_alias_lists):
     # we use screen_names all here now
     for one_set in citizen_alias_lists:
         for one_alias in one_set:
+            if not one_alias:
+                continue
             if one_alias['authority'] != 'twitter':
                 continue
-            for one_alias_spec in one_alias['identifiers']:
-                if one_alias_spec['type'] == 'user_name':
-                    names.append(one_alias_spec['value'].lower())
+            if type(one_alias['identifiers']) is not dict:
+                continue
+            if 'user_name' not in one_alias['identifiers']:
+                continue
+            one_user_name = one_alias['identifiers']['user_name']
+            if one_user_name:
+                names.append(one_user_name)
 
     return names
 
@@ -274,6 +284,7 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
         'proto': proto,
         'pinned_id': pinned_id,
         'assignments': assignments,
+        'original_id': str(tweet_id),
         'original': tweet,
         'endorsers': endorsers,
         'recipients': [],
@@ -356,18 +367,39 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
             rep_citizens = []
             if ('user_mentions' in report_entities) and report_entities['user_mentions']:
                 for one_citz in report_entities['user_mentions']:
-                    mentioned_citz = [
-                        {'type': 'user_id', 'value': one_citz['id_str']},
-                        {'type': 'user_name', 'value': one_citz['screen_name']}
-                    ]
+                    mentioned_citz = {
+                        'user_id': one_citz['id_str'],
+                        'user_id_search': one_citz['id_str'],
+                        'user_name': one_citz['screen_name'],
+                        'user_name_search': None,
+                    }
+                    if (mentioned_citz['user_name']):
+                        mentioned_citz['user_name_search'] = mentioned_citz['user_name'].lower()
+
                     rep_citizens.append({'authority': 'twitter', 'identifiers': mentioned_citz})
             report['citizens_mentioned'] = rep_citizens
 
-        one_author_ids = [{'type':'user_id', 'value':tweet['user']['id_str']}, {'type':'user_name', 'value':tweet['user']['screen_name']}]
+        one_author_ids = {
+            'user_id': tweet['user']['id_str'],
+            'user_id_search': tweet['user']['id_str'],
+            'user_name': tweet['user']['screen_name'],
+            'user_name_search': None,
+        }
+        if (one_author_ids['user_name']):
+            one_author_ids['user_name_search'] = one_author_ids['user_name'].lower()
+
         rep_authors = [{'authority': 'twitter', 'identifiers': one_author_ids}]
         if ('contributors' in tweet) and tweet['contributors']:
             for one_cont in tweet['contributors']:
-                one_cont_ids = [{'type':'user_id', 'value':one_cont['id_str']}, {'type':'user_name', 'value':one_cont['screen_name']}]
+                one_cont_ids = {
+                    'user_id': one_cont['id_str'],
+                    'user_id_search': one_cont['id_str'],
+                    'user_name': one_cont['screen_name'],
+                    'user_name_search': None,
+                }
+                if (one_cont_ids['user_name']):
+                    one_cont_ids['user_name_search'] = one_cont_ids['user_name'].lower()
+
                 rep_authors.append({'authority': 'twitter', 'identifiers': one_cont_ids})
         report['authors'] = rep_authors
 
@@ -378,7 +410,15 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
         if 'in_reply_to_screen_name' in tweet:
             recipient_name = tweet['in_reply_to_screen_name']
         if recipient_id and recipient_name:
-            one_recp_ids = [{'type':'user_id', 'value':recipient_id}, {'type':'user_name', 'value':recipient_name}]
+            one_recp_ids = {
+                'user_id': recipient_id,
+                'user_id_search': recipient_id,
+                'user_name': recipient_name,
+                'user_name_search': None,
+            }
+            if (one_recp_ids['user_name']):
+                one_recp_ids['user_name_search'] = one_recp_ids['user_name'].lower()
+
             report['recipients'].append({'authority': 'twitter', 'identifiers': one_recp_ids})
 
     except Exception as exc:
@@ -413,6 +453,9 @@ def do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_fi
     except:
         return (False, 'endpoint[endpoint_id] not provided',)
 
+    endpoint_id = _get_id_value(endpoint_id)
+    request_id = _get_id_value(request_id)
+
     feed_type = get_conf('feed_type')
 
     # check if the tweet is a new tweet, already saved tweet, a retweet, or a retweet on an already saved tweet
@@ -435,7 +478,15 @@ def do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_fi
     report_endorsers = []
     if retweeted_id:
         try:
-            endorser_ids = [{'type':'user_id', 'value':tweet['user']['id_str']}, {'type':'user_name', 'value':tweet['user']['screen_name']}]
+            endorser_ids = {
+                'user_id': tweet['user']['id_str'],
+                'user_id_search': tweet['user']['id_str'],
+                'user_name': tweet['user']['screen_name'],
+                'user_name_search': None,
+            }
+            if (endorser_ids['user_name']):
+                endorser_ids['user_name_search'] = endorser_ids['user_name'].lower()
+
             report_endorsers = [{'authority': 'twitter', 'identifiers': endorser_ids}]
         except:
             return (False, 'can not create endorsers',)
@@ -461,12 +512,12 @@ def do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_fi
             sys.stderr.write(str(exc) + '\n')
             return (False, 'can extract the reasons')
 
-        holder.add_channels(main_report_id, [one_channel])
+        holder.add_channels(feed_type, main_report_id, [one_channel])
 
         # for a retweet, set endorsers for the original tweet
         if retweeted_id:
             try:
-                holder.add_endorsers(main_report_id, report_endorsers)
+                holder.add_endorsers(feed_type, main_report_id, report_endorsers)
             except:
                 return (False, 'can not add endorsers',)
 
