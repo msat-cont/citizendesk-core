@@ -51,6 +51,3 @@ def cid_from_update(update_got):
 
     return cid_ret
 
-def adapt_tweet(tweet):
-    return tweet
-
