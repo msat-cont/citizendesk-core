@@ -5,19 +5,23 @@
 
 COLL_COVERAGES = 'coverages'
 COLL_REPORTS = 'reports'
+
 FIELD_UPDATED = 'updated'
-FIELD_DELETED = 'deleted'
+FIELD_DELETED = 'unpublished'
 
 from bson.objectid import ObjectId
 
-import os, sys, datetime, json
-from citizendesk.outgest.liveblog.utils import PUBLISHED_REPORTS_PLACEHOLDER
+import os, sys, datetime, json, urllib
+from citizendesk.outgest.liveblog.utils import PUBLISHED_REPORTS_PLACEHOLDER, REPORT_LINK_ID_PLACEHOLDER
 from citizendesk.outgest.liveblog.utils import get_conf, cid_from_update
-from citizendesk.outgest.liveblog.adapts import adapt_sms_report, adapt_tweet_report, adapt_local_report
+from citizendesk.outgest.liveblog.adapts import adapt_sms_report, adapt_tweet_report, adapt_plain_report
+from citizendesk.outgest.liveblog.adapts import get_sms_report_author, get_tweet_report_author, get_plain_report_author
 
 OUTPUT_FEED_TYPES = ['sms', 'tweet', 'plain']
 
-def get_coverage_list(db, base_url):
+def get_coverage_list(db):
+
+    base_url = get_conf('reports_url')
 
     coll = db[COLL_COVERAGES]
 
@@ -27,7 +31,7 @@ def get_coverage_list(db, base_url):
 
     for entry in cursor:
         cov_id = entry['_id']
-        coverage_url = base_url.replace(PUBLISHED_REPORTS_PLACEHOLDER, cov_id)
+        coverage_url = base_url.replace(PUBLISHED_REPORTS_PLACEHOLDER, urllib.quote_plus(cov_id))
 
         if 'title' not in entry:
             continue
@@ -68,8 +72,8 @@ def get_coverage_published_report_list(db, coverage_id, update_last):
     other: ignoring by now
     '''
 
-
-    citizen_url_template = get_conf('citizen_url')
+    author_url_template = get_conf('author_url')
+    creator_url_template = get_conf('creator_url')
 
     coll = db[COLL_REPORTS]
 
@@ -113,33 +117,31 @@ def get_coverage_published_report_list(db, coverage_id, update_last):
             content = adapted['content']
             meta = adapted['meta']
 
+        if 'plain' == feed_type:
+            adapted = adapt_plain_report(entry)
+            content = adapted['content']
+            meta = adapted['meta']
+
         use_cid = cid_from_update(entry[FIELD_UPDATED])
 
         one_report = {
             'CId': use_cid,
             'IsPublished': True,
             'Uuid': entry['uuid'],
-            'Type': {'Key': entry['feed_type']}
+            #'Type': {'Key': entry['feed_type']},
+            'Type': {'Key': 'normal'},
+            'Content': content,
+            'Meta': meta,
         }
         if (FIELD_DELETED in entry) and entry[FIELD_DELETED]:
             one_report['DeletedOn'] = entry[FIELD_DELETED]
 
-        use_texts = []
-        for one_text in entry['texts']:
-            if one_text['translated']:
-                use_texts.append(one_text['translated'])
-                continue
-            if one_text['original']:
-                use_texts.append(one_text['original'])
-        if not use_texts:
-            continue
+        link_id = urllib.quote_plus(entry['_id'])
+        author_url = author_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, link_id)
+        creator_url = creator_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, link_id)
 
-        one_reports['Content'] = '<div>' + '</div><div>'.join(use_texts) + '</div>'
-
-        citizen_url = citizen_url_template.replace('<coverage_id>', cov_id)
-
-        one_report['Author'] = {'href': citizen_url}
-        one_report['Creator'] = {'href': citizen_url}
+        one_report['Author'] = {'href': author_url}
+        one_report['Creator'] = {'href': creator_url}
 
         reports.append(one_report)
 
@@ -152,13 +154,45 @@ def get_coverage_published_report_list(db, coverage_id, update_last):
 
     return (True, res)
 
-def get_citizen(form):
-    if form not in ['author', 'creator']:
-        return (False, 'unknown citizen form')
+def get_report_author(db, report_id, author_form):
 
-    return {
-        'Source': {'Name': None},
-        'Uuid': None,
-        'Cid': None
-    }
+    coll = db[COLL_REPORTS]
+
+    if author_form not in ['author', 'creator']:
+        return (False, 'unknown author form')
+
+    report_id = ObjectId(report_id)
+    report = coll.find_one({'_id': report_id})
+    if not report:
+        return (False, 'respective report not found')
+
+    if 'feed_type' not in report:
+        return (False, 'feed type not set in the respective report')
+
+    feed_type = report['feed_type']
+
+    if feed_type not in OUTPUT_FEED_TYPES:
+        return (False, 'unsupported report type')
+
+    author = None
+
+    if 'sms' == feed_type:
+        if 'author' == author_form:
+            author = get_sms_report_author(report)
+        if 'creator' == author_form:
+            author = get_sms_report_creator(report)
+
+    if 'tweet' == feed_type:
+        if 'author' == author_form:
+            author = get_tweet_report_author(report)
+        if 'creator' == author_form:
+            author = get_tweet_report_creator(report)
+
+    if 'plain' == feed_type:
+        if 'author' == author_form:
+            author = get_plain_report_author(report)
+        if 'creator' == author_form:
+            author = get_plain_report_creator(report)
+
+    return (True, author)
 

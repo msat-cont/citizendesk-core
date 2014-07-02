@@ -4,6 +4,7 @@
 #
 
 import os, sys, datetime, json
+from citizendesk.outgest.liveblog.utils import get_conf, cid_from_update
 
 TEXTS_SEPARATOR = '<br>'
 NOTICES_USED = ['before', 'after']
@@ -118,4 +119,168 @@ def adapt_plain_report(report):
     parts['meta'] = json.dumps({'annotation': annotation})
 
     return parts
+
+def get_sms_report_author(report):
+    # how to deal with local SMS-based reports, regarding uuid, cid, etc.?
+    # if is_local: uuid, cid = get_conf('local_sms_uuid'), get_conf('local_sms_cid')
+
+    phone_number = get_phone_number(report['authors'])
+    citizen_alias = load_citizen_alias_by_phone_number(phone_number)
+
+    use_uuid = citizen_alias['uuid']
+    use_cid = cid_from_update(citizen_alias['updated'])
+
+    author = {
+        'Source': {
+            'Name': 'sms_ingest', # actually not used, since providing user below; otherwise coverage name could be used
+        },
+        'User': {
+            'Uuid': use_uuid,
+            'Cid': use_cid,
+            'FirstName': 'SMS',
+            #'PhoneNumber': phone_number, # should we disclose this info?
+            'MetaDataIcon': {'href': None},
+        },
+    }
+
+    return author
+
+def get_sms_report_creator(report):
+    # how to deal with local SMS-based reports, regarding uuid, cid, etc.?
+    # if is_local: uuid, cid = get_conf('local_sms_uuid'), get_conf('local_sms_cid')
+
+    phone_number = get_phone_number(report['authors'])
+    citizen_alias = load_citizen_alias_by_phone_number(phone_number)
+
+    use_uuid = citizen_alias['uuid']
+    use_cid = cid_from_update(citizen_alias['updated'])
+
+    creator = {
+        'Uuid': use_uuid,
+        'Cid': use_cid,
+        'FirstName': 'SMS',
+        #'PhoneNumber': phone_number, # should we disclose this info?
+        'MetaDataIcon': {'href': None},
+    }
+
+    return creator
+
+def get_tweet_report_author(report):
+
+    author = {
+        'Source': {
+            'Name': 'twitter',
+        },
+    }
+
+    return author
+
+def get_tweet_report_creator(report):
+
+    on_behalf_id = report['on_behalf_id']
+    user = load_local_user(user_id)
+
+    use_uuid = user['uuid']
+    use_cid = cid_from_update(user['updated'])
+
+    icon_url = None
+    if ('icon_url' in user) and user['icon_url']:
+        icon_url = user['icon_url']
+
+    creator = {
+        'Uuid': use_uuid,
+        'Cid': use_cid,
+        'MetaDataIcon': {'href': icon_url},
+    }
+
+    first_name = None
+    if ('first_name' in user) and user['first_name']:
+        first_name = user['first_name']
+
+    last_name = None
+    if ('last_name' in user) and user['last_name']:
+        last_name = user['last_name']
+
+    if first_name:
+        creator['first_name'] = first_name
+
+    if last_name:
+        creator['last_name'] = last_name
+
+    return creator
+
+def get_plain_report_author(report):
+
+    on_behalf_id = report['on_behalf_id']
+    user = load_local_user(user_id)
+
+    use_uuid = user['uuid']
+    use_cid = cid_from_update(user['updated'])
+
+    icon_url = None
+    if ('icon_url' in user) and user['icon_url']:
+        icon_url = user['icon_url']
+
+    author = {
+        'Source': {
+            'Name': 'internal',
+        },
+        'User': {
+            'Uuid': use_uuid,
+            'Cid': use_cid,
+            'FirstName': first_name,
+            'LastName': last_name,
+            'MetaDataIcon': {'href': icon_url},
+        },
+    }
+
+    first_name = None
+    if ('first_name' in user) and user['first_name']:
+        first_name = user['first_name']
+
+    last_name = None
+    if ('last_name' in user) and user['last_name']:
+        last_name = user['last_name']
+
+    if first_name:
+        author['user']['first_name'] = first_name
+
+    if last_name:
+        author['user']['last_name'] = last_name
+
+    return author
+
+def get_plain_report_creator(report):
+
+    on_behalf_id = report['on_behalf_id']
+    user = load_local_user(user_id)
+
+    use_uuid = user['uuid']
+    use_cid = cid_from_update(user['updated'])
+
+    icon_url = None
+    if ('icon_url' in user) and user['icon_url']:
+        icon_url = user['icon_url']
+
+    creator = {
+        'Uuid': use_uuid,
+        'Cid': use_cid,
+        'MetaDataIcon': {'href': icon_url},
+    }
+
+    first_name = None
+    if ('first_name' in user) and user['first_name']:
+        first_name = user['first_name']
+
+    last_name = None
+    if ('last_name' in user) and user['last_name']:
+        last_name = user['last_name']
+
+    if first_name:
+        creator['first_name'] = first_name
+
+    if last_name:
+        creator['last_name'] = last_name
+
+    return creator
 
