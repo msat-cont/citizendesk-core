@@ -5,6 +5,8 @@
 
 import os, sys, datetime, json
 from citizendesk.outgest.liveblog.utils import get_conf, cid_from_update
+from citizendesk.outgest.liveblog.storage import load_local_user
+from citizendesk.outgest.liveblog.storage import FIELD_UPDATED
 
 TEXTS_SEPARATOR = '<br>'
 NOTICES_USED = ['before', 'after']
@@ -48,8 +50,8 @@ def extract_annotation(report):
             notices[one_notice['where']].append(one_notice['what'])
 
     for notice_type in NOTICES_USED:
-        if notices[NOTICES_USED]:
-            annotation[NOTICES_USED] = TEXTS_SEPARATOR.join(notices[NOTICES_USED])
+        if notices[notice_type]:
+            annotation[notice_type] = TEXTS_SEPARATOR.join(notices[notice_type])
 
     return annotation
 
@@ -124,24 +126,24 @@ def get_sms_report_author(report):
     # how to deal with local SMS-based reports, regarding uuid, cid, etc.?
     # if is_local: uuid, cid = get_conf('local_sms_uuid'), get_conf('local_sms_cid')
 
-    phone_number = get_phone_number(report['authors'])
-    citizen_alias = load_citizen_alias_by_phone_number(phone_number)
-
-    use_uuid = citizen_alias['uuid']
-    use_cid = cid_from_update(citizen_alias['updated'])
+    use_uuid = get_conf('sms_report_creator_uuid')
+    use_cid = get_conf('sms_report_creator_cid')
+    use_icon = get_conf('sms_report_creator_icon')
 
     author = {
         'Source': {
             'Name': 'sms_ingest', # actually not used, since providing user below; otherwise coverage name could be used
         },
         'User': {
-            'Uuid': use_uuid,
-            'Cid': use_cid,
             'FirstName': 'SMS',
-            #'PhoneNumber': phone_number, # should we disclose this info?
-            'MetaDataIcon': {'href': None},
+            'MetaDataIcon': {'href': use_icon},
         },
     }
+
+    if use_uuid:
+        author['User']['Uuid'] = use_uuid
+    if use_cid:
+        author['User']['Cid'] = use_cid
 
     return author
 
@@ -149,19 +151,19 @@ def get_sms_report_creator(report):
     # how to deal with local SMS-based reports, regarding uuid, cid, etc.?
     # if is_local: uuid, cid = get_conf('local_sms_uuid'), get_conf('local_sms_cid')
 
-    phone_number = get_phone_number(report['authors'])
-    citizen_alias = load_citizen_alias_by_phone_number(phone_number)
-
-    use_uuid = citizen_alias['uuid']
-    use_cid = cid_from_update(citizen_alias['updated'])
+    use_uuid = get_conf('sms_report_creator_uuid')
+    use_cid = get_conf('sms_report_creator_cid')
+    use_icon = get_conf('sms_report_creator_icon')
 
     creator = {
-        'Uuid': use_uuid,
-        'Cid': use_cid,
         'FirstName': 'SMS',
-        #'PhoneNumber': phone_number, # should we disclose this info?
-        'MetaDataIcon': {'href': None},
+        'MetaDataIcon': {'href': use_icon},
     }
+
+    if use_uuid:
+        creator['Uuid'] = use_uuid
+    if use_cid:
+        creator['Cid'] = use_cid
 
     return creator
 
@@ -181,17 +183,20 @@ def get_tweet_report_creator(report):
     user = load_local_user(user_id)
 
     use_uuid = user['uuid']
-    use_cid = cid_from_update(user['updated'])
+    use_cid = cid_from_update(user[FIELD_UPDATED])
 
     icon_url = None
-    if ('icon_url' in user) and user['icon_url']:
-        icon_url = user['icon_url']
+    if ('picture_url' in user) and user['picture_url']:
+        icon_url = user['picture_url']
 
     creator = {
-        'Uuid': use_uuid,
-        'Cid': use_cid,
         'MetaDataIcon': {'href': icon_url},
     }
+
+    if use_uuid:
+        creator['Uuid'] = use_uuid
+    if use_cid:
+        creator['Cid'] = use_cid
 
     first_name = None
     if ('first_name' in user) and user['first_name']:
@@ -215,11 +220,11 @@ def get_plain_report_author(report):
     user = load_local_user(user_id)
 
     use_uuid = user['uuid']
-    use_cid = cid_from_update(user['updated'])
+    use_cid = cid_from_update(user[FIELD_UPDATED])
 
     icon_url = None
-    if ('icon_url' in user) and user['icon_url']:
-        icon_url = user['icon_url']
+    if ('picture_url' in user) and user['picture_url']:
+        icon_url = user['picture_url']
 
     author = {
         'Source': {
@@ -233,6 +238,11 @@ def get_plain_report_author(report):
             'MetaDataIcon': {'href': icon_url},
         },
     }
+
+    if use_uuid:
+        author['User']['Uuid'] = use_uuid
+    if use_cid:
+        author['User']['Cid'] = use_cid
 
     first_name = None
     if ('first_name' in user) and user['first_name']:
@@ -256,17 +266,20 @@ def get_plain_report_creator(report):
     user = load_local_user(user_id)
 
     use_uuid = user['uuid']
-    use_cid = cid_from_update(user['updated'])
+    use_cid = cid_from_update(user[FIELD_UPDATED])
 
     icon_url = None
-    if ('icon_url' in user) and user['icon_url']:
-        icon_url = user['icon_url']
+    if ('picture_url' in user) and user['picture_url']:
+        icon_url = user['picture_url']
 
     creator = {
-        'Uuid': use_uuid,
-        'Cid': use_cid,
         'MetaDataIcon': {'href': icon_url},
     }
+
+    if use_uuid:
+        creator['Uuid'] = use_uuid
+    if use_cid:
+        creator['Cid'] = use_cid
 
     first_name = None
     if ('first_name' in user) and user['first_name']:
