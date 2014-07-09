@@ -42,7 +42,7 @@ def prepare_sms_send_report(targets, recipients, message, user_id=None, language
         'request': None
     }
 
-    current_timestamp = datetime.datetime.now()
+    current_timestamp = datetime.datetime.utcnow()
 
     doc = {
         'report_id': gen_id(feed_type, channel_type, channel_value, current_timestamp), # to generate the report_id
@@ -105,7 +105,7 @@ def prepare_sms_reply_report(report, targets, recipients, message, user_id=None,
         'request': None
     }
 
-    current_timestamp = datetime.datetime.now()
+    current_timestamp = datetime.datetime.utcnow()
 
     doc = {
         'report_id': gen_id(feed_type, channel_type, channel_value, current_timestamp), # to generate the report_id
