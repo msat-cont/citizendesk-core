@@ -5,13 +5,35 @@
 
 import os, sys, datetime, json
 from citizendesk.outgest.liveblog.utils import get_conf, cid_from_update
-from citizendesk.outgest.liveblog.storage import load_local_user
-from citizendesk.outgest.liveblog.storage import FIELD_UPDATED
+from citizendesk.outgest.liveblog.storage import FIELD_UPDATED_USER
 
 TEXTS_SEPARATOR = '<br>'
 NOTICES_USED = ['before', 'after']
 
 SMS_CONTENT_START = '<h3><a href="" target="_blank"></a></h3><div class="result-description"></div><!-- p.result-description tag displays for:> internal link> twitter> google link> google news> google images> flickr> youtube> soundcloud-->'
+
+DEFAULT_AUTHOR_NAME = get_conf('default_report_author_name')
+if not DEFAULT_AUTHOR_NAME:
+    DEFAULT_AUTHOR_NAME = 'Citizen Desk'
+
+DEFAULT_AUTHOR = {
+    'Source': {
+        'Name': 'citizen_desk',
+    },
+    'User': {
+        'FirstName': DEFAULT_AUTHOR_NAME,
+        'MetaDataIcon': {'href': get_conf('default_report_author_icon')},
+    },
+}
+if get_conf('default_report_author_uuid'):
+    DEFAULT_AUTHOR['User']['Uuid'] = get_conf('default_report_author_uuid')
+
+DEFAULT_CREATOR = {
+    'MetaDataIcon': {'href': get_conf('default_report_author_icon')},
+    'FirstName': DEFAULT_AUTHOR_NAME,
+}
+if get_conf('default_report_author_uuid'):
+    DEFAULT_CREATOR['Uuid'] = get_conf('default_report_author_uuid')
 
 def extract_texts(report):
     # taking the (transcribed) texts
@@ -122,12 +144,9 @@ def adapt_plain_report(report):
 
     return parts
 
-def get_sms_report_author(report):
-    # how to deal with local SMS-based reports, regarding uuid, cid, etc.?
-    # if is_local: uuid, cid = get_conf('local_sms_uuid'), get_conf('local_sms_cid')
+def get_sms_report_author(report, user):
 
     use_uuid = get_conf('sms_report_creator_uuid')
-    use_cid = get_conf('sms_report_creator_cid')
     use_icon = get_conf('sms_report_creator_icon')
 
     author = {
@@ -142,17 +161,12 @@ def get_sms_report_author(report):
 
     if use_uuid:
         author['User']['Uuid'] = use_uuid
-    if use_cid:
-        author['User']['Cid'] = use_cid
 
     return author
 
-def get_sms_report_creator(report):
-    # how to deal with local SMS-based reports, regarding uuid, cid, etc.?
-    # if is_local: uuid, cid = get_conf('local_sms_uuid'), get_conf('local_sms_cid')
+def get_sms_report_creator(report, user):
 
     use_uuid = get_conf('sms_report_creator_uuid')
-    use_cid = get_conf('sms_report_creator_cid')
     use_icon = get_conf('sms_report_creator_icon')
 
     creator = {
@@ -162,12 +176,10 @@ def get_sms_report_creator(report):
 
     if use_uuid:
         creator['Uuid'] = use_uuid
-    if use_cid:
-        creator['Cid'] = use_cid
 
     return creator
 
-def get_tweet_report_author(report):
+def get_tweet_report_author(report, user):
 
     author = {
         'Source': {
@@ -177,13 +189,10 @@ def get_tweet_report_author(report):
 
     return author
 
-def get_tweet_report_creator(report):
+def get_tweet_report_creator(report, user):
 
-    on_behalf_id = report['on_behalf_id']
-    user = load_local_user(user_id)
-
-    use_uuid = user['uuid']
-    use_cid = cid_from_update(user[FIELD_UPDATED])
+    if not user:
+        return DEFAULT_CREATOR
 
     icon_url = None
     if ('picture_url' in user) and user['picture_url']:
@@ -193,34 +202,26 @@ def get_tweet_report_creator(report):
         'MetaDataIcon': {'href': icon_url},
     }
 
-    if use_uuid:
-        creator['Uuid'] = use_uuid
-    if use_cid:
-        creator['Cid'] = use_cid
+    if ('uuid' in user) and user['uuid']:
+        creator['Uuid'] = user['uuid']
+
+    if (FIELD_UPDATED_USER in user) and user[FIELD_UPDATED_USER]:
+        creator['Cid'] = cid_from_update(user[FIELD_UPDATED_USER])
 
     first_name = None
     if ('first_name' in user) and user['first_name']:
-        first_name = user['first_name']
+        creator['FirstName'] = user['first_name']
 
     last_name = None
     if ('last_name' in user) and user['last_name']:
-        last_name = user['last_name']
-
-    if first_name:
-        creator['first_name'] = first_name
-
-    if last_name:
-        creator['last_name'] = last_name
+        creator['LastName'] = user['last_name']
 
     return creator
 
-def get_plain_report_author(report):
+def get_plain_report_author(report, user):
 
-    on_behalf_id = report['on_behalf_id']
-    user = load_local_user(user_id)
-
-    use_uuid = user['uuid']
-    use_cid = cid_from_update(user[FIELD_UPDATED])
+    if not user:
+        return DEFAULT_AUTHOR
 
     icon_url = None
     if ('picture_url' in user) and user['picture_url']:
@@ -231,42 +232,28 @@ def get_plain_report_author(report):
             'Name': 'internal',
         },
         'User': {
-            'Uuid': use_uuid,
-            'Cid': use_cid,
-            'FirstName': first_name,
-            'LastName': last_name,
             'MetaDataIcon': {'href': icon_url},
         },
     }
 
-    if use_uuid:
-        author['User']['Uuid'] = use_uuid
-    if use_cid:
-        author['User']['Cid'] = use_cid
+    if ('uuid' in user) and user['uuid']:
+        author['User']['Uuid'] = user['uuid']
 
-    first_name = None
+    if (FIELD_UPDATED_USER in user) and user[FIELD_UPDATED_USER]:
+        author['User']['Cid'] = cid_from_update(user[FIELD_UPDATED_USER])
+
     if ('first_name' in user) and user['first_name']:
-        first_name = user['first_name']
+        author['User']['FirstName'] = user['first_name']
 
-    last_name = None
     if ('last_name' in user) and user['last_name']:
-        last_name = user['last_name']
-
-    if first_name:
-        author['user']['first_name'] = first_name
-
-    if last_name:
-        author['user']['last_name'] = last_name
+        author['User']['LastName'] = user['last_name']
 
     return author
 
-def get_plain_report_creator(report):
+def get_plain_report_creator(report, user):
 
-    on_behalf_id = report['on_behalf_id']
-    user = load_local_user(user_id)
-
-    use_uuid = user['uuid']
-    use_cid = cid_from_update(user[FIELD_UPDATED])
+    if not user:
+        return DEFAULT_CREATOR
 
     icon_url = None
     if ('picture_url' in user) and user['picture_url']:
@@ -276,24 +263,19 @@ def get_plain_report_creator(report):
         'MetaDataIcon': {'href': icon_url},
     }
 
-    if use_uuid:
-        creator['Uuid'] = use_uuid
-    if use_cid:
-        creator['Cid'] = use_cid
+    if ('uuid' in user) and user['uuid']:
+        creator['Uuid'] = user['uuid']
+
+    if (FIELD_UPDATED_USER in user) and user[FIELD_UPDATED_USER]:
+        creator['Cid'] = cid_from_update(user[FIELD_UPDATED_USER])
 
     first_name = None
     if ('first_name' in user) and user['first_name']:
-        first_name = user['first_name']
+        creator['FirstName'] = user['first_name']
 
     last_name = None
     if ('last_name' in user) and user['last_name']:
-        last_name = user['last_name']
-
-    if first_name:
-        creator['first_name'] = first_name
-
-    if last_name:
-        creator['last_name'] = last_name
+        creator['LastName'] = user['last_name']
 
     return creator
 

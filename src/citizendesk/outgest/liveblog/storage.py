@@ -12,11 +12,16 @@ COLL_USERS = 'users'
 COLL_COVERAGES = 'coverages'
 COLL_REPORTS = 'reports'
 
-#FIELD_UPDATED = '_updated'
-FIELD_UPDATED = 'updated'
-FIELD_DELETED = 'unpublished'
+from citizendesk.feeds.any.report.storage import FIELD_UPDATED as FIELD_UPDATED_REPORT
+from citizendesk.feeds.any.report.storage import FIELD_DECAYED as FIELD_DECAYED_REPORT
+from citizendesk.feeds.any.report.storage import FIELD_UUID as FIELD_UUID_REPORT
 
-def load_local_user(user_id):
+FIELD_UPDATED_USER = '_updated'
+
+from citizendesk.feeds.any.coverage.storage import FIELD_ACTIVE as FIELD_ACTIVE_COVERAGE
+from citizendesk.feeds.any.coverage.storage import FIELD_DECAYED as FIELD_DECAYED_COVERAGE
+
+def load_local_user(db, user_id):
 
     user_id = _get_id_value(user_id)
 

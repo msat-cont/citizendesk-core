@@ -139,3 +139,28 @@ def do_unpublish_one(db, report_id, coverage_id=None):
 
     return (True, {'_id': report_id})
 
+def do_on_behalf_of(db, report_id, user_id=None):
+    '''
+    un/sets report as on behalf of user
+    '''
+    if not db:
+        return (False, 'inner application error')
+
+    report_id = _get_id_value(report_id)
+    report_get = get_report_by_id(db, report_id)
+    if not report_get[0]:
+        return (False, 'report not found')
+    report = report_get[1]
+
+    if user_id:
+        user_id = _get_id_value(user_id)
+
+    timepoint = datetime.datetime.utcnow()
+    properties_set = {
+        FIELD_UPDATED: timepoint,
+        'on_behalf_id': user_id,
+    }
+    update_report_set(db, report_id, properties_set)
+
+    return (True, {'_id': report_id})
+

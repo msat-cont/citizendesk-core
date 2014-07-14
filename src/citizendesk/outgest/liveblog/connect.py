@@ -35,7 +35,7 @@ def setup_blueprints(app):
 
 lb_coverage_take = Blueprint(LB_COVERAGE_BP_NAME, __name__)
 
-@lb_coverage_take.route('/outgest/liveblog/coverages/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
+@lb_coverage_take.route('/outgest/liveblog/coverage/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
 def take_coverages_options():
     headers = {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -45,7 +45,7 @@ def take_coverages_options():
 
     return ('', 200, headers)
 
-@lb_coverage_take.route('/outgest/liveblog/coverages/', defaults={}, methods=['GET'], strict_slashes=False)
+@lb_coverage_take.route('/outgest/liveblog/coverage/', defaults={}, methods=['GET'], strict_slashes=False)
 def take_coverages():
     setup_urls()
 

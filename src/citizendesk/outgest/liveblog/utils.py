@@ -10,6 +10,12 @@ PUBLISHED_REPORTS_PLACEHOLDER = '__coverage_id_placeholder__'
 REPORT_LINK_ID_PLACEHOLDER = '__report_link_id_placeholder__'
 
 import os, sys, datetime, json, calendar
+
+try:
+    long
+except:
+    long = int
+
 try:
     from flask import Blueprint, request, url_for
 except:
@@ -32,7 +38,10 @@ def set_conf(key, value):
     config[key] = value
 
 def setup_urls():
-    start = '//' + request.host
+    request_host = 'localhost'
+    if request.host:
+        request_host = str(request.host)
+    start = '//' + request_host
 
     coverages_url = url_for(LB_COVERAGE_BP_NAME + '.take_coverages')
     coverage_info_url = url_for(LB_COVERAGE_BP_NAME + '.take_coverage_info', coverage_id=COVERAGE_PLACEHOLDER)
@@ -50,7 +59,7 @@ def update_from_cid(cid_got):
     update_ret = None
 
     try:
-        if cid_got and cid_got.isdigit():
+        if cid_got:
             cid_use = float(cid_got) / 1000000
             update_ret = datetime.datetime.utcfromtimestamp(cid_use)
     except:

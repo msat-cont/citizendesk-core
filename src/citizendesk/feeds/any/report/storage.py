@@ -11,6 +11,7 @@ except:
     unicode = str
 
 FIELD_UPDATED = '_updated'
+FIELD_DECAYED = 'decayed'
 FIELD_UUID = 'uuid'
 
 collection = 'reports'

@@ -11,6 +11,10 @@ POST
 /feeds/any/report/id/<doc_id>/unpublish/
 /feeds/any/report/id/<doc_id>/unpublish/<coverage_id>/
 
+POST
+/feeds/any/report/id/<doc_id>/on_behalf_of/
+/feeds/any/report/id/<doc_id>/on_behalf_of/<user_id>/
+
 '''
 
 import os, sys, datetime, json
@@ -65,3 +69,19 @@ def feed_any_report_unpublish_one(doc_id, coverage_id):
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
+@bp_feed_any_report.route('/feeds/any/report/id/<doc_id>/on_behalf_of/', defaults={'user_id': None}, methods=['POST'], strict_slashes=False)
+@bp_feed_any_report.route('/feeds/any/report/id/<doc_id>/on_behalf_of/<user_id>/', defaults={}, methods=['POST'], strict_slashes=False)
+def feed_any_report_on_behalf_of(doc_id, user_id):
+    from citizendesk.feeds.any.report import process
+
+    logger = get_logger()
+    client_ip = get_client_ip()
+
+    res = process.do_on_behalf_of(mongo_dbs.get_db().db, doc_id, user_id)
+
+    if not res[0]:
+        ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
+        return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
+
+    ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
+    return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
