@@ -88,6 +88,7 @@ def prepare_reporting(mongo_addr, dbname, newstwister_url, sms_config_path):
     from citizendesk.common.utils import get_logger
     from citizendesk.common.dbc import mongo_dbs
     from citizendesk.feeds.config import set_config
+    import citizendesk.feeds.any.dispatch as any_dispatch
     import citizendesk.feeds.twt.dispatch as twt_dispatch
     import citizendesk.feeds.sms.dispatch as sms_dispatch
 
@@ -118,6 +119,7 @@ def prepare_reporting(mongo_addr, dbname, newstwister_url, sms_config_path):
         if ('allowed_ips' in sms_config) and sms_config['allowed_ips']:
             set_config('sms_allowed_ips', sms_config['allowed_ips'])
 
+    any_dispatch.setup_blueprints(app)
     twt_dispatch.setup_blueprints(app)
     sms_dispatch.setup_blueprints(app)
 
@@ -142,7 +144,7 @@ def run_flask(dbname, server, mongo, newstwister_url, sms_config_path, debug=Fal
         logger.warning('quiting the feeds daemon for not successful startup')
         return
 
-    app.run(host=server[0], port=server[1], debug=debug)
+    app.run(host=server[0], port=server[1], debug=debug, threaded=True)
 
 if __name__ == '__main__':
     file_dir = os.path.dirname(os.path.realpath(__file__))

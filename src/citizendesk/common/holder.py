@@ -103,9 +103,9 @@ class ReportHolder(object):
 
         rnd_list = [str(hex(i))[-1:] for i in range(16)]
         random.shuffle(rnd_list)
-        id_value = '' + feed_type + '//'
+        id_value = '' + feed_type + '||'
         id_value += datetime.datetime.now().isoformat()
-        id_value += '/' + ''.join(rnd_list)
+        id_value += '|' + ''.join(rnd_list)
         return id_value
 
     def get_const(self, name):
