@@ -11,8 +11,79 @@ except:
     unicode = str
 
 from citizendesk.common.utils import get_id_value as _get_id_value
-from citizendesk.feeds.any.report.coverage import collection, schema, FIELD_ACTIVE, FIELD_DECAYED
-from citizendesk.feeds.any.report.coverage import get_coverage_by_id, update_coverage_set
+from citizendesk.common.utils import get_boolean as _get_boolean
+from citizendesk.common.utils import get_sort as _get_sort
+from citizendesk.feeds.any.coverage.storage import collection, schema, FIELD_ACTIVE, FIELD_DECAYED
+from citizendesk.feeds.any.coverage.storage import get_coverage_by_id, update_coverage_set
+
+DEFAULT_LIMIT = 20
+
+def do_get_one(db, coverage_id):
+    '''
+    returns data of a single coverage
+    '''
+    if not db:
+        return (False, 'inner application error')
+
+    coverage_id = _get_id_value(coverage_id)
+    res = get_coverage_by_id(db, coverage_id)
+
+    return res
+
+def do_get_list(db, offset, limit, sort, other):
+    '''
+    returns list of coverages
+    '''
+    if not db:
+        return (False, 'inner application error')
+
+    list_spec = {}
+
+    sort_list = _get_sort(sort)
+    if not sort_list:
+        sort_list = [('produced', 1)]
+
+    name_only = False
+    if other and ('name_only' in other) and other['name_only']:
+        try:
+            name_only = bool(_get_boolean(other['name_only']))
+        except:
+            name_only = False
+
+    coll = db[collection]
+    cursor = coll.find(list_spec).sort(sort_list)
+
+    total = cursor.count()
+
+    if limit is None:
+        limit = DEFAULT_LIMIT
+
+    if offset:
+        cursor = cursor.skip(offset)
+    if limit:
+        cursor = cursor.limit(limit)
+
+    docs = []
+    for entry in cursor:
+        if not entry:
+            continue
+        if not name_only:
+            docs.append(entry)
+        else:
+            if 'title' not in entry:
+                continue
+
+            one_name = {
+                'title': entry['title'],
+                FIELD_ACTIVE: None,
+            }
+
+            if FIELD_ACTIVE in entry:
+                one_name[FIELD_ACTIVE] = entry[FIELD_ACTIVE]
+
+            docs.append(one_name)
+
+    return (True, docs, {'total': total})
 
 def do_insert_one(db, coverage_data):
     '''
@@ -26,14 +97,14 @@ def do_insert_one(db, coverage_data):
             'title': str(coverage_data['title']),
             'description': str(coverage_data['description']),
             'user_id': _get_id_value(coverage_data['user_id']),
-            'is_active': False,
-            'is_decayed': False,
+            FIELD_ACTIVE: False,
+            FIELD_DECAYED: False,
         }
     except:
         return (False, 'can not setup the report')
 
     if ('active' in coverage_data) and (coverage_data['active']):
-        coverage_set['is_active'] = True
+        coverage_set[FIELD_ACTIVE] = True
 
     coll = db[collection]
 

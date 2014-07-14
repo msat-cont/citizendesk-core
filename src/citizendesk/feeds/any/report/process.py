@@ -14,7 +14,7 @@ except:
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.feeds.any.report.storage import collection, schema, FIELD_UPDATED, FIELD_UUID
 from citizendesk.feeds.any.report.storage import get_report_by_id, update_report_set
-from citizendesk.feeds.any.report.coverage import get_coverage_by_id
+from citizendesk.feeds.any.coverage.storage import get_coverage_by_id
 
 COVERAGE_SETS = ('targeting', 'published', 'outgested')
 
@@ -69,6 +69,9 @@ def do_publish_one(db, report_id, coverage_id=None):
 
     set_published = False
     set_outgested = False
+
+    if not to_publish:
+        return (False, 'no coverage to be published in')
 
     for one_cov in to_publish:
         if one_cov not in cov_published:

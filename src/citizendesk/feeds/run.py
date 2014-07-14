@@ -3,8 +3,6 @@
 # Citizen Desk
 #
 
-MAX_PROCESS_COUNT = 8
-
 MONGODB_SERVER_HOST = 'localhost'
 MONGODB_SERVER_PORT = 27017
 
@@ -146,7 +144,7 @@ def run_flask(dbname, server, mongo, newstwister_url, sms_config_path, debug=Fal
         logger.warning('quiting the feeds daemon for not successful startup')
         return
 
-    app.run(host=server[0], port=server[1], debug=debug, processes=MAX_PROCESS_COUNT)
+    app.run(host=server[0], port=server[1], debug=debug, threaded=True)
 
 if __name__ == '__main__':
     file_dir = os.path.dirname(os.path.realpath(__file__))

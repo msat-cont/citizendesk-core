@@ -10,8 +10,8 @@ try:
 except:
     unicode = str
 
-FIELD_ACTIVE = 'is_active'
-FIELD_DECAYED = 'is_decayed'
+FIELD_ACTIVE = 'active'
+FIELD_DECAYED = 'decayed'
 
 collection = 'coverages'
 
@@ -20,8 +20,8 @@ schema = {
     'title': 'str',
     'description': 'str',
     'user_id': 'ObjectId',
-    'is_active': 'bool',
-    'is_decayed': 'bool',
+    FIELD_ACTIVE: 'bool',
+    FIELD_DECAYED: 'bool',
 }
 
 def get_coverage_by_id(db, coverage_id):
@@ -33,7 +33,7 @@ def get_coverage_by_id(db, coverage_id):
 
     coll = db[collection]
 
-    spec = {'_id': doc_id}
+    spec = {'_id': coverage_id}
     doc = coll.find_one(spec)
 
     if not doc:
@@ -48,7 +48,7 @@ def update_coverage_set(db, coverage_id, update_set):
     if not db:
         return (False, 'inner application error')
 
-    check = get_coverage_id_by_id(db, coverage_id)
+    check = get_coverage_by_id(db, coverage_id)
     if not check[0]:
         return (False, 'no such coverage')
 

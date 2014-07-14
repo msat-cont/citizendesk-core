@@ -28,7 +28,7 @@ def get_report_by_id(db, report_id):
 
     coll = db[collection]
 
-    spec = {'_id': doc_id}
+    spec = {'_id': report_id}
     doc = coll.find_one(spec)
 
     if not doc:
