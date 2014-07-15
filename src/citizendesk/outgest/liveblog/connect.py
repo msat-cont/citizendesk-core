@@ -4,14 +4,14 @@
 #
 '''
 GET list of coverages:
-/outgest/liveblog/coverage/
+/streams/liveblog/coverage/
 
 GET list of published reports:
-/outgest/liveblog/coverage/<coverage_id>/reports/published/
+/streams/liveblog/coverage/<coverage_id>/reports/published/
 
 GET report author info:
-/outgest/liveblog/report/<report_id>/author/
-/outgest/liveblog/report/<report_id>/creator/
+/streams/liveblog/report/<report_id>/author/
+/streams/liveblog/report/<report_id>/creator/
 
 '''
 
@@ -35,7 +35,7 @@ def setup_blueprints(app):
 
 lb_coverage_take = Blueprint(LB_COVERAGE_BP_NAME, __name__)
 
-@lb_coverage_take.route('/outgest/liveblog/coverage/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/coverage/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
 def take_coverages_options():
     headers = {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -45,7 +45,7 @@ def take_coverages_options():
 
     return ('', 200, headers)
 
-@lb_coverage_take.route('/outgest/liveblog/coverage/', defaults={}, methods=['GET'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/coverage/', defaults={}, methods=['GET'], strict_slashes=False)
 def take_coverages():
     setup_urls()
 
@@ -64,7 +64,7 @@ def take_coverages():
         logger.warning('problem on liveblog-oriented coverages listing')
         return ('problem on liveblog-oriented coverages listing', 404,)
 
-@lb_coverage_take.route('/outgest/liveblog/coverage/<coverage_id>/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/coverage/<coverage_id>/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
 def take_coverage_info_options(coverage_id):
     headers = {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -74,7 +74,7 @@ def take_coverage_info_options(coverage_id):
 
     return ('', 200, headers)
 
-@lb_coverage_take.route('/outgest/liveblog/coverage/<coverage_id>/', defaults={}, methods=['GET'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/coverage/<coverage_id>/', defaults={}, methods=['GET'], strict_slashes=False)
 def take_coverage_info(coverage_id):
     setup_urls()
 
@@ -93,7 +93,7 @@ def take_coverage_info(coverage_id):
         logger.warning('problem on liveblog-oriented coverages listing')
         return ('problem on liveblog-oriented coverages listing', 404,)
 
-@lb_coverage_take.route('/outgest/liveblog/coverage/<coverage_id>/' + PUBLISHED_REPORTS_SUFFIX, defaults={}, methods=['OPTIONS'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/coverage/<coverage_id>/' + PUBLISHED_REPORTS_SUFFIX, defaults={}, methods=['OPTIONS'], strict_slashes=False)
 def take_coverage_published_reports_options(coverage_id):
     headers = {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -103,7 +103,7 @@ def take_coverage_published_reports_options(coverage_id):
 
     return ('', 200, headers)
 
-@lb_coverage_take.route('/outgest/liveblog/coverage/<coverage_id>/' + PUBLISHED_REPORTS_SUFFIX, defaults={}, methods=['GET'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/coverage/<coverage_id>/' + PUBLISHED_REPORTS_SUFFIX, defaults={}, methods=['GET'], strict_slashes=False)
 def take_coverage_published_reports(coverage_id):
     setup_urls()
 
@@ -127,8 +127,8 @@ def take_coverage_published_reports(coverage_id):
         logger.warning('problem on liveblog-oriented coverage reports listing')
         return ('problem on liveblog-oriented coverage reports listing', 404,)
 
-@lb_coverage_take.route('/outgest/liveblog/report/<report_id>/author/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
-@lb_coverage_take.route('/outgest/liveblog/report/<report_id>/creator/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/report/<report_id>/author/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/report/<report_id>/creator/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
 def take_report_author_options(report_id):
     headers = {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -138,8 +138,8 @@ def take_report_author_options(report_id):
 
     return ('', 200, headers)
 
-@lb_coverage_take.route('/outgest/liveblog/report/<report_id>/author/', defaults={'author_form': 'author'}, methods=['GET'], strict_slashes=False)
-@lb_coverage_take.route('/outgest/liveblog/report/<report_id>/creator/', defaults={'author_form': 'creator'}, methods=['GET'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/report/<report_id>/author/', defaults={'author_form': 'author'}, methods=['GET'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/report/<report_id>/creator/', defaults={'author_form': 'creator'}, methods=['GET'], strict_slashes=False)
 def take_report_author(report_id, author_form):
     setup_urls()
 

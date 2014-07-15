@@ -5,7 +5,7 @@
 '''
 requests:
 
-/outgest/liveblog/
+/streams/liveblog/
 
 
 '''
