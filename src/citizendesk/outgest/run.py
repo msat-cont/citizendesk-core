@@ -7,7 +7,7 @@ MONGODB_SERVER_HOST = 'localhost'
 MONGODB_SERVER_PORT = 27017
 
 DB_NAME = 'citizendesk'
-LIVEBLOG_CONFIG_PATH = None
+CONFIG_PATH = None
 
 DEFAULT_HOST = 'localhost'
 DEFAULT_PORT = 9061
@@ -83,7 +83,7 @@ def check_client():
 
     logger.info('allowed ' + message)
 
-def prepare_reporting(mongo_addr, dbname, liveblog_config_path):
+def prepare_reporting(mongo_addr, dbname, config_path):
     from citizendesk.common.utils import get_logger
     from citizendesk.common.dbc import mongo_dbs
     from citizendesk.feeds.config import set_config
@@ -95,24 +95,22 @@ def prepare_reporting(mongo_addr, dbname, liveblog_config_path):
     DbHolder = namedtuple('DbHolder', 'db')
     mongo_dbs.set_db(DbHolder(db=MongoClient(mongo_addr[0], mongo_addr[1])[mongo_dbs.get_dbname()]))
 
-    '''
-    if liveblog_config_path:
+    config_data = None
+
+    if config_path:
         try:
-            lbhf = open(liveblog_config_path)
-            liveblog_config_data = lbhf.read()
-            lbhf.close()
-            liveblog_yaml = yaml.load_all(liveblog_config_data)
-            liveblog_config = liveblog_yaml.next()
-            liveblog_yaml.close()
+            cfghf = open(config_path)
+            config_data = cfghf.read()
+            cfghf.close()
+            config_yaml = yaml.load_all(config_data)
+            config_data = config_yaml.next()
+            config_yaml.close()
         except:
-            logger.error('can not read liveblog config file: ' + str(liveblog_config_path))
+            config_data = None
+            logger.error('can not read config file: ' + str(config_path))
             return False
 
-        if ('allowed_ips' in liveblog_config) and liveblog_config['allowed_ips']:
-            set_config('liveblog_allowed_ips', liveblog_config['allowed_ips'])
-    '''
-
-    dispatch.setup_blueprints(app)
+    dispatch.setup_blueprints(app, config_data)
 
     return True
 
@@ -126,11 +124,11 @@ def page_not_found(error):
 
     return 'page not found', 404
 
-def run_flask(dbname, server, mongo, liveblog_config_path, debug=False):
+def run_flask(dbname, server, mongo, config_path, debug=False):
     from citizendesk.common.utils import get_logger
     logger = get_logger()
 
-    state = prepare_reporting(mongo, dbname, liveblog_config_path)
+    state = prepare_reporting(mongo, dbname, config_path)
     if not state:
         logger.warning('quiting the feeds daemon for not successful startup')
         return
@@ -146,5 +144,5 @@ if __name__ == '__main__':
     default_mongo = (MONGODB_SERVER_HOST, MONGODB_SERVER_PORT)
 
     setup_logger()
-    run_flask(DB_NAME, server=default_server, mongo=default_mongo, liveblog_config_path=LIVEBLOG_CONFIG_PATH, debug=True)
+    run_flask(DB_NAME, server=default_server, mongo=default_mongo, config_path=CONFIG_PATH, debug=True)
 

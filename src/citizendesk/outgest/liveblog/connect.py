@@ -12,6 +12,7 @@ GET list of published reports:
 GET report author info:
 /streams/liveblog/report/<report_id>/author/
 /streams/liveblog/report/<report_id>/creator/
+/streams/liveblog/report/<report_id>/icon/
 
 '''
 
@@ -25,11 +26,12 @@ except:
 from citizendesk.common.dbc import mongo_dbs
 from citizendesk.common.utils import get_logger, get_client_ip, get_allowed_ips
 from citizendesk.outgest.liveblog.utils import LB_COVERAGE_BP_NAME
-from citizendesk.outgest.liveblog.utils import get_conf, set_conf, setup_urls
+from citizendesk.outgest.liveblog.utils import setup_urls, setup_config
 
 PUBLISHED_REPORTS_SUFFIX = 'reports/published/'
 
-def setup_blueprints(app):
+def setup_blueprints(app, lb_config_data):
+    setup_config(lb_config_data)
     app.register_blueprint(lb_coverage_take)
     return
 
@@ -129,6 +131,7 @@ def take_coverage_published_reports(coverage_id):
 
 @lb_coverage_take.route('/streams/liveblog/report/<report_id>/author/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
 @lb_coverage_take.route('/streams/liveblog/report/<report_id>/creator/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/report/<report_id>/icon/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
 def take_report_author_options(report_id):
     headers = {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -140,6 +143,7 @@ def take_report_author_options(report_id):
 
 @lb_coverage_take.route('/streams/liveblog/report/<report_id>/author/', defaults={'author_form': 'author'}, methods=['GET'], strict_slashes=False)
 @lb_coverage_take.route('/streams/liveblog/report/<report_id>/creator/', defaults={'author_form': 'creator'}, methods=['GET'], strict_slashes=False)
+@lb_coverage_take.route('/streams/liveblog/report/<report_id>/icon/', defaults={'author_form': 'icon'}, methods=['GET'], strict_slashes=False)
 def take_report_author(report_id, author_form):
     setup_urls()
 
@@ -157,4 +161,3 @@ def take_report_author(report_id, author_form):
     except Exception as exc:
         logger.warning('problem on liveblog-oriented citizen info retrieval')
         return ('problem on liveblog-oriented citizen info retrieval', 404,)
-

@@ -37,6 +37,23 @@ def set_conf(key, value):
 
     config[key] = value
 
+def setup_config(liveblog_config_data):
+    if type(liveblog_config_data) is not dict:
+        return
+
+    use_keys = [
+        'default_report_author_name',
+        'default_report_author_icon',
+        'default_report_author_uuid',
+        'sms_report_creator_name',
+        'sms_report_creator_icon',
+        'sms_report_creator_uuid',
+    ]
+
+    for one_key in use_keys:
+        if (one_key in liveblog_config_data) and liveblog_config_data[one_key]:
+            set_conf(one_key, liveblog_config_data[one_key])
+
 def setup_urls():
     request_host = 'localhost'
     if request.host:
@@ -48,12 +65,14 @@ def setup_urls():
     reports_url = url_for(LB_COVERAGE_BP_NAME + '.take_coverage_published_reports', coverage_id=PUBLISHED_REPORTS_PLACEHOLDER)
     author_url = url_for(LB_COVERAGE_BP_NAME + '.take_report_author', report_id=REPORT_LINK_ID_PLACEHOLDER, author_form='author')
     creator_url = url_for(LB_COVERAGE_BP_NAME + '.take_report_author', report_id=REPORT_LINK_ID_PLACEHOLDER, author_form='creator')
+    icon_url = url_for(LB_COVERAGE_BP_NAME + '.take_report_author', report_id=REPORT_LINK_ID_PLACEHOLDER, author_form='icon')
 
     set_conf('coverages_url', start + coverages_url)
     set_conf('coverage_info_url', start + coverage_info_url)
     set_conf('reports_url', start + reports_url)
     set_conf('author_url', start + author_url)
     set_conf('creator_url', start + creator_url)
+    set_conf('icon_url', start + icon_url)
 
 def update_from_cid(cid_got):
     update_ret = None

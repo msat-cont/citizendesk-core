@@ -1,0 +1,17 @@
+
+# liveblog-chaining
+liveblog:
+    # default name for users on liveblog posts, like 'Citizen Desk'
+    default_report_author_name:
+    # default icon for users on liveblog posts, shall be URL
+    default_report_author_icon:
+    # default uuid for users on liveblog posts, shall be valid UUID4 hex value
+    default_report_author_uuid:
+
+    # name for user on SMS-based liveblog posts, like 'SMS'
+    sms_report_creator_name:
+    # icon for user on SMS-based liveblog posts, shall be URL
+    sms_report_creator_icon:
+    # uuid for user on SMS-based liveblog posts, shall be valid UUID4 hex value
+    sms_report_creator_uuid:
+

@@ -1,31 +1,30 @@
 #!/bin/sh
-# Start/stop the feed_ifce storage daemon.
+# Start/stop the outer_ifce streams daemon.
 
 ### BEGIN INIT INFO
-# Provides:          feed_ifce
+# Provides:          outer_ifce
 # Required-Start:    $local_fs $remote_fs
 # Required-Stop:     $local_fs $remote_fs
 # Should-Start:      $network
 # Should-Stop:       $network
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Citizen Desk feeds daemon
-# Description:       the Citizen Desk feeds interface daemon
+# Short-Description: Citizen Desk outgest daemon
+# Description:       the Citizen Desk streams interface daemon
 ### END INIT INFO
 
 . /lib/lsb/init-functions
 
-DAEMON=/opt/citizendesk/lib/citizendesk/feeds/start.py
-PIDFILE=/opt/citizendesk/var/run/feeds_ifce.pid
-LOGFILE=/opt/citizendesk/var/log/citizendesk/feeds_ifce.log
-WEBPORT=9060
+DAEMON=/opt/citizendesk/lib/citizendesk/outgest/start.py
+PIDFILE=/opt/citizendesk/var/run/outer_ifce.pid
+LOGFILE=/opt/citizendesk/var/log/citizendesk/outer_ifce.log
+WEBPORT=9061
 WEBHOST=localhost
 MONGOHOST=localhost
 MONGOPORT=27017
 DBNAME=citizendesk
-NEWSTWISTER_URL="http://localhost:9054/"
-SMSCONF=/opt/citizendesk/etc/citizendesk/sms_ifce.yaml
-CLIENTS=/opt/citizendesk/etc/citizendesk/feed_allowed.conf
+CONFIG=/opt/citizendesk/etc/citizendesk/outer_ifce.yaml
+CLIENTS=/opt/citizendesk/etc/citizendesk/following_allowed.conf
 USER=citizendesk
 GROUP=citizendesk
 
@@ -41,20 +40,20 @@ case "$1" in
     touch $PIDFILE
     chown $USER.$GROUP $PIDFILE
 
-    log_daemon_msg "Starting Citizen Desk feeds daemon"
-    log_progress_msg "feed_ifce"
+    log_daemon_msg "Starting Citizen Desk outgest daemon"
+    log_progress_msg "outer_ifce"
 
     start-stop-daemon --start --quiet --pidfile $PIDFILE --startas $DAEMON -- \
         -w $WEBHOST -p $WEBPORT -i $PIDFILE -l $LOGFILE \
-        -m $MONGOHOST -o $MONGOPORT -b $DBNAME -n $NEWSTWISTER_URL \
-        -d -u $USER -g $GROUP -a $CLIENTS -s $SMSCONF || true
+        -m $MONGOHOST -o $MONGOPORT -b $DBNAME \
+        -d -u $USER -g $GROUP -a $CLIENTS -c $CONFIG || true
 
     log_end_msg 0
     ;;
 
   stop)
-    log_daemon_msg "Stopping Citizen Desk feeds daemon"
-    log_progress_msg "feed_ifce"
+    log_daemon_msg "Stopping Citizen Desk outgest daemon"
+    log_progress_msg "outer_ifce"
     start-stop-daemon --stop --quiet \
         --pidfile $PIDFILE || true
     log_end_msg 0

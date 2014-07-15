@@ -5,6 +5,7 @@
 
 import os, sys, datetime, json
 from citizendesk.outgest.liveblog.utils import get_conf, cid_from_update
+from citizendesk.outgest.liveblog.utils import REPORT_LINK_ID_PLACEHOLDER
 from citizendesk.outgest.liveblog.storage import FIELD_UPDATED_USER
 
 TEXTS_SEPARATOR = '<br>'
@@ -16,24 +17,9 @@ DEFAULT_AUTHOR_NAME = get_conf('default_report_author_name')
 if not DEFAULT_AUTHOR_NAME:
     DEFAULT_AUTHOR_NAME = 'Citizen Desk'
 
-DEFAULT_AUTHOR = {
-    'Source': {
-        'Name': 'citizen_desk',
-    },
-    'User': {
-        'FirstName': DEFAULT_AUTHOR_NAME,
-        'MetaDataIcon': {'href': get_conf('default_report_author_icon')},
-    },
-}
-if get_conf('default_report_author_uuid'):
-    DEFAULT_AUTHOR['User']['Uuid'] = get_conf('default_report_author_uuid')
-
-DEFAULT_CREATOR = {
-    'MetaDataIcon': {'href': get_conf('default_report_author_icon')},
-    'FirstName': DEFAULT_AUTHOR_NAME,
-}
-if get_conf('default_report_author_uuid'):
-    DEFAULT_CREATOR['Uuid'] = get_conf('default_report_author_uuid')
+SMS_CREATOR_NAME = get_conf('sms_report_creator_name')
+if not SMS_CREATOR_NAME:
+    SMS_CREATOR_NAME = 'SMS'
 
 def extract_texts(report):
     # taking the (transcribed) texts
@@ -144,42 +130,60 @@ def adapt_plain_report(report):
 
     return parts
 
-def get_sms_report_author(report, user):
+def get_sms_report_author(report_id, report, user):
 
-    use_uuid = get_conf('sms_report_creator_uuid')
-    use_icon = get_conf('sms_report_creator_icon')
+    icon_url_link = None
+    icon_url = get_conf('sms_report_creator_icon')
+    if icon_url:
+        icon_url_template = get_conf('icon_url')
+        icon_url_link = icon_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, str(report_id))
 
     author = {
         'Source': {
             'Name': 'sms_ingest', # actually not used, since providing user below; otherwise coverage name could be used
         },
         'User': {
-            'FirstName': 'SMS',
-            'MetaDataIcon': {'href': use_icon},
+            'FirstName': SMS_CREATOR_NAME,
+            'MetaDataIcon': {'href': icon_url_link},
         },
     }
 
+    use_uuid = get_conf('sms_report_creator_uuid')
     if use_uuid:
         author['User']['Uuid'] = use_uuid
 
     return author
 
-def get_sms_report_creator(report, user):
+def get_sms_report_creator(report_id, report, user):
 
-    use_uuid = get_conf('sms_report_creator_uuid')
-    use_icon = get_conf('sms_report_creator_icon')
+    icon_url_link = None
+    icon_url = get_conf('sms_report_creator_icon')
+    if icon_url:
+        icon_url_template = get_conf('icon_url')
+        icon_url_link = icon_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, str(report_id))
 
     creator = {
-        'FirstName': 'SMS',
-        'MetaDataIcon': {'href': use_icon},
+        'FirstName': SMS_CREATOR_NAME,
+        'MetaDataIcon': {'href': icon_url_link},
     }
 
+    use_uuid = get_conf('sms_report_creator_uuid')
     if use_uuid:
         creator['Uuid'] = use_uuid
 
     return creator
 
-def get_tweet_report_author(report, user):
+def get_sms_report_icon(report_id, report, user):
+
+    icon_url = get_conf('sms_report_creator_icon')
+
+    icon = {
+        'Content': {'href': icon_url},
+    }
+
+    return icon
+
+def get_tweet_report_author(report_id, report, user):
 
     author = {
         'Source': {
@@ -189,17 +193,25 @@ def get_tweet_report_author(report, user):
 
     return author
 
-def get_tweet_report_creator(report, user):
+def get_tweet_report_creator(report_id, report, user):
 
     if not user:
-        return DEFAULT_CREATOR
+        user = {
+            'first_name': DEFAULT_AUTHOR_NAME,
+            'picture_url': get_conf('default_report_author_icon'),
+            'uuid': get_conf('default_report_author_uuid'),
+        }
 
+    icon_url_link = None
     icon_url = None
     if ('picture_url' in user) and user['picture_url']:
         icon_url = user['picture_url']
+    if icon_url:
+        icon_url_template = get_conf('icon_url')
+        icon_url_link = icon_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, str(report_id))
 
     creator = {
-        'MetaDataIcon': {'href': icon_url},
+        'MetaDataIcon': {'href': icon_url_link},
     }
 
     if ('uuid' in user) and user['uuid']:
@@ -218,21 +230,48 @@ def get_tweet_report_creator(report, user):
 
     return creator
 
-def get_plain_report_author(report, user):
+def get_tweet_report_icon(report_id, report, user):
 
     if not user:
-        return DEFAULT_AUTHOR
+        user = {
+            'first_name': DEFAULT_AUTHOR_NAME,
+            'picture_url': get_conf('default_report_author_icon'),
+            'uuid': get_conf('default_report_author_uuid'),
+        }
 
     icon_url = None
     if ('picture_url' in user) and user['picture_url']:
         icon_url = user['picture_url']
 
+    icon = {
+        'Content': {'href': icon_url},
+    }
+
+    return icon
+
+def get_plain_report_author(report_id, report, user):
+
+    if not user:
+        user = {
+            'first_name': DEFAULT_AUTHOR_NAME,
+            'picture_url': get_conf('default_report_author_icon'),
+            'uuid': get_conf('default_report_author_uuid'),
+        }
+
+    icon_url_link = None
+    icon_url = None
+    if ('picture_url' in user) and user['picture_url']:
+        icon_url = user['picture_url']
+    if icon_url:
+        icon_url_template = get_conf('icon_url')
+        icon_url_link = icon_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, str(report_id))
+
     author = {
         'Source': {
-            'Name': 'internal',
+            'Name': 'citizen_desk', #'internal',
         },
         'User': {
-            'MetaDataIcon': {'href': icon_url},
+            'MetaDataIcon': {'href': icon_url_link},
         },
     }
 
@@ -250,17 +289,25 @@ def get_plain_report_author(report, user):
 
     return author
 
-def get_plain_report_creator(report, user):
+def get_plain_report_creator(report_id, report, user):
 
     if not user:
-        return DEFAULT_CREATOR
+        user = {
+            'first_name': DEFAULT_AUTHOR_NAME,
+            'picture_url': get_conf('default_report_author_icon'),
+            'uuid': get_conf('default_report_author_uuid'),
+        }
 
+    icon_url_link = None
     icon_url = None
     if ('picture_url' in user) and user['picture_url']:
         icon_url = user['picture_url']
+    if icon_url:
+        icon_url_template = get_conf('icon_url')
+        icon_url_link = icon_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, str(report_id))
 
     creator = {
-        'MetaDataIcon': {'href': icon_url},
+        'MetaDataIcon': {'href': icon_url_link},
     }
 
     if ('uuid' in user) and user['uuid']:
@@ -279,3 +326,21 @@ def get_plain_report_creator(report, user):
 
     return creator
 
+def get_plain_report_icon(report_id, report, user):
+
+    if not user:
+        user = {
+            'first_name': DEFAULT_AUTHOR_NAME,
+            'picture_url': get_conf('default_report_author_icon'),
+            'uuid': get_conf('default_report_author_uuid'),
+        }
+
+    icon_url = None
+    if ('picture_url' in user) and user['picture_url']:
+        icon_url = user['picture_url']
+
+    icon = {
+        'Content': {'href': icon_url},
+    }
+
+    return icon

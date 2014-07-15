@@ -12,6 +12,7 @@ from citizendesk.outgest.liveblog.utils import get_conf, cid_from_update, update
 from citizendesk.outgest.liveblog.adapts import adapt_sms_report, adapt_tweet_report, adapt_plain_report
 from citizendesk.outgest.liveblog.adapts import get_sms_report_author, get_tweet_report_author, get_plain_report_author
 from citizendesk.outgest.liveblog.adapts import get_sms_report_creator, get_tweet_report_creator, get_plain_report_creator
+from citizendesk.outgest.liveblog.adapts import get_sms_report_icon, get_tweet_report_icon, get_plain_report_icon
 from citizendesk.outgest.liveblog.storage import load_local_user
 from citizendesk.outgest.liveblog.storage import COLL_COVERAGES, COLL_REPORTS
 from citizendesk.outgest.liveblog.storage import FIELD_UPDATED_REPORT, FIELD_DECAYED_REPORT, FIELD_UUID_REPORT
@@ -205,7 +206,7 @@ def get_report_author(db, report_id, author_form):
 
     coll = db[COLL_REPORTS]
 
-    if author_form not in ['author', 'creator']:
+    if author_form not in ['author', 'creator', 'icon']:
         return (False, 'unknown author form')
 
     report_id = _get_id_value(report_id)
@@ -232,21 +233,26 @@ def get_report_author(db, report_id, author_form):
 
     if 'sms' == feed_type:
         if 'author' == author_form:
-            author = get_sms_report_author(report, user)
+            author = get_sms_report_author(report_id, report, user)
         if 'creator' == author_form:
-            author = get_sms_report_creator(report, user)
+            author = get_sms_report_creator(report_id, report, user)
+        if 'icon' == author_form:
+            author = get_sms_report_icon(report_id, report, user)
 
     if 'tweet' == feed_type:
         if 'author' == author_form:
-            author = get_tweet_report_author(report, user)
+            author = get_tweet_report_author(report_id, report, user)
         if 'creator' == author_form:
-            author = get_tweet_report_creator(report, user)
+            author = get_tweet_report_creator(report_id, report, user)
+        if 'icon' == author_form:
+            author = get_tweet_report_icon(report_id, report, user)
 
     if 'plain' == feed_type:
         if 'author' == author_form:
-            author = get_plain_report_author(report, user)
+            author = get_plain_report_author(report_id, report, user)
         if 'creator' == author_form:
-            author = get_plain_report_creator(report, user)
+            author = get_plain_report_creator(report_id, report, user)
+        if 'icon' == author_form:
+            author = get_plain_report_icon(report_id, report, user)
 
     return (True, author)
-

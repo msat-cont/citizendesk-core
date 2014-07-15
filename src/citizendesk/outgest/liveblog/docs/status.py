@@ -87,4 +87,12 @@ Creator:
     },
 }
 
+MetaDataIcon['href']:
+{
+    'Content':
+    {
+        'href': string,
+    },
+}
+
 '''
