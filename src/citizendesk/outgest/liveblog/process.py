@@ -178,7 +178,7 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
         }
 
         if FIELD_UUID_REPORT in entry:
-            one_report[FIELD_UUID_REPORT] = entry[FIELD_UUID_REPORT]
+            one_report['Uuid'] = entry[FIELD_UUID_REPORT]
 
         if coverage_id not in entry['coverages']['published']:
             one_report['DeletedOn'] = cid_from_update(0)
