@@ -8,6 +8,8 @@ import logging, logging.handlers
 
 from bson.objectid import ObjectId
 
+MAXLEN_INT_IDS = 9
+
 try:
     unicode
 except:
@@ -156,7 +158,7 @@ def get_id_value(value):
         pass
 
     if type(value) in [str, unicode]:
-        if value.isdigit():
+        if value.isdigit() and (len(value) <= MAXLEN_INT_IDS):
             try:
                 value = int(value)
             except:

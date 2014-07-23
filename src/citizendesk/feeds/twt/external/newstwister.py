@@ -8,6 +8,15 @@ class NewstwisterConnector():
     def __init__(self, base_url):
         self.ctrl_base_url = base_url
 
+    def request_authini(self, authini_data):
+        return (False, 'not yet implemented')
+
+    def request_authfin(self, authfin_data):
+        return (False, 'not yet implemented')
+
+    def send_tweet(self, authorized_data, tweet_data):
+        return (False, 'not yet implemented')
+
     def request_user(self, search_spec):
         search_url = self.ctrl_base_url
         if not search_url.endswith('/'):

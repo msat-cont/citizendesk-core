@@ -76,6 +76,8 @@ Citizen structure; see citizen_holder for it;
 
 '''
 
+#TODO: check how actually are set assignments, etc. on UI, to adjust it here and in ingest!
+
 import os, sys, datetime
 from citizendesk.common.dbc import mongo_dbs
 

@@ -109,7 +109,7 @@ def do_post_one(db, doc_id=None, data=None):
     if doc_id is not None:
         entry = coll.find_one({'_id': doc_id})
         if not entry:
-            return (False, '"filter" of the provided _id not found')
+            return (False, '"oauth" of the provided _id not found')
         try:
             if ('logs' in entry) and (entry['logs']) and ('created' in entry['logs']):
                 if entry['logs']['created']:
