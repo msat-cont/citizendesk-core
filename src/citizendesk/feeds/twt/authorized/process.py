@@ -121,14 +121,23 @@ def do_post_one(db, auther_url, data):
     }
 
     connector = controller.NewstwisterConnector(auther_url)
-    res = connector.request_authini(authini_data)
+    res = connector.request_authini(authini_data['oauth_info'], authini_data['payload'])
     if not res[0]:
         err_msg = 'error during authini request dispatching: ' + res[1]
         return (False, err_msg)
 
-    ret_data = res[1]
+    ret_envelope = res[1]
+    if type(ret_envelope) is not dict:
+        return (False, 'unknown form of returned authini data: ' + str(type(ret_envelope)))
+
+    if ('status' not in ret_envelope) or (not ret_envelope['status']):
+        return (False, 'status not acknowledged in returned authini data')
+    if ('data' not in ret_envelope) or (not ret_envelope['data']):
+        return (False, 'payload not provided in returned authini data')
+
+    ret_data = ret_envelope['data']
     if type(ret_data) is not dict:
-        return (False, 'unknown form of returned authini data: ' + str(type(ret_data)))
+        return (False, 'unknown form of returned payload in authini data: ' + str(type(ret_data)))
 
     for part in ['oauth_token_key', 'oauth_token_secret', 'pin_url']:
         if (part not in ret_data) or (not ret_data[part]):
@@ -226,14 +235,23 @@ def do_finalize_one(db, auther_url, doc_id, data):
     }
 
     connector = controller.NewstwisterConnector(auther_url)
-    res = connector.request_authfin(authfin_data)
+    res = connector.request_authfin(authfin_data['oauth_info'], authfin_data['payload'])
     if not res[0]:
         err_msg = 'error during authfin request dispatching: ' + res[1]
         return (False, err_msg)
 
-    ret_data = res[1]
+    ret_envelope = res[1]
+    if type(ret_envelope) is not dict:
+        return (False, 'unknown form of returned authfin data: ' + str(type(ret_envelope)))
+
+    if ('status' not in ret_envelope) or (not ret_envelope['status']):
+        return (False, 'status not acknowledged in returned authfin data')
+    if ('data' not in ret_envelope) or (not ret_envelope['data']):
+        return (False, 'payload not provided in returned authfin data')
+
+    ret_data = ret_envelope['data']
     if type(ret_data) is not dict:
-        return (False, 'unknown form of returned authfin data: ' + str(type(ret_data)))
+        return (False, 'unknown form of returned payload in authfin data: ' + str(type(ret_data)))
 
     for part in ['oauth_token_key', 'oauth_token_secret', 'user_id', 'screen_name']:
         if (part not in ret_data) or (not ret_data[part]):
@@ -262,8 +280,8 @@ def do_finalize_one(db, auther_url, doc_id, data):
             'app_consumer_secret': spec['app_consumer_secret'],
             'temporary_access_token_key': None,
             'temporary_access_token_secret': None,
-            'authorized_access_token_key': spec_data['oauth_token_key'],
-            'authorized_access_token_secret': spec_data['oauth_token_secret'],
+            'authorized_access_token_key': ret_data['oauth_token_key'],
+            'authorized_access_token_secret': ret_data['oauth_token_secret'],
             'verifier_url': None,
             'user_id': ret_data['user_id'],
             'screen_name': ret_data['screen_name'],

@@ -50,9 +50,11 @@ def do_post_send(db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec
     if ('message' not in tweet_spec) or (not tweet_spec['message']):
         return (False, 'message text not provided')
 
+    follow_part = []
     tweet_data = {
         'endpoint_id': endpoint_id,
         'status': tweet_spec['message'],
+        'filter': {},
     }
 
     if ('sensitive' in tweet_spec) and (tweet_spec['sensitive'] is not None):
@@ -90,6 +92,7 @@ def do_post_send(db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec
 
         try:
             orig_user_screen_name = str(report['original']['user']['screen_name'])
+            follow_part.append(orig_user_screen_name.lower())
         except:
             return (False, 'can not find the original tweet sender')
 
@@ -119,12 +122,15 @@ def do_post_send(db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec
             'access_token_key': authorized_data['spec']['authorized_access_token_key'],
             'access_token_secret': authorized_data['spec']['authorized_access_token_secret'],
         }
+        follow_part.append(str(authorized_data['spec']['screen_name_search']))
     except Exception as exc:
-        return (False, 'authorized info does not contain all the requied data: ' + str(exc))
+        return (False, 'authorized info does not contain all the required data: ' + str(exc))
 
     for key in authorized_spec:
         if not authorized_spec[key]:
             return (False, 'the "' + str(key) + '" part of authorized info is empty')
+
+    tweet_data['filter']['follow'] = follow_part
 
     connector = controller.NewstwisterConnector(sender_url)
     res = connector.send_tweet(authorized_spec, tweet_data)
@@ -147,7 +153,7 @@ def do_post_send(db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec
     doc_id = saved_tweet['_id']
 
     user_id = _get_id_value(user_id)
-    coll.update({'_id': doc_id}, {'$set': {'local': True, 'user_id': user_id}})
+    coll.update({'_id': doc_id}, {'$set': {'local': True, 'user_id': user_id, 'proto': False}})
 
     return (True, {'_id': doc_id})
 

@@ -8,14 +8,119 @@ class NewstwisterConnector():
     def __init__(self, base_url):
         self.ctrl_base_url = base_url
 
-    def request_authini(self, authini_data):
-        return (False, 'not yet implemented')
+    def request_authini(self, authini_oauth, authini_payload):
+        auth_url = self.ctrl_base_url
+        if not auth_url.endswith('/'):
+            auth_url += '/'
+        auth_url += '_authini'
 
-    def request_authfin(self, authfin_data):
-        return (False, 'not yet implemented')
+        params = {}
+        params['oauth_info'] = authini_oauth
+        params['payload'] = authini_payload
+
+        auth_status = None
+        success = True
+        try:
+            post_data = json.dumps(params)
+            req = urllib2.Request(auth_url, post_data, {'Content-Type': 'application/json'})
+            response = urllib2.urlopen(req)
+            auth_result = response.read()
+            auth_status = json.loads(auth_result)
+        except Exception as exc:
+            success = False
+            err_notice = ''
+            exc_other = ''
+            try:
+                exc_other += ' ' + str(exc.message).strip() + ','
+            except:
+                pass
+            try:
+                err_notice = str(exc.read()).strip()
+                exc_other += ' ' + err_notice + ','
+            except:
+                pass
+            if err_notice:
+                auth_status = err_notice
+            else:
+                auth_status = str(exc) + str(exc_other)
+
+        return (success, auth_status)
+
+    def request_authfin(self, authfin_oauth, authfin_payload):
+        auth_url = self.ctrl_base_url
+        if not auth_url.endswith('/'):
+            auth_url += '/'
+        auth_url += '_authfin'
+
+        params = {}
+        params['oauth_info'] = authfin_oauth
+        params['payload'] = authfin_payload
+
+        auth_status = None
+        success = True
+        try:
+            post_data = json.dumps(params)
+            req = urllib2.Request(auth_url, post_data, {'Content-Type': 'application/json'})
+            response = urllib2.urlopen(req)
+            auth_result = response.read()
+            auth_status = json.loads(auth_result)
+        except Exception as exc:
+            success = False
+            err_notice = ''
+            exc_other = ''
+            try:
+                exc_other += ' ' + str(exc.message).strip() + ','
+            except:
+                pass
+            try:
+                err_notice = str(exc.read()).strip()
+                exc_other += ' ' + err_notice + ','
+            except:
+                pass
+            if err_notice:
+                auth_status = err_notice
+            else:
+                auth_status = str(exc) + str(exc_other)
+
+        return (success, auth_status)
 
     def send_tweet(self, authorized_data, tweet_data):
-        return (False, 'not yet implemented')
+        send_url = self.ctrl_base_url
+        if not send_url.endswith('/'):
+            send_url += '/'
+        send_url += '_tweet'
+
+        params = {}
+        params['oauth_info'] = authorized_data
+        params['payload'] = tweet_data
+
+        send_status = None
+        success = True
+        try:
+            post_data = json.dumps(params)
+            req = urllib2.Request(send_url, post_data, {'Content-Type': 'application/json'})
+            response = urllib2.urlopen(req)
+            send_result = response.read()
+            send_status = json.loads(send_result)
+        except Exception as exc:
+            success = False
+            err_notice = ''
+            exc_other = ''
+            try:
+                exc_other += ' ' + str(exc.message).strip() + ','
+            except:
+                pass
+            try:
+                err_notice = str(exc.read()).strip()
+                exc_other += ' ' + err_notice + ','
+            except:
+                pass
+            if err_notice:
+                send_status = err_notice
+            else:
+                send_status = str(exc) + str(exc_other)
+
+        return (success, send_status)
 
     def request_user(self, search_spec):
         search_url = self.ctrl_base_url

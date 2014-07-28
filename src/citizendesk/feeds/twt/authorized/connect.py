@@ -130,6 +130,7 @@ def feed_twt_authorized_post_one():
 @bp_feed_twt_authorized.route('/feeds/twt/authorized/<doc_id>/finalize/', defaults={}, methods=['POST'], strict_slashes=False)
 def feed_twt_authorized_finalize_one(doc_id):
     from citizendesk.feeds.twt.authorized import process
+    from citizendesk.feeds.config import get_config
 
     logger = get_logger()
     client_ip = get_client_ip()
