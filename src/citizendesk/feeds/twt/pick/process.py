@@ -67,7 +67,7 @@ def do_post_pick(db, picker_url, user_id, endpoint_id, tweet_spec):
         path_parts = []
         for one_part in url_path.split('/'):
             if not one_part:
-                break
+                continue
             path_parts.append(one_part)
         if 3 != len(path_parts):
             return (False, 'unrecognized tweet URL path')
