@@ -458,7 +458,7 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
             reasons = find_stream_reason(feed_filter, expanded_text, report['authors'], endorsers, report['recipients'])
         if 'search' == channel_type:
             reasons = find_search_reason(feed_filter, expanded_text, report['authors'], endorsers, report['recipients'])
-        if channel_type in ('announce', 'reply'):
+        if channel_type in ('announce', 'reply', 'picked'):
             reasons = find_send_reason(feed_filter, expanded_text, report['authors'], endorsers, report['recipients'])
         one_channel['reasons'] = reasons
 
@@ -534,7 +534,7 @@ def do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_fi
                 reasons = find_stream_reason(feed_filter, expanded_text, tweet_report['authors'], report_endorsers, tweet_report['recipients'])
             if 'search' == channel_type:
                 reasons = find_search_reason(feed_filter, expanded_text, tweet_report['authors'], report_endorsers, tweet_report['recipients'])
-            if channel_type in ('announce', 'reply'):
+            if channel_type in ('announce', 'reply', 'picked'):
                 reasons = find_send_reason(feed_filter, expanded_text, tweet_report['authors'], report_endorsers, tweet_report['recipients'])
 
             one_channel['reasons'] = reasons

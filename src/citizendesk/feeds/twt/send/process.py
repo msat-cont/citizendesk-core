@@ -46,7 +46,11 @@ def do_post_send(db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec
         return (False, 'authorized_id not specified')
     if not user_id:
         return (False, 'user_id not specified')
+    if not endpoint_id:
+        return (False, 'endpoint_id not specified')
 
+    if type(tweet_spec) is not dict:
+        return (False, 'unknown form of tweet spec')
     if ('message' not in tweet_spec) or (not tweet_spec['message']):
         return (False, 'message text not provided')
 

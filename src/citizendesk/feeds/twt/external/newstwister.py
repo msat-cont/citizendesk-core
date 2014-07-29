@@ -8,6 +8,43 @@ class NewstwisterConnector():
     def __init__(self, base_url):
         self.ctrl_base_url = base_url
 
+    def pick_tweet(self, pick_spec):
+        pick_url = self.ctrl_base_url
+        if not pick_url.endswith('/'):
+            pick_url += '/'
+        pick_url += '_pick'
+
+        params = {}
+        params['type'] = 'tweet_info'
+        params['params'] = pick_spec
+
+        pick_status = None
+        success = True
+        try:
+            post_data = json.dumps(params)
+            req = urllib2.Request(pick_url, post_data, {'Content-Type': 'application/json'})
+            response = urllib2.urlopen(req)
+            pick_status = response.read()
+        except Exception as exc:
+            success = False
+            err_notice = ''
+            exc_other = ''
+            try:
+                exc_other += ' ' + str(exc.message).strip() + ','
+            except:
+                pass
+            try:
+                err_notice = str(exc.read()).strip()
+                exc_other += ' ' + err_notice + ','
+            except:
+                pass
+            if err_notice:
+                pick_status = err_notice
+            else:
+                pick_status = str(exc) + str(exc_other)
+
+        return (success, pick_status)
+
     def request_authini(self, authini_oauth, authini_payload):
         auth_url = self.ctrl_base_url
         if not auth_url.endswith('/'):

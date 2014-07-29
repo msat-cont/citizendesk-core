@@ -15,6 +15,7 @@ requests:
 /feeds/twt/citizen_alias/
 /feeds/twt/authorized/
 /feeds/twt/send/
+/feeds/twt/pick/
 
 '''
 
@@ -42,5 +43,8 @@ def setup_blueprints(app):
 
     import citizendesk.feeds.twt.send.connect as twt_send_connect
     twt_send_connect.setup_blueprints(app)
+
+    import citizendesk.feeds.twt.pick.connect as twt_pick_connect
+    twt_pick_connect.setup_blueprints(app)
 
     return
