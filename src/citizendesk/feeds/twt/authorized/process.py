@@ -131,7 +131,10 @@ def do_post_one(db, auther_url, data):
         return (False, 'unknown form of returned authini data: ' + str(type(ret_envelope)))
 
     if ('status' not in ret_envelope) or (not ret_envelope['status']):
-        return (False, 'status not acknowledged in returned authini data')
+        err_msg = ''
+        if ('error' in ret_envelope) and (ret_envelope['error']):
+            err_msg = ': ' + str(ret_envelope['error'])
+        return (False, 'status not acknowledged in returned authini data' + err_msg)
     if ('data' not in ret_envelope) or (not ret_envelope['data']):
         return (False, 'payload not provided in returned authini data')
 
@@ -245,7 +248,10 @@ def do_finalize_one(db, auther_url, doc_id, data):
         return (False, 'unknown form of returned authfin data: ' + str(type(ret_envelope)))
 
     if ('status' not in ret_envelope) or (not ret_envelope['status']):
-        return (False, 'status not acknowledged in returned authfin data')
+        err_msg = ''
+        if ('error' in ret_envelope) and (ret_envelope['error']):
+            err_msg = ': ' + str(ret_envelope['error'])
+        return (False, 'status not acknowledged in returned authfin data' + err_msg)
     if ('data' not in ret_envelope) or (not ret_envelope['data']):
         return (False, 'payload not provided in returned authfin data')
 

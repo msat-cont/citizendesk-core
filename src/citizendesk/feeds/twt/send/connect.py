@@ -63,7 +63,7 @@ def feed_twt_send_one_post(report_id):
 
     sender_url = get_config('newstwister_url')
 
-    res = process.do_post_search(mongo_dbs.get_db().db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec, report_id)
+    res = process.do_post_send(mongo_dbs.get_db().db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec, report_id)
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}

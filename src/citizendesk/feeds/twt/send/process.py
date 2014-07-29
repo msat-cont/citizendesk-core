@@ -91,8 +91,9 @@ def do_post_send(db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec
             return (False, 'specified report not found')
 
         try:
-            orig_user_screen_name = str(report['original']['user']['screen_name'])
-            follow_part.append(orig_user_screen_name.lower())
+            orig_user_screen_name = str(report['original']['user']['screen_name']).lower()
+            if orig_user_screen_name not in follow_part:
+                follow_part.append(orig_user_screen_name)
         except:
             return (False, 'can not find the original tweet sender')
 
@@ -122,7 +123,9 @@ def do_post_send(db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec
             'access_token_key': authorized_data['spec']['authorized_access_token_key'],
             'access_token_secret': authorized_data['spec']['authorized_access_token_secret'],
         }
-        follow_part.append(str(authorized_data['spec']['screen_name_search']))
+        sender_screen_name = str(authorized_data['spec']['screen_name_search'])
+        if sender_screen_name not in follow_part:
+            follow_part.append(sender_screen_name)
     except Exception as exc:
         return (False, 'authorized info does not contain all the required data: ' + str(exc))
 
@@ -138,9 +141,21 @@ def do_post_send(db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec
         err_msg = 'error during send-tweet request dispatching: ' + res[1]
         return (False, err_msg)
 
-    ret_data = res[1]
+    ret_envelope = res[1]
+    if type(ret_envelope) is not dict:
+        return (False, 'unknown form of returned send-tweet data: ' + str(type(ret_envelope)))
+
+    if ('status' not in ret_envelope) or (not ret_envelope['status']):
+        err_msg = ''
+        if ('error' in ret_envelope) and (ret_envelope['error']):
+            err_msg = ': ' + str(ret_envelope['error'])
+        return (False, 'status not acknowledged in returned send-tweet data' + err_msg)
+    if ('data' not in ret_envelope) or (not ret_envelope['data']):
+        return (False, 'payload not provided in returned send-tweet data')
+
+    ret_data = ret_envelope['data']
     if type(ret_data) is not dict:
-        return (False, 'unknown form of returned send-tweet data: ' + str(type(ret_data)))
+        return (False, 'unknown form of returned payload in send-tweet data: ' + str(type(ret_data)))
 
     if 'id_str' not in ret_data:
         return (False, 'returned send-tweet data without tweet identifier')

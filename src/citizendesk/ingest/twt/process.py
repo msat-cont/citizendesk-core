@@ -166,6 +166,9 @@ def _take_twt_user_names(citizen_alias_lists):
     return names
 
 def find_search_reason(criteria, expanded_text, authors, endorsers, recipients):
+    if type(criteria) is not dict:
+        criteria = {}
+
     reasons_track = []
     reasons_follow = []
 
@@ -185,26 +188,29 @@ def find_search_reason(criteria, expanded_text, authors, endorsers, recipients):
                 if not one_term:
                     continue
                 if str(one_term).lower() in expanded_text:
-                    reasons_track.append(one_term)
+                    reasons_track.append(one_term.lower())
                     continue
                 if str(one_term).lower() in tweet_authors:
-                    reasons_track.append(one_term)
+                    reasons_track.append(one_term.lower())
 
         if 'from' in criteria['query']:
             from_part = criteria['query']['from']
             if from_part:
                 if str(from_part).lower() in tweet_authors:
-                    reasons_follow.append(from_part)
+                    reasons_follow.append(from_part.lower())
 
         if 'to' in criteria['query']:
             to_part = criteria['query']['to']
             if to_part:
                 if str(to_part).lower() in tweet_recipients:
-                    reasons_follow.append(to_part)
+                    reasons_follow.append(to_part.lower())
 
     return {'track': reasons_track, 'follow': reasons_follow}
 
 def find_stream_reason(criteria, expanded_text, authors, endorsers, recipients):
+    if type(criteria) is not dict:
+        criteria = {}
+
     reasons_track = []
     reasons_follow = []
 
@@ -228,7 +234,7 @@ def find_stream_reason(criteria, expanded_text, authors, endorsers, recipients):
                 tuple_present = False
                 break
         if tuple_present:
-            reasons_track.append(term_tuple)
+            reasons_track.append(term_tuple.lower())
 
     tweet_borders = _take_twt_user_names([authors, endorsers, recipients])
 
@@ -240,7 +246,21 @@ def find_stream_reason(criteria, expanded_text, authors, endorsers, recipients):
 
     for one_follow in follow_parts:
         if str(one_follow).lower() in tweet_borders:
-            reasons_follow.append(one_follow)
+            reasons_follow.append(one_follow.lower())
+
+    return {'track': reasons_track, 'follow': reasons_follow}
+
+def find_send_reason(criteria, expanded_text, authors, endorsers, recipients):
+    if type(criteria) is not dict:
+        criteria = {}
+
+    reasons_track = []
+    reasons_follow = []
+
+    if ('follow' in criteria) and (type(criteria['follow']) in (list, tuple)):
+        for one_followed in criteria['follow']:
+            if one_followed not in reasons_follow:
+                reasons_follow.append(one_followed)
 
     return {'track': reasons_track, 'follow': reasons_follow}
 
@@ -252,14 +272,19 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
         return (False, 'wrong tweet_id')
 
     session_id = report_id
-
     parent_id = None
-    if ('in_reply_to_status_id_str' in tweet) and tweet['in_reply_to_status_id_str']:
-        parent_id = tweet['in_reply_to_status_id_str']
-    if parent_id:
-        session_id = gen_id(feed_type, parent_id)
 
-    parent_tweet = get_tweet(gen_id(feed_type, parent_id)) if parent_id else None
+    try:
+        if ('in_reply_to_status_id_str' in tweet) and tweet['in_reply_to_status_id_str']:
+            parent_id_str = str(tweet['in_reply_to_status_id_str'])
+            if parent_id_str:
+                parent_id = gen_id(feed_type, parent_id_str)
+                session_id = parent_id
+    except Exception as exc:
+        sys.stderr.write(str(exc) + '\n')
+        return (False, 'wrong parent_id in the tweet structure')
+
+    parent_tweet = get_tweet(parent_id) if parent_id else None
     proto = True
     pinned_id = None
     assignments = []
@@ -332,7 +357,7 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
             if ('hashtags' in report_entities) and report_entities['hashtags']:
                 rep_tags = []
                 for one_tag in report_entities['hashtags']:
-                    rep_tags.append(one_tag['text'])
+                    rep_tags.append(one_tag['text'].lower())
                 report['tags'] = rep_tags
 
             if ('urls' in report_entities) and report_entities['urls']:
@@ -433,6 +458,8 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
             reasons = find_stream_reason(feed_filter, expanded_text, report['authors'], endorsers, report['recipients'])
         if 'search' == channel_type:
             reasons = find_search_reason(feed_filter, expanded_text, report['authors'], endorsers, report['recipients'])
+        if channel_type in ('announce', 'reply'):
+            reasons = find_send_reason(feed_filter, expanded_text, report['authors'], endorsers, report['recipients'])
         one_channel['reasons'] = reasons
 
         report['channels'] = [one_channel]
@@ -507,6 +534,9 @@ def do_post(holder, tweet_id, tweet, channel_type, endpoint, request_id, feed_fi
                 reasons = find_stream_reason(feed_filter, expanded_text, tweet_report['authors'], report_endorsers, tweet_report['recipients'])
             if 'search' == channel_type:
                 reasons = find_search_reason(feed_filter, expanded_text, tweet_report['authors'], report_endorsers, tweet_report['recipients'])
+            if channel_type in ('announce', 'reply'):
+                reasons = find_send_reason(feed_filter, expanded_text, tweet_report['authors'], report_endorsers, tweet_report['recipients'])
+
             one_channel['reasons'] = reasons
         except Exception as exc:
             sys.stderr.write(str(exc) + '\n')
