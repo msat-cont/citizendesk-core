@@ -21,7 +21,7 @@ from citizendesk.feeds.sms.common.utils import get_conf, normalize_phone_number
 
 holder = ReportHolder()
 
-COLL_CONFIG = 'cd_config'
+COLL_CONFIG = 'core_config'
 
 DEFAULT_TIME_DELAY = 1 # 1h
 

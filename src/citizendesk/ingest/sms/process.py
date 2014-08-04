@@ -55,7 +55,7 @@ def is_within_session(last_received, current_received, config):
     return False
 
 def ask_sender(db, session_start, orig_report, alias_info, phone_number, common_config):
-    # for now, general config in a config file, or 'cd_config' collection in 'sms' document
+    # for now, general config in a config file, or 'core_config' collection in 'sms' document
     # by phone_number: in citizen_alias structure
 
     use_config = {
