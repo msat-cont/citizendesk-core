@@ -10,15 +10,19 @@ try:
 except:
     unicode = str
 
-FIELD_UPDATED = '_updated'
-FIELD_DECAYED = 'decayed'
-FIELD_UUID = 'uuid'
-FIELD_MEDIA = 'media'
-
 collection = 'reports'
 
 schema = {
-    '_id': 'this is for loading the whole reports'
+    '_id': 'this is for loading the whole reports',
+    'media': [
+        {
+            'name': 'str',
+            'link': 'URL',
+            'link_ssl': 'URL',
+            'width': 'int',
+            'height': 'int',
+        },
+    ],
 }
 
 def get_report_by_id(db, report_id):
