@@ -101,7 +101,7 @@ def do_insert_one(db, coverage_data):
             FIELD_DECAYED: False,
         }
     except:
-        return (False, 'can not setup the report')
+        return (False, 'can not setup the coverage')
 
     if ('active' in coverage_data) and (coverage_data['active']):
         coverage_set[FIELD_ACTIVE] = True
