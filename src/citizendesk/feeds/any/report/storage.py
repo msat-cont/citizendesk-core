@@ -14,6 +14,7 @@ FIELD_UPDATED = '_updated'
 FIELD_DECAYED = 'decayed'
 FIELD_UUID = 'uuid'
 FIELD_MEDIA = 'media'
+MEDIA_IMAGE_TYPE = 'image'
 
 collection = 'reports'
 

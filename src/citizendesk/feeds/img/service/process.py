@@ -19,7 +19,7 @@ from citizendesk.common.utils import get_sort as _get_sort
 from citizendesk.feeds.img.service.storage import collection, schema, FIELD_ACTIVE
 from citizendesk.feeds.img.service.storage import METHOD_CLIENT_GET, SERVICE_IMAGE_TYPE, URL_ENCODED_IMG_LINK
 from citizendesk.feeds.img.service.storage import get_service_by_id, update_service_set
-from citizendesk.feeds.any.report.storage import get_report_by_id, FIELD_MEDIA
+from citizendesk.feeds.any.report.storage import get_report_by_id, FIELD_MEDIA, MEDIA_IMAGE_TYPE
 
 DEFAULT_LIMIT = 20
 
@@ -106,6 +106,9 @@ def do_get_resolved(report_id):
         if (type(one_media) is not dict):
             media_services.append(one_link_set)
             continue
+        if ('type' in one_media) and (one_media['type'] != MEDIA_IMAGE_TYPE):
+            media_services.append(one_link_set)
+            continue
 
         link = None
         link_ssl = None
@@ -115,6 +118,7 @@ def do_get_resolved(report_id):
             link_ssl = one_media['link_ssl']
         if (not link) and (not link_ssl):
             media_services.append(one_link_set)
+            continue
         if not link:
             link = link_ssl
         if not link_ssl:
