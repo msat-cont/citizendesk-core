@@ -13,7 +13,7 @@ except:
 FIELD_ACTIVE = 'active'
 METHOD_CLIENT_GET = 'client_get'
 SERVICE_IMAGE_TYPE = 'image'
-URL_ENCODED_IMG_LINK = 0
+URL_ENCODED_IMG_LINK = 'url_encoded_img_link'
 
 collection = 'media_services'
 
@@ -21,6 +21,8 @@ schema = {
     '_id': 'ObjectId',
     'title': 'str',
     'description': 'str',
+    'notice': 'str',
+    'site': 'str',
     'type': SERVICE_IMAGE_TYPE,
     'spec': {
         'method': METHOD_CLIENT_GET,

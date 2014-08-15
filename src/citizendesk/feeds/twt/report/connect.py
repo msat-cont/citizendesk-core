@@ -88,7 +88,7 @@ def feed_twt_report_get_list(endpoint_type, endpoint_id, is_proto):
         return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
 
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
-    if 3 >= len(res):
+    if 2 < len(res):
         ret_data['_meta']['list'] = res[2]
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 
@@ -114,7 +114,7 @@ def feed_twt_report_get_session(session_id):
         return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
 
     ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
-    if 3 >= len(res):
+    if 2 < len(res):
         ret_data['_meta']['list'] = res[2]
     return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
 

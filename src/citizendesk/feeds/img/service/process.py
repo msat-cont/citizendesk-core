@@ -23,15 +23,17 @@ from citizendesk.feeds.any.report.storage import get_report_by_id, FIELD_MEDIA, 
 
 DEFAULT_LIMIT = 20
 
-def do_get_resolved(report_id):
+def do_get_resolved(db, report_id):
     '''
     returns resolved methods on media of a single report
     '''
     if not db:
         return (False, 'inner application error')
 
+    sort_list = [('_id',1)]
+
     coll = db[collection]
-    cursor = coll.find(list_spec).sort(sort_list)
+    cursor = coll.find().sort(sort_list)
     services = []
     for entry in cursor:
         if not entry:
@@ -44,7 +46,8 @@ def do_get_resolved(report_id):
                 continue
             if entry['type'] != SERVICE_IMAGE_TYPE:
                 continue
-
+            if (FIELD_ACTIVE not in entry) or (not entry[FIELD_ACTIVE]):
+                continue
             if not 'spec' in entry:
                 continue
             spec = entry['spec']
@@ -79,18 +82,18 @@ def do_get_resolved(report_id):
                     break
             if not known_parameters:
                 continue
-            entry_use['parameters'] = parameters
-        except:
+            entry_use['parameters'] = spec['parameters']
+        except Exception as exc:
             continue
 
         services.append(entry_use)
 
     report_id = _get_id_value(report_id)
-    res = get_report_by_id(report_id)
+    res = get_report_by_id(db, report_id)
     if not res[0]:
         return res
 
-    report = res[0]
+    report = res[1]
     if type(report) is not dict:
         return (False, 'unknown structure of report')
 
@@ -128,17 +131,17 @@ def do_get_resolved(report_id):
 
         try:
             for one_service in services:
-                one_id = one_service['_id']
+                one_id = str(one_service['_id'])
                 one_link = one_service['link']
                 one_link_ssl = one_service['link_ssl']
                 for one_param in one_service['parameters']:
                     one_link = one_link.replace(one_param, link)
-                    one_link_ssl = one_link.replace(one_param, link_ssl)
+                    one_link_ssl = one_link_ssl.replace(one_param, link_ssl)
                 one_link_set[one_id] = {
-                    'link': 'one_link',
-                    'link_ssl': 'one_link_ssl',
+                    'link': one_link,
+                    'link_ssl': one_link_ssl,
                 }
-        except:
+        except Exception as exc:
             pass
 
         media_services.append(one_link_set)
@@ -224,15 +227,19 @@ def do_insert_one(db, service_data):
 
     try:
         service_set = {
-            'title': str(service_data['title']),
-            'description': str(service_data['description']),
-            'type': str(service_data['type']),
+            'site': unicode(service_data['site']),
+            'title': unicode(service_data['title']),
+            'description': unicode(service_data['description']),
+            'type': unicode(service_data['type']),
             'spec': service_data['spec'],
+            'notice': '',
             FIELD_ACTIVE: False,
         }
     except:
         return (False, 'can not setup the service')
 
+    if ('notice' in service_data) and (service_data['notice']):
+        service_set['notice'] = service_data['notice']
     if ('active' in service_data) and (service_data['active']):
         service_set[FIELD_ACTIVE] = True
 
@@ -262,3 +269,20 @@ def do_set_active_one(db, service_id, set_active):
 
     return (True, {'_id': service_id})
 
+def do_delete_one(db, service_id):
+    '''
+    remove one service
+    '''
+    if not db:
+        return (False, 'inner application error')
+
+    service_id = _get_id_value(service_id)
+    service_get = get_service_by_id(db, service_id)
+    if not service_get[0]:
+        return (False, 'service not found')
+    service = service_get[1]
+
+    coll = db[collection]
+    cursor = coll.remove({'_id': service_id})
+
+    return (True, {'_id': service_id})
