@@ -19,6 +19,7 @@ collection = 'media_services'
 
 schema = {
     '_id': 'ObjectId',
+    'key': 'str',
     'title': 'str',
     'description': 'str',
     'notice': 'str',

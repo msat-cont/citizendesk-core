@@ -22,6 +22,7 @@ services_info = [
 
 services_info = [
     {
+        'key': 'tineye',
         'type': 'image',
         'site': 'http://tineye.com/',
         'title': 'TinEye',
@@ -38,6 +39,7 @@ services_info = [
         'active': True,
     },
     {
+        'key': 'google_images',
         'type': 'image',
         'site': 'http://images.google.com/',
         'title': 'Google Images',
@@ -54,6 +56,7 @@ services_info = [
         'active': True,
     },
     {
+        'key': 'fotoforensics_ela',
         'type': 'image',
         'site': 'http://fotoforensics.com/',
         'title': 'FotoForensics',
@@ -69,6 +72,7 @@ services_info = [
         'active': True,
     },
     {
+        'key': 'exif_jeffrey',
         'type': 'image',
         'site': 'regex.info/exif.cgi',
         'title': 'Jeffrey\'s Exif Viewer',
@@ -84,6 +88,7 @@ services_info = [
         'active': True,
     },
     {
+        'key': 'exif_metapicz',
         'type': 'image',
         'site': 'http://metapicz.com/',
         'title': 'Metapicz Exif Viewer',

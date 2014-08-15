@@ -227,6 +227,7 @@ def do_insert_one(db, service_data):
 
     try:
         service_set = {
+            'key': unicode(service_data['key']),
             'site': unicode(service_data['site']),
             'title': unicode(service_data['title']),
             'description': unicode(service_data['description']),

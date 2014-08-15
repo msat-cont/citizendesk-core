@@ -135,13 +135,14 @@ def feed_img_service_insert_one():
         return (json.dumps('provided data are not valid json'), 404, {'Content-Type': 'application/json'})
 
     try:
+        service_data['key'] = data['key']
         service_data['site'] = data['site']
         service_data['title'] = data['title']
         service_data['description'] = data['description']
         service_data['type'] = data['type']
         service_data['spec'] = data['spec']
     except:
-        return (json.dumps('provided data should contain "title", "description", "site", "type", "spec" parts'), 404, {'Content-Type': 'application/json'})
+        return (json.dumps('provided data should contain "key", "title", "description", "site", "type", "spec" parts'), 404, {'Content-Type': 'application/json'})
 
     if 'notice' in data:
         service_data['notice'] = str(data['notice'])
