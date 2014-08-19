@@ -182,7 +182,7 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
             one_report['Uuid'] = entry[FIELD_UUID_REPORT]
 
         if coverage_id not in entry['coverages']['published']:
-            one_report['DeletedOn'] = cid_from_update(0)
+            one_report['DeletedOn'] = '01/01/70 12:01 AM'
 
         link_id = urllib.quote_plus(str(entry['_id']))
         author_url = author_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, link_id)
