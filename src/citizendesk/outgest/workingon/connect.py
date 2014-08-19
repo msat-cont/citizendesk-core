@@ -9,6 +9,7 @@ GET list of coverages:
 '''
 
 import os, sys, datetime, json
+from bson import json_util
 try:
     from flask import Blueprint, request, url_for
 except:
@@ -17,15 +18,16 @@ except:
 
 from citizendesk.common.dbc import mongo_dbs
 from citizendesk.common.utils import get_logger, get_client_ip, get_allowed_ips
-from citizendesk.outgest.workingon.utils import WORKINGON_REPORT_FIELD_NAME
-from citizendesk.outgest.workingon.utils import setup_urls, setup_config
+from citizendesk.outgest.workingon.utils import setup_config
 
-def setup_blueprints(app, lb_config_data):
-    setup_config(lb_config_data)
-    app.register_blueprint(lb_coverage_take)
+def setup_blueprints(app, workingon_config_data):
+    to_run = setup_config(workingon_config_data)
+    if not to_run:
+        return
+    app.register_blueprint(workingon_reports_take)
     return
 
-workingon_reports_take = Blueprint(WORKINGON_REPORTS_BP_NAME, __name__)
+workingon_reports_take = Blueprint('bp_outgest_workingon_reports_take', __name__)
 
 @workingon_reports_take.route('/streams/workingon/reports/', defaults={}, methods=['OPTIONS'], strict_slashes=False)
 def take_workingon_reports_options():
@@ -37,21 +39,38 @@ def take_workingon_reports_options():
 
     return ('', 200, headers)
 
-@lb_coverage_take.route('/streams/workingon/reports/', defaults={}, methods=['GET'], strict_slashes=False)
+@workingon_reports_take.route('/streams/workingon/reports/', defaults={}, methods=['GET'], strict_slashes=False)
 def take_workingon_reports():
-    setup_urls()
 
-    from citizendesk.outgest.workingon.process import get_workingon_reports_list
+    from citizendesk.outgest.workingon import process
 
     logger = get_logger()
     client_ip = get_client_ip()
 
+    params = {'offset': None, 'limit': None}
+    for key in params:
+        if key in request.args:
+            try:
+                params[key] = int(request.args.get(key))
+            except:
+                params[key] = None
+    for key in ['sort']:
+        params[key] = None
+        if key in request.args:
+            params[key] = request.args.get(key)
+
     try:
-        res = get_workingon_reports_list(mongo_dbs.get_db().db)
-        if (not res) or (not res[0]):
-            logger.info(str(res[1]))
-            return (res[1], 404,)
-        return (json.dumps(res[1]), 200, {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'})
+        res = process.get_workingon_reports_list(mongo_dbs.get_db().db, params['offset'], params['limit'], params['sort'])
+
+        if not res[0]:
+            ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
+            return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
+
+        ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
+        if 2 < len(res):
+            ret_data['_meta']['list'] = res[2]
+        return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
+
     except Exception as exc:
         logger.warning('problem on workingon-oriented reports listing')
         return ('problem on workingon-oriented reports listing', 404,)

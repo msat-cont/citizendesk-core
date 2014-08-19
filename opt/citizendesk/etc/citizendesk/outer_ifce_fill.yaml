@@ -15,3 +15,11 @@ liveblog:
     # uuid for user on SMS-based liveblog posts, shall be valid UUID4 hex value
     sms_report_creator_uuid:
 
+
+# workingon-publicizing
+workingon:
+    # whether to setup this output
+    make_setup: false
+    # the report field that specifies the publicized reports
+    public_reports: assignments
+
