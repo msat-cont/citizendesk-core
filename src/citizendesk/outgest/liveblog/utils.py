@@ -3,7 +3,7 @@
 # Citizen Desk
 #
 
-LB_COVERAGE_BP_NAME = 'lb_coverage_take'
+LB_COVERAGE_BP_NAME = 'bp_outgest_lb_coverage_take'
 
 COVERAGE_PLACEHOLDER = '__coverage_id_placeholder__'
 PUBLISHED_REPORTS_PLACEHOLDER = '__coverage_id_placeholder__'
