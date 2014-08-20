@@ -19,7 +19,7 @@ CONFIG_USE_REPORTS = 'public_reports'
 
 config = {
     'field_public_report': 'assignments',
-    'condition_public_report': {'$gt': {}},
+    'condition_public_report': {'$exists': True, '$not': {'$size': 0}},
 }
 
 def get_conf(name):
@@ -45,7 +45,7 @@ def setup_config(workingon_config_data):
         return False
 
     if CONFIG_USE_REPORTS in workingon_config_data:
-        if (workingon_config_data[CONFIG_USE_REPORTS]) and (workingon_config_data[CONFIG_USE_REPORTS] is not 'assignments'):
+        if (workingon_config_data[CONFIG_USE_REPORTS]) and (workingon_config_data[CONFIG_USE_REPORTS] != 'assignments'):
             set_conf('field_public_report', workingon_config_data[CONFIG_USE_REPORTS])
             set_conf('condition_public_report', True)
 
