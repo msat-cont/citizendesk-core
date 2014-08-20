@@ -373,6 +373,7 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
                 for one_media in report_entities['media']:
                     one_width = None
                     one_height = None
+                    size_spec_use = ''
                     for size_spec in ['large', 'medium', 'small']:
                         if (size_spec in one_media['sizes']) and one_media['sizes'][size_spec]:
                             one_size = one_media['sizes'][size_spec]
@@ -382,10 +383,11 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
                                 continue
                             one_width = one_size['w']
                             one_height = one_size['h']
+                            size_spec_use = urllib.quote_plus(':') + size_spec
                             break
                     rep_media.append({
-                        'link': one_media['media_url'],
-                        'link_ssl': one_media['media_url_https'],
+                        'link': one_media['media_url'] + size_spec_use,
+                        'link_ssl': one_media['media_url_https'] + size_spec_use,
                         'width': one_width,
                         'height': one_height
                     })
