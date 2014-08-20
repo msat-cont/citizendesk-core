@@ -74,6 +74,8 @@ class HeadRequest(urllib2.Request):
         return 'HEAD'
 
 def _resolve_url(url):
+    return url # this processing causes too big delays
+
     last_url = url
     last_host = None
     last_type = None
