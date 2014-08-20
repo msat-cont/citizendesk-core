@@ -88,6 +88,7 @@ def prepare_reporting(mongo_addr, dbname, newstwister_url, sms_config_path):
     from citizendesk.common.utils import get_logger
     from citizendesk.common.dbc import mongo_dbs
     from citizendesk.feeds.config import set_config
+    import citizendesk.feeds.err.dispatch as err_dispatch
     import citizendesk.feeds.any.dispatch as any_dispatch
     import citizendesk.feeds.img.dispatch as img_dispatch
     import citizendesk.feeds.twt.dispatch as twt_dispatch
@@ -120,6 +121,7 @@ def prepare_reporting(mongo_addr, dbname, newstwister_url, sms_config_path):
         if ('allowed_ips' in sms_config) and sms_config['allowed_ips']:
             set_config('sms_allowed_ips', sms_config['allowed_ips'])
 
+    err_dispatch.setup_blueprints(app)
     any_dispatch.setup_blueprints(app)
     img_dispatch.setup_blueprints(app)
     twt_dispatch.setup_blueprints(app)
