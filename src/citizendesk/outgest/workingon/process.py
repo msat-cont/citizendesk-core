@@ -26,8 +26,13 @@ def get_workingon_reports_list(db, offset=None, limit=None, sort=None):
     if not sort_list:
         sort_list = [(FIELD_UPDATED_REPORT, -1)]
 
+    search_conditions = {
+        field_public_report: condition_public_report,
+        FIELD_TEXTS: {'$exists': True, '$not': {'$size': 0}},
+    }
+
     coll = db[COLL_REPORTS]
-    cursor = coll.find({field_public_report: condition_public_report}, {FIELD_TEXTS: True}).sort(sort_list)
+    cursor = coll.find(search_conditions, {FIELD_TEXTS: True}).sort(sort_list)
     total = cursor.count()
 
     if limit is None:
