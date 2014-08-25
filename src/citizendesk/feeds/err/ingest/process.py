@@ -76,7 +76,7 @@ def do_insert_one(db, notice_timestamp, notice_data):
     if not db:
         return (False, 'inner application error')
 
-    timestamp = datetime.datetime.now()
+    timestamp = datetime.datetime.utcnow()
 
     try:
         produced_timestamp = datetime.datetime.strptime(notice_timestamp, '%Y-%m-%dT%H:%M:%S.%f')

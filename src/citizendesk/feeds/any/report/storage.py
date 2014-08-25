@@ -13,6 +13,8 @@ except:
 FIELD_UPDATED = '_updated'
 FIELD_DECAYED = 'decayed'
 FIELD_UUID = 'uuid'
+FIELD_PUTUP = 'status_updated'
+FIELD_PUTUP = '_updated' # this is temporary hack until we have set the proper field in UI; remove this line then.
 FIELD_MEDIA = 'media'
 MEDIA_IMAGE_TYPE = 'image'
 

@@ -13,7 +13,7 @@ parent_id: tweet: in_reply_to_status_id; we need it as a link even when it is no
 client_ip: newstwister_ip
 feed_type: tweet
 produced:  tweet: created_at
-created: None # datetime.now().isoformat()
+created: None # datetime.utcnow().isoformat()
 modified: None
 session: tweet: retweeted_status: id_str or tweet_id; for request count limits, ids of conversation starts should only be searched on user actions
 proto: True
@@ -328,7 +328,7 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
         else:
             report['produced'] = None
         if not report['produced']:
-            report['produced'] = datetime.datetime.now()
+            report['produced'] = datetime.datetime.utcnow()
         report['language'] = tweet['lang']
 
         if tweet_id and ('user' in tweet) and (type(tweet['user']) is dict) and ('screen_name' in tweet['user']):

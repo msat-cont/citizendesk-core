@@ -73,7 +73,7 @@ def ingest_sms_feed_take_one(feed_name):
             except:
                 pass
 
-    timepoint = datetime.datetime.now()
+    timepoint = datetime.datetime.utcnow()
     if params['time']:
         try:
             dt_format = '%Y-%m-%dT%H:%M:%S'

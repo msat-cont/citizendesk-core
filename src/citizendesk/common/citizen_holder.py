@@ -136,7 +136,7 @@ class CitizenHolder(object):
             if not alias_info[need_key]:
                 return None
 
-        current_timestamp = datetime.datetime.now()
+        current_timestamp = datetime.datetime.utcnow()
 
         alias = {
             #'change_id': 0, # TODO: get correct change id here!

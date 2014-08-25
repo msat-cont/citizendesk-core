@@ -170,7 +170,7 @@ def do_post(db, params, main_config, client_ip):
     message = params['text']
     received = params['time']
 
-    timestamp = datetime.datetime.now()
+    timestamp = datetime.datetime.utcnow()
 
     # assuring the citizen
     alias_id = None

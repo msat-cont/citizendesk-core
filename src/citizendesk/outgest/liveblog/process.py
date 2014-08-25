@@ -15,7 +15,7 @@ from citizendesk.outgest.liveblog.adapts import get_sms_report_creator, get_twee
 from citizendesk.outgest.liveblog.adapts import get_sms_report_icon, get_tweet_report_icon, get_plain_report_icon
 from citizendesk.outgest.liveblog.storage import load_local_user
 from citizendesk.outgest.liveblog.storage import COLL_COVERAGES, COLL_REPORTS
-from citizendesk.outgest.liveblog.storage import FIELD_UPDATED_REPORT, FIELD_DECAYED_REPORT, FIELD_UUID_REPORT
+from citizendesk.outgest.liveblog.storage import FIELD_UPDATED_REPORT, FIELD_DECAYED_REPORT, FIELD_UUID_REPORT, FIELD_PUTUP_REPORT
 from citizendesk.outgest.liveblog.storage import FIELD_ACTIVE_COVERAGE
 
 OUTPUT_FEED_TYPES = ['sms', 'tweet', 'plain']
@@ -116,6 +116,8 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
     except:
         pass
 
+    put_up_border = datetime.datetime.utcfromtimestamp(0)
+
     search_spec = {
         'coverages.outgested': coverage_id,
         FIELD_DECAYED_REPORT: {'$ne': False},
@@ -123,6 +125,7 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
     if cid_last:
         update_last = update_from_cid(cid_last)
         search_spec[FIELD_UPDATED_REPORT] = {'$gt': update_last}
+        put_up_border = update_last
     else:
         search_spec[FIELD_UPDATED_REPORT] = {'$exists': True}
 
@@ -180,6 +183,13 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
 
         if FIELD_UUID_REPORT in entry:
             one_report['Uuid'] = entry[FIELD_UUID_REPORT]
+
+        if (FIELD_PUTUP_REPORT in entry) and entry[FIELD_PUTUP_REPORT]:
+            try:
+                if entry[FIELD_PUTUP_REPORT] > put_up_border:
+                    one_report['PutUp'] = 'True'
+            except:
+                pass
 
         if coverage_id not in entry['coverages']['published']:
             one_report['DeletedOn'] = '01/01/70 12:01 AM'

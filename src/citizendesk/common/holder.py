@@ -106,7 +106,7 @@ class ReportHolder(object):
         rnd_list = [str(hex(i))[-1:] for i in range(16)]
         random.shuffle(rnd_list)
         id_value = '' + feed_type + '||'
-        id_value += datetime.datetime.now().isoformat()
+        id_value += datetime.datetime.utcnow().isoformat()
         id_value += '|' + ''.join(rnd_list)
         return id_value
 
@@ -159,7 +159,7 @@ class ReportHolder(object):
         if 'coverage_id' in data:
             coverage_id = data['coverage_id']
 
-        current_timestamp = datetime.datetime.now()
+        current_timestamp = datetime.datetime.utcnow()
 
         produced = None
         if 'produced' in data:
