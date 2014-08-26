@@ -9,6 +9,12 @@ COVERAGE_PLACEHOLDER = '__coverage_id_placeholder__'
 PUBLISHED_REPORTS_PLACEHOLDER = '__coverage_id_placeholder__'
 REPORT_LINK_ID_PLACEHOLDER = '__report_link_id_placeholder__'
 
+STATUS_PHRASING_FIELD = 'phrasing'
+STATUS_KEY_FIELD = 'name'
+
+STATUS_PHRASING_CONFIG_TEMPLATE = 'status_phrase_<<status>>_report'
+STATUS_PHRASING_CONFIG_REPLACE = '<<status>>'
+
 import os, sys, datetime, json, calendar
 
 try:
@@ -23,6 +29,7 @@ except:
     os._exit(1)
 
 COLL_CONFIG = 'core_config'
+COLL_REPORT_STATUS = 'report_status'
 
 config_default = {
 }
@@ -57,6 +64,13 @@ def setup_config(liveblog_config_data):
         'sms_report_creator_name',
         'sms_report_creator_icon',
         'sms_report_creator_uuid',
+        'use_status_for_output',
+        'status_display_position',
+        'status_phrase_new_report',
+        'status_phrase_assigned_report',
+        'status_phrase_dismissed_report',
+        'status_phrase_false_report',
+        'status_phrase_verified_report',
     ]
 
     for one_key in use_keys:
@@ -127,4 +141,31 @@ def use_liveblog_configuration(db):
 
     for key in lb_config:
         set_conf(key, lb_config[key])
+
+def take_status_desc_by_id(db, status_id):
+    phrasing = None
+
+    found_status = db[COLL_REPORT_STATUS].find_one({'_id': status_id})
+    if found_status:
+        if (type(found_status) is dict) and (STATUS_PHRASING_FIELD in found_status):
+            if found_status[STATUS_PHRASING_FIELD] is not None:
+                phrasing = found_status[STATUS_PHRASING_FIELD]
+
+    return phrasing
+
+def take_status_desc_by_key(db, status_key):
+    phrasing = None
+
+    try:
+        phrasing = get_conf(STATUS_PHRASING_CONFIG_TEMPLATE.replace(STATUS_PHRASING_CONFIG_REPLACE, status_key))
+    except:
+        phrasing = None
+
+    found_status = db[COLL_REPORT_STATUS].find_one({STATUS_KEY_FIELD: status_key})
+    if found_status:
+        if (type(found_status) is dict) and (STATUS_PHRASING_FIELD in found_status):
+            if found_status[STATUS_PHRASING_FIELD] is not None:
+                phrasing = found_status[STATUS_PHRASING_FIELD]
+
+    return phrasing
 

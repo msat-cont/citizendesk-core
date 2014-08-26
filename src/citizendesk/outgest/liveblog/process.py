@@ -103,6 +103,24 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
 
     other: ignoring by now
     '''
+    try:
+        coverage_id = _get_id_value(coverage_id)
+    except:
+        pass
+
+    res_none = {
+        'total': 0,
+        'limit': 0,
+        'offset': 0,
+        'PostList': []
+    }
+
+    coll = db[COLL_COVERAGES]
+    coverage = coll.find_one({'_id': coverage_id})
+    if not coverage:
+        return (False, 'coverage not found')
+    if (FIELD_ACTIVE_COVERAGE not in coverage) or (not coverage[FIELD_ACTIVE_COVERAGE]):
+        return (True, res_none)
 
     author_url_template = get_conf('author_url')
     creator_url_template = get_conf('creator_url')
@@ -110,11 +128,6 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
     coll = db[COLL_REPORTS]
 
     reports = []
-
-    try:
-        coverage_id = _get_id_value(coverage_id)
-    except:
-        pass
 
     put_up_border = datetime.datetime.utcfromtimestamp(0)
 
@@ -155,17 +168,17 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
         meta = None
 
         if 'sms' == feed_type:
-            adapted = adapt_sms_report(entry)
+            adapted = adapt_sms_report(db, entry)
             content = adapted['content']
             meta = adapted['meta']
 
         if 'tweet' == feed_type:
-            adapted = adapt_tweet_report(entry)
+            adapted = adapt_tweet_report(db, entry)
             content = adapted['content']
             meta = adapted['meta']
 
         if 'plain' == feed_type:
-            adapted = adapt_plain_report(entry)
+            adapted = adapt_plain_report(db, entry)
             content = adapted['content']
             meta = adapted['meta']
 

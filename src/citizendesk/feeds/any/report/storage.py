@@ -18,6 +18,9 @@ FIELD_PUTUP = '_updated' # this is temporary hack until we have set the proper f
 FIELD_MEDIA = 'media'
 MEDIA_IMAGE_TYPE = 'image'
 
+FIELD_ASSIGNED = 'assignments'
+FIELD_STATUS = 'status'
+
 collection = 'reports'
 
 schema = {

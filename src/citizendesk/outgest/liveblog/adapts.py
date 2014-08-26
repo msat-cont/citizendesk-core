@@ -3,13 +3,19 @@
 # Citizen Desk
 #
 
+from bson.objectid import ObjectId
+
 import os, sys, datetime, json
 from citizendesk.outgest.liveblog.utils import get_conf, cid_from_update
+from citizendesk.outgest.liveblog.utils import take_status_desc_by_id, take_status_desc_by_key
 from citizendesk.outgest.liveblog.utils import REPORT_LINK_ID_PLACEHOLDER
 from citizendesk.outgest.liveblog.storage import FIELD_UPDATED_USER
+from citizendesk.outgest.liveblog.storage import FIELD_ASSIGNED_REPORT, FIELD_STATUS_REPORT
+from citizendesk.outgest.liveblog.storage import STATUS_ASSIGNED_KEY, STATUS_NEW_KEY
 
 TEXTS_SEPARATOR = '<br>'
 NOTICES_USED = ['before', 'after']
+NOTICE_STATUS_DEFAULT = 'before'
 
 SMS_CONTENT_START = '<h3><a href="" target="_blank"></a></h3><div class="result-description"></div><!-- p.result-description tag displays for:> internal link> twitter> google link> google news> google images> flickr> youtube> soundcloud-->'
 
@@ -24,6 +30,12 @@ def get_sms_creator_name():
     if not sms_creator_name:
         sms_creator_name = 'SMS'
     return sms_creator_name
+
+def get_status_display_position():
+    status_position = get_conf('status_display_position')
+    if status_position not in NOTICES_USED:
+        status_position = NOTICE_STATUS_DEFAULT
+    return status_position
 
 def extract_texts(report):
     # taking the (transcribed) texts
@@ -67,12 +79,46 @@ def extract_annotation(report):
 
     return annotation
 
+def extract_annotation_status(db, report):
+    # taking annotation from status
+
+    annotation = {}
+    for notice_type in NOTICES_USED:
+        annotation[notice_type] = None
+
+    status_desc = None
+    if (FIELD_STATUS_REPORT in report) and (report[FIELD_STATUS_REPORT] is not None):
+        status_ident = _get_id_value(report[FIELD_STATUS_REPORT])
+        if type(status_ident) is ObjectId:
+            status_desc = take_status_desc_by_id(db, status_ident)
+        else:
+            status_desc = take_status_desc_by_key(db, status_ident)
+
+    is_assigned = False
+    if status_desc is None:
+        if (FIELD_ASSIGNED_REPORT in report) and (type(report[FIELD_ASSIGNED_REPORT]) in (list, tuple)):
+            for item in report[FIELD_ASSIGNED_REPORT]:
+                if item is not None:
+                    is_assigned = True
+                    break
+        if is_assigned:
+            status_desc = take_status_desc_by_key(db, STATUS_ASSIGNED_KEY)
+
+    if (status_desc is None) and (not is_assigned):
+        status_desc = take_status_desc_by_key(db, STATUS_NEW_KEY)
+
+    if status_desc:
+        status_position = get_status_display_position()
+        annotation[status_position] = status_desc
+
+    return annotation
+
 '''
 regarding SMS, liveblog creates them via GET requests, like
 http://sourcefabric.superdesk.pro/resources/SMS/Inlet/other/Post/Push?phoneNumber=1234&messageText=hello+world
 it creates a post, then if a blog subscribes to SMS feed, a (new) blogpost is created (for each such subscribed blog)
 '''
-def adapt_sms_report(report):
+def adapt_sms_report(db, report):
     parts = {'content':'', 'meta':''}
 
     texts = extract_texts(report)
@@ -80,12 +126,15 @@ def adapt_sms_report(report):
     # https://github.com/superdesk/Live-Blog/blob/master/plugins/livedesk/gui-resources/templates/items/base.dust#L81
     parts['content'] = SMS_CONTENT_START + TEXTS_SEPARATOR.join(texts)
 
-    annotation = extract_annotation(report)
+    if get_conf('use_status_for_output'):
+        annotation = extract_annotation_status(db, report)
+    else:
+        annotation = extract_annotation(report)
     parts['meta'] = json.dumps({'annotation': annotation})
 
     return parts
 
-def adapt_tweet_report(report):
+def adapt_tweet_report(db, report):
     parts = {'content':'', 'meta':''}
 
     if ('original' in report) and (type(report['original']) is dict):
@@ -116,20 +165,26 @@ def adapt_tweet_report(report):
     #https://github.com/superdesk/Live-Blog/blob/master/plugins/livedesk/gui-resources/scripts/js/providers/twitter.js#L574
     parts_meta['type'] = 'natural'
 
-    annotation = extract_annotation(report)
+    if get_conf('use_status_for_output'):
+        annotation = extract_annotation_status(db, report)
+    else:
+        annotation = extract_annotation(report)
     parts_meta['annotation'] = annotation
 
     parts['meta'] = json.dumps(parts_meta)
 
     return parts
 
-def adapt_plain_report(report):
+def adapt_plain_report(db, report):
     parts = {'content':'', 'meta':''}
 
     texts = extract_texts(report)
     parts['content'] = TEXTS_SEPARATOR.join(texts)
 
-    annotation = extract_annotation(report)
+    if get_conf('use_status_for_output'):
+        annotation = extract_annotation_status(db, report)
+    else:
+        annotation = extract_annotation(report)
     parts['meta'] = json.dumps({'annotation': annotation})
 
     return parts

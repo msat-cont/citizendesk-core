@@ -15,6 +15,20 @@ liveblog:
     # uuid for user on SMS-based liveblog posts, shall be valid UUID4 hex value
     sms_report_creator_uuid:
 
+    # should we use report statuses as notices on reports
+    use_status_for_output: false
+    # where the status should be displayed: "above" or "below"
+    status_display_position:
+    # default value for report status phrasing on new reports
+    status_phrase_new_report:
+    # default value for report status phrasing on assigned reports
+    status_phrase_assigned_report:
+    # default value for report status phrasing on dismissed reports
+    status_phrase_dismissed_report:
+    # default value for report status phrasing on false reports
+    status_phrase_false_report:
+    # default value for report status phrasing on verified reports
+    status_phrase_verified_report:
 
 # workingon-publicizing
 workingon:

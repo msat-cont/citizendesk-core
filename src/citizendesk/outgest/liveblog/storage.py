@@ -16,11 +16,16 @@ from citizendesk.feeds.any.report.storage import FIELD_UPDATED as FIELD_UPDATED_
 from citizendesk.feeds.any.report.storage import FIELD_DECAYED as FIELD_DECAYED_REPORT
 from citizendesk.feeds.any.report.storage import FIELD_UUID as FIELD_UUID_REPORT
 from citizendesk.feeds.any.report.storage import FIELD_PUTUP as FIELD_PUTUP_REPORT
+from citizendesk.feeds.any.report.storage import FIELD_ASSIGNED as FIELD_ASSIGNED_REPORT
+from citizendesk.feeds.any.report.storage import FIELD_STATUS as FIELD_STATUS_REPORT
 
 FIELD_UPDATED_USER = '_updated'
 
 from citizendesk.feeds.any.coverage.storage import FIELD_ACTIVE as FIELD_ACTIVE_COVERAGE
 from citizendesk.feeds.any.coverage.storage import FIELD_DECAYED as FIELD_DECAYED_COVERAGE
+
+STATUS_ASSIGNED_KEY = 'assigned'
+STATUS_NEW_KEY = 'new'
 
 def load_local_user(db, user_id):
 
