@@ -13,6 +13,7 @@ POST
 /feeds/any/coverage/
 /feeds/any/coverage/id/<coverage_id>/activate/
 /feeds/any/coverage/id/<coverage_id>/deactivate/
+/feeds/any/coverage/id/<coverage_id>/unpublish/
 
 '''
 
@@ -138,6 +139,22 @@ def feed_any_coverage_activate_one(coverage_id, set_active):
     client_ip = get_client_ip()
 
     res = process.do_set_active_one(mongo_dbs.get_db().db, coverage_id, set_active)
+
+    if not res[0]:
+        ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
+        return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'})
+
+    ret_data = {'_meta': {'schema': process.schema}, '_data': res[1]}
+    return (json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'})
+
+@bp_feed_any_coverage.route('/feeds/any/coverage/id/<coverage_id>/unpublish/', defaults={}, methods=['POST'], strict_slashes=False)
+def feed_any_coverage_unpublish_one(coverage_id):
+    from citizendesk.feeds.any.coverage import process
+
+    logger = get_logger()
+    client_ip = get_client_ip()
+
+    res = process.do_unpublish_one(mongo_dbs.get_db().db, coverage_id)
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}

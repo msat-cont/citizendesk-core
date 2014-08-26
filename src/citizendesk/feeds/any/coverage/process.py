@@ -15,6 +15,9 @@ from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_sort as _get_sort
 from citizendesk.feeds.any.coverage.storage import collection, schema, FIELD_ACTIVE, FIELD_DECAYED
 from citizendesk.feeds.any.coverage.storage import get_coverage_by_id, update_coverage_set
+from citizendesk.feeds.any.report.storage import collection as collection_reports
+from citizendesk.feeds.any.report.storage import FIELD_COVERAGES_PUBLISHED
+from citizendesk.feeds.any.report.storage import FIELD_UPDATED as FIELD_UPDATED_REPORT
 
 DEFAULT_LIMIT = 20
 
@@ -133,6 +136,24 @@ def do_set_active_one(db, coverage_id, set_active):
             return (False, 'can not activate decayed coverage')
 
     update_coverage_set(db, coverage_id, {FIELD_ACTIVE: set_active})
+
+    return (True, {'_id': coverage_id})
+
+def do_unpublish_one(db, coverage_id):
+    '''
+    unpublish all reports from a coverage
+    '''
+    if not db:
+        return (False, 'inner application error')
+
+    coverage_id = _get_id_value(coverage_id)
+    timepoint = datetime.datetime.utcnow()
+
+    update_set = {FIELD_UPDATED_REPORT: timepoint}
+    excise_set = {FIELD_COVERAGES_PUBLISHED: [coverage_id]}
+
+    coll = db[collection_reports]
+    coll.update({FIELD_COVERAGES_PUBLISHED: coverage_id}, {'$pullAll': excise_set, '$set': update_set}, multi=True, upsert=False)
 
     return (True, {'_id': coverage_id})
 
