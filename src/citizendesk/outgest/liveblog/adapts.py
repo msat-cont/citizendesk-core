@@ -13,13 +13,17 @@ NOTICES_USED = ['before', 'after']
 
 SMS_CONTENT_START = '<h3><a href="" target="_blank"></a></h3><div class="result-description"></div><!-- p.result-description tag displays for:> internal link> twitter> google link> google news> google images> flickr> youtube> soundcloud-->'
 
-DEFAULT_AUTHOR_NAME = get_conf('default_report_author_name')
-if not DEFAULT_AUTHOR_NAME:
-    DEFAULT_AUTHOR_NAME = 'Citizen Desk'
+def get_default_author_name():
+    default_author_name = get_conf('default_report_author_name')
+    if not default_author_name:
+        default_author_name = 'Citizen Desk'
+    return default_author_name
 
-SMS_CREATOR_NAME = get_conf('sms_report_creator_name')
-if not SMS_CREATOR_NAME:
-    SMS_CREATOR_NAME = 'SMS'
+def get_sms_creator_name():
+    sms_creator_name = get_conf('sms_report_creator_name')
+    if not sms_creator_name:
+        sms_creator_name = 'SMS'
+    return sms_creator_name
 
 def extract_texts(report):
     # taking the (transcribed) texts
@@ -143,7 +147,7 @@ def get_sms_report_author(report_id, report, user):
             'Name': 'sms_ingest', # actually not used, since providing user below; otherwise coverage name could be used
         },
         'User': {
-            'FirstName': SMS_CREATOR_NAME,
+            'FirstName': get_sms_creator_name(),
             'MetaDataIcon': {'href': icon_url_link},
         },
     }
@@ -163,7 +167,7 @@ def get_sms_report_creator(report_id, report, user):
         icon_url_link = icon_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, str(report_id))
 
     creator = {
-        'FirstName': SMS_CREATOR_NAME,
+        'FirstName': get_sms_creator_name(),
         'MetaDataIcon': {'href': icon_url_link},
     }
 
@@ -197,7 +201,7 @@ def get_tweet_report_creator(report_id, report, user):
 
     if not user:
         user = {
-            'first_name': DEFAULT_AUTHOR_NAME,
+            'first_name': get_default_author_name(),
             'picture_url': get_conf('default_report_author_icon'),
             'uuid': get_conf('default_report_author_uuid'),
         }
@@ -206,6 +210,9 @@ def get_tweet_report_creator(report_id, report, user):
     icon_url = None
     if ('picture_url' in user) and user['picture_url']:
         icon_url = user['picture_url']
+    if not icon_url:
+        icon_url = get_conf('default_report_author_icon')
+
     if icon_url:
         icon_url_template = get_conf('icon_url')
         icon_url_link = icon_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, str(report_id))
@@ -220,13 +227,17 @@ def get_tweet_report_creator(report_id, report, user):
     if (FIELD_UPDATED_USER in user) and user[FIELD_UPDATED_USER]:
         creator['Cid'] = cid_from_update(user[FIELD_UPDATED_USER])
 
-    first_name = None
+    has_a_name = False
     if ('first_name' in user) and user['first_name']:
+        has_a_name = True
         creator['FirstName'] = user['first_name']
 
-    last_name = None
     if ('last_name' in user) and user['last_name']:
+        has_a_name = True
         creator['LastName'] = user['last_name']
+
+    if not has_a_name:
+        creator['FirstName'] = get_default_author_name()
 
     return creator
 
@@ -234,7 +245,7 @@ def get_tweet_report_icon(report_id, report, user):
 
     if not user:
         user = {
-            'first_name': DEFAULT_AUTHOR_NAME,
+            'first_name': get_default_author_name(),
             'picture_url': get_conf('default_report_author_icon'),
             'uuid': get_conf('default_report_author_uuid'),
         }
@@ -242,6 +253,8 @@ def get_tweet_report_icon(report_id, report, user):
     icon_url = None
     if ('picture_url' in user) and user['picture_url']:
         icon_url = user['picture_url']
+    if not icon_url:
+        icon_url = get_conf('default_report_author_icon')
 
     icon = {
         'Content': {'href': icon_url},
@@ -253,7 +266,7 @@ def get_plain_report_author(report_id, report, user):
 
     if not user:
         user = {
-            'first_name': DEFAULT_AUTHOR_NAME,
+            'first_name': get_default_author_name(),
             'picture_url': get_conf('default_report_author_icon'),
             'uuid': get_conf('default_report_author_uuid'),
         }
@@ -262,6 +275,9 @@ def get_plain_report_author(report_id, report, user):
     icon_url = None
     if ('picture_url' in user) and user['picture_url']:
         icon_url = user['picture_url']
+    if not icon_url:
+        icon_url = get_conf('default_report_author_icon')
+
     if icon_url:
         icon_url_template = get_conf('icon_url')
         icon_url_link = icon_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, str(report_id))
@@ -281,11 +297,17 @@ def get_plain_report_author(report_id, report, user):
     if (FIELD_UPDATED_USER in user) and user[FIELD_UPDATED_USER]:
         author['User']['Cid'] = cid_from_update(user[FIELD_UPDATED_USER])
 
+    has_a_name = False
     if ('first_name' in user) and user['first_name']:
+        has_a_name = True
         author['User']['FirstName'] = user['first_name']
 
     if ('last_name' in user) and user['last_name']:
+        has_a_name = True
         author['User']['LastName'] = user['last_name']
+
+    if not has_a_name:
+        creator['FirstName'] = get_default_author_name()
 
     return author
 
@@ -293,7 +315,7 @@ def get_plain_report_creator(report_id, report, user):
 
     if not user:
         user = {
-            'first_name': DEFAULT_AUTHOR_NAME,
+            'first_name': get_default_author_name(),
             'picture_url': get_conf('default_report_author_icon'),
             'uuid': get_conf('default_report_author_uuid'),
         }
@@ -302,6 +324,9 @@ def get_plain_report_creator(report_id, report, user):
     icon_url = None
     if ('picture_url' in user) and user['picture_url']:
         icon_url = user['picture_url']
+    if not icon_url:
+        icon_url = get_conf('default_report_author_icon')
+
     if icon_url:
         icon_url_template = get_conf('icon_url')
         icon_url_link = icon_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, str(report_id))
@@ -316,13 +341,17 @@ def get_plain_report_creator(report_id, report, user):
     if (FIELD_UPDATED_USER in user) and user[FIELD_UPDATED_USER]:
         creator['Cid'] = cid_from_update(user[FIELD_UPDATED_USER])
 
-    first_name = None
+    has_a_name = False
     if ('first_name' in user) and user['first_name']:
+        has_a_name = True
         creator['FirstName'] = user['first_name']
 
-    last_name = None
     if ('last_name' in user) and user['last_name']:
+        has_a_name = True
         creator['LastName'] = user['last_name']
+
+    if not has_a_name:
+        creator['FirstName'] = get_default_author_name()
 
     return creator
 
@@ -330,7 +359,7 @@ def get_plain_report_icon(report_id, report, user):
 
     if not user:
         user = {
-            'first_name': DEFAULT_AUTHOR_NAME,
+            'first_name': get_default_author_name(),
             'picture_url': get_conf('default_report_author_icon'),
             'uuid': get_conf('default_report_author_uuid'),
         }
@@ -338,6 +367,8 @@ def get_plain_report_icon(report_id, report, user):
     icon_url = None
     if ('picture_url' in user) and user['picture_url']:
         icon_url = user['picture_url']
+    if not icon_url:
+        icon_url = get_conf('default_report_author_icon')
 
     icon = {
         'Content': {'href': icon_url},

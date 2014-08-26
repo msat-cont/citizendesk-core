@@ -23,7 +23,7 @@ holder = ReportHolder()
 
 COLL_CONFIG = 'core_config'
 
-DEFAULT_TIME_DELAY = 1 # 1h
+DEFAULT_TIME_DELAY = 24 # 24h
 
 def load_send_sms_config(config_path):
     global config
@@ -125,11 +125,15 @@ def get_sms_configuration(db):
     for key in config:
         sms_config[key] = config[key]
 
-    found_config = db[COLL_CONFIG].find_one({'_type': 'sms'})
+    sms_config_db = {}
+    found_config = db[COLL_CONFIG].find_one({'type': 'sms'})
     if found_config and (type(found_config) is dict):
-        for key in sms_config:
-            if (key in found_config) and (found_config[key] is not None):
-                sms_config[key] = found_config[key]
+        if ('set' in found_config) and (type(found_config['set']) is dict):
+            sms_config_db = found_config['set']
+
+    for key in sms_config:
+        if (key in sms_config_db) and (sms_config_db[key] is not None):
+            sms_config[key] = sms_config_db[key]
 
     try:
         # delays within sessions specified in hours, put into secs

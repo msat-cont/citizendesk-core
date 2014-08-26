@@ -22,6 +22,10 @@ except:
     sys.stderr.write('Flask module is not avaliable\n')
     os._exit(1)
 
+COLL_CONFIG = 'core_config'
+
+config_default = {
+}
 config = {
 }
 
@@ -36,6 +40,11 @@ def set_conf(key, value):
     global config
 
     config[key] = value
+
+def set_conf_default(key, value):
+    global config_default
+
+    config_default[key] = value
 
 def setup_config(liveblog_config_data):
     if type(liveblog_config_data) is not dict:
@@ -53,6 +62,7 @@ def setup_config(liveblog_config_data):
     for one_key in use_keys:
         if (one_key in liveblog_config_data) and liveblog_config_data[one_key]:
             set_conf(one_key, liveblog_config_data[one_key])
+            set_conf_default(one_key, liveblog_config_data[one_key])
 
 def setup_urls():
     request_host = 'localhost'
@@ -96,4 +106,25 @@ def cid_from_update(update_got):
         cid_ret = None
 
     return cid_ret
+
+def use_liveblog_configuration(db):
+    global config
+    global config_default
+
+    lb_config = {}
+    for key in config_default:
+        lb_config[key] = config_default[key]
+
+    lb_config_db = {}
+    found_config = db[COLL_CONFIG].find_one({'type': 'liveblog'})
+    if found_config and (type(found_config) is dict):
+        if ('set' in found_config) and (type(found_config['set']) is dict):
+            lb_config_db = found_config['set']
+
+    for key in lb_config:
+        if (key in lb_config_db) and (lb_config_db[key] is not None):
+            lb_config[key] = lb_config_db[key]
+
+    for key in lb_config:
+        set_conf(key, lb_config[key])
 

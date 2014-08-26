@@ -26,7 +26,7 @@ except:
 from citizendesk.common.dbc import mongo_dbs
 from citizendesk.common.utils import get_logger, get_client_ip, get_allowed_ips
 from citizendesk.outgest.liveblog.utils import LB_COVERAGE_BP_NAME
-from citizendesk.outgest.liveblog.utils import setup_urls, setup_config
+from citizendesk.outgest.liveblog.utils import setup_urls, setup_config, use_liveblog_configuration
 
 PUBLISHED_REPORTS_SUFFIX = 'reports/published/'
 
@@ -50,6 +50,7 @@ def take_coverages_options():
 @lb_coverage_take.route('/streams/liveblog/coverage/', defaults={}, methods=['GET'], strict_slashes=False)
 def take_coverages():
     setup_urls()
+    use_liveblog_configuration(mongo_dbs.get_db().db)
 
     from citizendesk.outgest.liveblog.process import get_coverage_list
 
@@ -79,6 +80,7 @@ def take_coverage_info_options(coverage_id):
 @lb_coverage_take.route('/streams/liveblog/coverage/<coverage_id>/', defaults={}, methods=['GET'], strict_slashes=False)
 def take_coverage_info(coverage_id):
     setup_urls()
+    use_liveblog_configuration(mongo_dbs.get_db().db)
 
     from citizendesk.outgest.liveblog.process import get_coverage_info
 
@@ -108,6 +110,7 @@ def take_coverage_published_reports_options(coverage_id):
 @lb_coverage_take.route('/streams/liveblog/coverage/<coverage_id>/' + PUBLISHED_REPORTS_SUFFIX, defaults={}, methods=['GET'], strict_slashes=False)
 def take_coverage_published_reports(coverage_id):
     setup_urls()
+    use_liveblog_configuration(mongo_dbs.get_db().db)
 
     from citizendesk.outgest.liveblog.process import get_coverage_published_report_list
 
@@ -146,6 +149,7 @@ def take_report_author_options(report_id):
 @lb_coverage_take.route('/streams/liveblog/report/<report_id>/icon/', defaults={'author_form': 'icon'}, methods=['GET'], strict_slashes=False)
 def take_report_author(report_id, author_form):
     setup_urls()
+    use_liveblog_configuration(mongo_dbs.get_db().db)
 
     from citizendesk.outgest.liveblog.process import get_report_author
 
