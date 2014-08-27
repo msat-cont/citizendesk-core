@@ -19,6 +19,7 @@ from citizendesk.outgest.liveblog.storage import FIELD_UPDATED_REPORT, FIELD_DEC
 from citizendesk.outgest.liveblog.storage import FIELD_ACTIVE_COVERAGE
 
 OUTPUT_FEED_TYPES = ['sms', 'tweet', 'plain']
+DEFAULT_FIELD_TYPE = 'plain'
 
 def get_coverage_list(db):
 
@@ -145,6 +146,9 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
     # probably some adjusted dealing with: local, summary, unpublished/deleted reports
     cursor = coll.find(search_spec).sort([(FIELD_UPDATED_REPORT, 1)])
     for entry in cursor:
+        if 'feed_type' not in entry:
+            entry['feed_type'] = DEFAULT_FIELD_TYPE
+
         with_fields = True
         for key in [FIELD_UPDATED_REPORT, FIELD_UUID_REPORT, 'feed_type', 'texts', 'coverages']:
             if (key not in entry) or (not entry[key]):
@@ -237,8 +241,8 @@ def get_report_author(db, report_id, author_form):
     if not report:
         return (False, 'respective report not found')
 
-    if 'feed_type' not in report:
-        return (False, 'feed type not set in the respective report')
+    if 'feed_type' not in entry:
+        entry['feed_type'] = DEFAULT_FIELD_TYPE
 
     feed_type = report['feed_type']
 
