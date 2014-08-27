@@ -1,0 +1,35 @@
+/opt/citizendesk/var/log/citizendesk/feeds_ifce.log {
+    missingok
+    notifempty
+    weekly
+    create 0664 citizendesk citizendesk
+    rotate 10
+    compress
+}
+
+/opt/citizendesk/var/log/citizendesk/outer_ifce.log {
+    missingok
+    notifempty
+    weekly
+    create 0664 citizendesk citizendesk
+    rotate 10
+    compress
+}
+
+/opt/citizendesk/var/log/citizendesk/sms_ingest.log {
+    missingok
+    notifempty
+    weekly
+    create 0664 citizendesk citizendesk
+    rotate 10
+    compress
+}
+
+/opt/citizendesk/var/log/citizendesk/twt_ingest.log {
+    missingok
+    notifempty
+    weekly
+    create 0664 citizendesk citizendesk
+    rotate 10
+    compress
+}
