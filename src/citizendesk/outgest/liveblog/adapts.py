@@ -14,6 +14,7 @@ from citizendesk.outgest.liveblog.storage import FIELD_UPDATED_USER
 from citizendesk.outgest.liveblog.storage import FIELD_ASSIGNED_REPORT, FIELD_STATUS_REPORT
 from citizendesk.outgest.liveblog.storage import STATUS_ASSIGNED_KEY, STATUS_NEW_KEY, STATUS_VERIFIED_KEY
 from citizendesk.outgest.liveblog.storage import FIELD_STATUS_VERIFIED_REPORT
+from citizendesk.outgest.liveblog.storage import FIELD_SUMMARY_REPORT
 
 TEXTS_SEPARATOR = '<br>'
 NOTICES_USED = ['before', 'after']
@@ -88,6 +89,10 @@ def extract_annotation_status(db, report):
     for notice_type in NOTICES_USED:
         annotation[notice_type] = None
 
+    is_summary = False
+    if (FIELD_SUMMARY_REPORT in report) and (report[FIELD_SUMMARY_REPORT] is not None):
+        is_summary = _get_boolean(report[FIELD_SUMMARY_REPORT])
+
     status_desc = None
     status_filled = False
     if (FIELD_STATUS_REPORT in report) and (report[FIELD_STATUS_REPORT] is not None):
@@ -114,7 +119,7 @@ def extract_annotation_status(db, report):
         if is_assigned:
             status_desc = take_status_desc_by_key(db, STATUS_ASSIGNED_KEY)
 
-    if (status_desc is None) and (not is_assigned):
+    if (status_desc is None) and (not is_assigned) and (not is_summary):
         status_desc = take_status_desc_by_key(db, STATUS_NEW_KEY)
 
     if status_desc:
@@ -372,7 +377,7 @@ def get_plain_report_author(report_id, report, user):
         author['User']['LastName'] = user['last_name']
 
     if not has_a_name:
-        creator['FirstName'] = get_default_author_name()
+        author['User']['FirstName'] = get_default_author_name()
 
     return author
 

@@ -19,6 +19,7 @@ from citizendesk.feeds.any.report.storage import FIELD_PUTUP as FIELD_PUTUP_REPO
 from citizendesk.feeds.any.report.storage import FIELD_ASSIGNED as FIELD_ASSIGNED_REPORT
 from citizendesk.feeds.any.report.storage import FIELD_STATUS as FIELD_STATUS_REPORT
 from citizendesk.feeds.any.report.storage import FIELD_STATUS_VERIFIED as FIELD_STATUS_VERIFIED_REPORT
+from citizendesk.feeds.any.report.storage import FIELD_SUMMARY as FIELD_SUMMARY_REPORT
 
 FIELD_UPDATED_USER = '_updated'
 
