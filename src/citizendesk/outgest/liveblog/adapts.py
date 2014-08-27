@@ -6,12 +6,14 @@
 from bson.objectid import ObjectId
 
 import os, sys, datetime, json
+from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.outgest.liveblog.utils import get_conf, cid_from_update
 from citizendesk.outgest.liveblog.utils import take_status_desc_by_id, take_status_desc_by_key
 from citizendesk.outgest.liveblog.utils import REPORT_LINK_ID_PLACEHOLDER
 from citizendesk.outgest.liveblog.storage import FIELD_UPDATED_USER
 from citizendesk.outgest.liveblog.storage import FIELD_ASSIGNED_REPORT, FIELD_STATUS_REPORT
-from citizendesk.outgest.liveblog.storage import STATUS_ASSIGNED_KEY, STATUS_NEW_KEY
+from citizendesk.outgest.liveblog.storage import STATUS_ASSIGNED_KEY, STATUS_NEW_KEY, STATUS_VERIFIED_KEY
+from citizendesk.outgest.liveblog.storage import FIELD_STATUS_VERIFIED_REPORT
 
 TEXTS_SEPARATOR = '<br>'
 NOTICES_USED = ['before', 'after']
@@ -87,12 +89,20 @@ def extract_annotation_status(db, report):
         annotation[notice_type] = None
 
     status_desc = None
+    status_filled = False
     if (FIELD_STATUS_REPORT in report) and (report[FIELD_STATUS_REPORT] is not None):
+        status_filled = True
         status_ident = _get_id_value(report[FIELD_STATUS_REPORT])
         if type(status_ident) is ObjectId:
             status_desc = take_status_desc_by_id(db, status_ident)
         else:
             status_desc = take_status_desc_by_key(db, status_ident)
+
+    if not status_filled:
+        if (FIELD_STATUS_VERIFIED_REPORT in report) and (report[FIELD_STATUS_VERIFIED_REPORT] is not None):
+            verified_flag = _get_boolean(report[FIELD_STATUS_VERIFIED_REPORT])
+            if verified_flag:
+                status_desc = take_status_desc_by_key(db, STATUS_VERIFIED_KEY)
 
     is_assigned = False
     if status_desc is None:

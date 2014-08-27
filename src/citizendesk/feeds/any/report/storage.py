@@ -19,6 +19,7 @@ FIELD_PUTUP = '_updated' # this is temporary hack until we have set the proper f
 FIELD_COVERAGES_PUBLISHED = 'coverages.published'
 FIELD_ASSIGNED = 'assignments'
 FIELD_STATUS = 'status'
+FIELD_STATUS_VERIFIED = 'verified'
 
 FIELD_MEDIA = 'media'
 MEDIA_IMAGE_TYPE = 'image'
