@@ -241,8 +241,8 @@ def get_report_author(db, report_id, author_form):
     if not report:
         return (False, 'respective report not found')
 
-    if 'feed_type' not in entry:
-        entry['feed_type'] = DEFAULT_FIELD_TYPE
+    if 'feed_type' not in report:
+        report['feed_type'] = DEFAULT_FIELD_TYPE
 
     feed_type = report['feed_type']
 
