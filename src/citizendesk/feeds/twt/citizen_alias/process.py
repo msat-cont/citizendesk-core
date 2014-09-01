@@ -93,7 +93,7 @@ def do_get_list(db, offset=None, limit=None, sort=None, other=None):
                 one_name['user_name'] = entry['identifiers']['user_name']
 
             source = None
-            if ('sources' in entry) and (type(entry['sources']) is list):
+            if ('sources' in entry) and (type(entry['sources']) in (list, tuple)):
                 if len(entry['sources']) and (entry['sources'][0]):
                     source = entry['sources'][0]
             if source:

@@ -63,7 +63,7 @@ def _parse_data(search_spec):
 
     query_terms = []
 
-    if ('contains' in query_part) and (type(query_part['contains']) is list) and query_part['contains']:
+    if ('contains' in query_part) and (type(query_part['contains']) in (list, tuple)) and query_part['contains']:
         for one_term in query_part['contains']:
             one_term = one_term.strip()
             if not one_term:

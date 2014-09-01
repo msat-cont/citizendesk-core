@@ -99,7 +99,7 @@ def do_get_list(db, endpoint_type, endpoint_id, proto=None, offset=None, limit=N
                 continue
             for one_text in entry['texts']:
                 source = None
-                if ('sources' in entry) and (type(entry['sources']) is list):
+                if ('sources' in entry) and (type(entry['sources']) in (list, tuple)):
                     if len(entry['sources']) and (entry['sources'][0]):
                         source = entry['sources'][0]
                 if source:
