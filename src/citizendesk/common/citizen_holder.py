@@ -5,28 +5,31 @@
 '''
 Citizen alias structure:
 # basic info
-_id/alias_id: String # globally unique for any report from any feed
-cId
-authority: String # to know how to deal with it
-created_by: Integer or None # if a local user is a creator of this alias info
-updated_by: Integer or None # if a local user is a creator of this alias info
+_id: ObjectId # globally unique for any report from any feed
+uuid: UUID4.hex # hex form of uuid4(), used for consumers to recognize the author on updates
 active: Bool # whether the citizen alias is used (or deactivated otherwise)
 
-#provider-based:
+#provider-based identification:
+authority: String # to know how to deal with it
 identifiers(user_id, user_id_search, user_name, user_name_search)
-#produced
-avatars,
-names (first name, last name, full name),
-locations (town, country, any, time_zone),
-time_zone
-languages
-description
-sources
-home_pages
+
+#provider-based names:
+name_first: String or None
+name_last: String or None
+name_full: String or None
+
+#provider-based other properties:
+avatars: [{'http': URL, 'https': URL}]
+locations: [String] # (town, country, any, time_zone)
+time_zone: String
+languages: [String]
+description: String
+sources: [URL]
+home_pages: [{link: URL, name: String}]
 
 #local-edited:
-notable: Boolean
-reliable: Boolean
+notable: Boolean or None
+reliable: Boolean or None
 verified: Boolean
 places: List,
 comments: List,
@@ -38,8 +41,8 @@ tags_auto: List
 
 # logs
 produced: DateTime # when the user info came (SMS sender) or was created (tweet user)
-created: DateTime # document creation
-modified: DateTime # last document modification
+_created: DateTime # document creation
+_updated: DateTime # last document modification
 
 # flags
 local: Boolean # if the alias was created by editors
@@ -48,31 +51,20 @@ sensitive: Boolean # whether it shall be kept secrete
 # configuration
 config: {'type':'value'} # for storing citizen_alias-related configuration
 
+
 Citizen structure:
-
-_id: ObjectId() # just a unique identifier
-aliases: List of aliases, as described above
-
-
-aliases: [{citizen_alias_id:ObjectId, valid_from:Datetime, invalid_from:Datetime}]
-
-# it is e.g.
-{
-    'aliases':[
-        {'citizen_alias_id': ObjectId(...), valid_from:'2000-01-01', invalid_from:'2012-12-19'},
-        {'citizen_alias_id': ObjectId(...), valid_from:'1970-01-01', invalid_from:None}
-    ]
-}
-
+_id: ObjectId # just a unique identifier
+aliases: {alias_id: ObjectId, preferred: Boolean} # links to ObjctIds of citizen aliases
 '''
 
 import os, sys, datetime
+import uuid
 from citizendesk.common.dbc import mongo_dbs
 
 COLL_ALIASES = 'citizen_aliases'
 COLL_CITIZENS = 'citizens'
-UNVERIFIED = 'unverified'
-UPDATED_FIELD = 'modified'
+CREATED_FIELD = '_created'
+UPDATED_FIELD = '_updated'
 
 class CitizenHolder(object):
     ''' dealing with citizens regardless of their authority types '''
@@ -86,13 +78,6 @@ class CitizenHolder(object):
         if for_type in coll_names:
             use_coll_name = coll_names[for_type]
             return self.db[use_coll_name]
-
-        return None
-
-    def get_const(self, name):
-        known_names = {'unverified':UNVERIFIED}
-        if name in known_names:
-            return known_names[name]
 
         return None
 
@@ -139,25 +124,26 @@ class CitizenHolder(object):
         current_timestamp = datetime.datetime.utcnow()
 
         alias = {
-            #'change_id': 0, # TODO: get correct change id here!
-            'authority': None,
+            'uuid': str(uuid.uuid4().hex)
             'active': True,
+            'authority': None,
             'identifiers': {},
-            'avatars': [],
             'produced': None,
-            'created': current_timestamp,
+            CREATED_FIELD: current_timestamp,
+            UPDATED_FIELD: current_timestamp,
+            'local': False,
+            'sensitive': None,
+
             'name_first': None,
             'name_last': None,
             'name_full': None,
+            'avatars': [],
             'locations': [],
             'time_zone': None,
             'languages': [],
             'description': None,
             'sources': [],
             'home_pages': [],
-            'local': False,
-            'created_by': None,
-            'updated_by': None,
 
             'notable': None,
             'reliable': None,
@@ -167,8 +153,8 @@ class CitizenHolder(object):
             'links': [],
             'tags': [],
             'tags_auto': [],
-            'sensitive': None,
-            'config': {}
+
+            'config': {},
         }
 
         parts_scalar = [
@@ -181,8 +167,6 @@ class CitizenHolder(object):
             'time_zone',
             'description',
             'local',
-            'created_by',
-            'updated_by'
         ]
 
         parts_vector = [
@@ -193,12 +177,12 @@ class CitizenHolder(object):
             'home_pages',
             'links',
             'tags',
-            'tags_auto'
+            'tags_auto',
         ]
 
         parts_dict = [
             'identifiers',
-            'config'
+            'config',
         ]
 
         for key in parts_scalar:
@@ -223,7 +207,7 @@ class CitizenHolder(object):
                         alias[key][one_key] = alias_info[key][one_key]
 
         if not alias['produced']:
-            alias['produced'] = alias['created']
+            alias['produced'] = alias[CREATED_FIELD]
 
         return alias
 
@@ -231,6 +215,8 @@ class CitizenHolder(object):
         alias = self.adjust_alias(alias, alias_info)
         if not alias:
             return False
+
+        alias[UPDATED_FIELD] = datetime.datetime.utcnow()
 
         try:
             collection = self.get_collection('aliases')
@@ -247,7 +233,6 @@ class CitizenHolder(object):
             'name_full',
             'time_zone',
             'description',
-            'updated_by'
         ]
 
         parts_vector = [
@@ -255,12 +240,12 @@ class CitizenHolder(object):
             'locations',
             'languages',
             'sources',
-            'home_pages'
+            'home_pages',
         ]
 
         parts_dict = [
             'identifiers',
-            'config'
+            'config',
         ]
 
         if type(alias) is not dict:
