@@ -25,10 +25,8 @@ schema = {
         'access_token_key': 'YOUR TWITER Access token',
         'access_token_secret': 'YOUR TWITER Access token secret'
     },
-    'logs': {
-        'created': '2014-03-12T12:00:00',
-        'updated': '2014-03-12T12:00:00'
-    }
+    '_created': 'datetime',
+    '_updated': 'datetime',
 }
 
 def get_one(db, doc_id):

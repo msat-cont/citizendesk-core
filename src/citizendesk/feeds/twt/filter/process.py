@@ -126,17 +126,14 @@ def do_post_one(db, doc_id=None, data=None):
         if not entry:
             return (False, '"filter" of the provided _id not found')
         try:
-            if ('logs' in entry) and (entry['logs']) and ('created' in entry['logs']):
-                if entry['logs']['created']:
-                    created = entry['logs']['created']
+            if ('_created' in entry) and entry['_created']:
+                created = entry['_created']
         except:
             created = timepoint
 
     doc = {
-        'logs': {
-            'created': created,
-            'updated': updated
-        },
+        '_created': created,
+        '_updated': updated,
         'spec': {}
     }
 

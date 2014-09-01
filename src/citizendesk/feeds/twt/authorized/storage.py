@@ -31,10 +31,8 @@ schema = {
         'screen_name': 'Twitter user screen name that authorized the app',
         'screen_name_search': 'Lower-case version of Twitter user screen name that authorized the app',
     },
-    'logs': {
-        'created': '2014-03-12T12:00:00',
-        'updated': '2014-03-12T12:00:00'
-    }
+    '_created': 'datetime',
+    '_updated': 'datetime',
 }
 
 def get_one(db, doc_id):

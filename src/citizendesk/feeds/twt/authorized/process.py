@@ -168,10 +168,8 @@ def do_post_one(db, auther_url, data):
             'temporary_access_token_secret': ret_data['oauth_token_secret'],
             'verifier_url': ret_data['pin_url'],
         },
-        'logs': {
-            'created': created,
-            'updated': updated,
-        },
+        '_created': created,
+        '_updated': updated,
     }
 
     coll = db[collection]
@@ -273,9 +271,8 @@ def do_finalize_one(db, auther_url, doc_id, data):
     updated = timepoint
 
     try:
-        if ('logs' in entry) and (entry['logs']) and ('created' in entry['logs']):
-            if entry['logs']['created']:
-                created = entry['logs']['created']
+        if ('_created' in entry) and entry['_created']:
+            created = entry['_created']
     except:
         created = timepoint
 
@@ -293,10 +290,8 @@ def do_finalize_one(db, auther_url, doc_id, data):
             'screen_name': ret_data['screen_name'],
             'screen_name_search': screen_name_search,
         },
-        'logs': {
-            'created': created,
-            'updated': updated,
-        },
+        '_created': created,
+        '_updated': updated,
     }
 
     coll = db[collection]

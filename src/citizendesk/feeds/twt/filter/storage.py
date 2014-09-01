@@ -25,10 +25,8 @@ schema = {
         'locations': [{'name': 'New York', 'west': -74, 'east': -73, 'south': 40, 'north': 41}],
         'language': 'en'
     },
-    'logs': {
-        'created': '2014-03-12T12:00:00',
-        'updated': '2014-03-12T12:10:00'
-    }
+    '_created': 'datetime',
+    '_updated': 'datetime',
 }
 
 def get_one(db, doc_id):

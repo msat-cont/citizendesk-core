@@ -188,30 +188,32 @@ def do_post_one(db, doc_id=None, data=None):
             return (False, '"stream" of the provided _id not found')
         try:
             if ('logs' in entry) and (entry['logs']):
-                if ('created' in entry['logs']) and entry['logs']['created']:
-                    created = entry['logs']['created']
                 if ('started' in entry['logs']) and entry['logs']['started']:
                     started = entry['logs']['started']
                 if ('stopped' in entry['logs']) and entry['logs']['stopped']:
                     started = entry['logs']['stopped']
         except:
-            created = timepoint
             started = None
             stopped = None
+        try:
+            if ('_created' in entry) and entry['_created']:
+                created = entry['_created']
+        except:
+            created = timepoint
 
     doc = {
         'logs': {
-            'created': created,
-            'updated': updated,
             'started': started,
-            'stopped': stopped
+            'stopped': stopped,
         },
         'spec': {},
         'control': {
             'streamer_url': None,
             'process_id': None,
-            'switch_on': False
-        }
+            'switch_on': False,
+        },
+        '_created': created,
+        '_updated': updated,
     }
 
     for key in schema['spec']:
