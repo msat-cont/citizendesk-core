@@ -5,56 +5,6 @@
 '''
 If the tweet is already saved, only add the channels part (incl. feed_spec).
 Retweets: They are just put in as endorsing.
-
-# basic info
-_id: (automatic) object_id
-report_id: based on tweet_id; this is source-related field
-parent_id: tweet: in_reply_to_status_id; we need it as a link even when it is not in db
-client_ip: newstwister_ip
-feed_type: tweet
-produced:  tweet: created_at
-created: None # datetime.utcnow().isoformat()
-modified: None
-session: tweet: retweeted_status: id_str or tweet_id; for request count limits, ids of conversation starts should only be searched on user actions
-proto: True
-language: tweet: lang
-sensitive: tweet: possibly_sensitive
-
-# status
-verification: None
-importance: None
-relevance: None
-checks: []
-assignments: []
-
-# citizens
-channels: [{type:twitter, value: endpoint: endpoint_id}]
-#publishers: [{type:twitter, value:twitter stream}]
-publisher: 'twitter'
-authors: [{'authority': 'twitter', 'identifiers': {user_id: tweet.user.id_str, user_name: tweet.user.screen_name}}]
-recipients: []
-endorsers: [] # users that retweet
-
-# content
-original_id: tweet_id
-original: tweet
-geolocations: tweet: coordinates [(lon, lat)] or tweet: geo (lat, lon)
-place_names: tweet: place
-timeline: []
-time_names: []
-citizens_mentioned: [{'authority': 'twitter', 'identifiers': {user_id: tweet.entities.user_mentions.id_str, user_name: value.tweet.entities.user_mentions.screen_name}}]
-subjects: []
-media: [tweet: entities: media: {'type':type, 'url':media_url where resize=='fit'}]
-texts: [{tweet: text}] plus replace links to their original values
-links: [tweet: entities: urls: expanded_url]
-notices_inner: []
-notices_outer: []
-comments: [{}] # retweets
-tags: [tweet: entities: hashtags: text]
-
-# clients
-viewed: []
-discarded: []
 '''
 
 SOURCE_START = 'https://twitter.com/'
@@ -67,7 +17,7 @@ import os, sys, datetime, json
 import urllib2
 
 from citizendesk.common.utils import get_id_value as _get_id_value
-from citizendesk.ingest.twt.connect import get_conf, gen_id, get_tweet
+from citizendesk.ingest.twt.utils import get_conf, gen_id, get_tweet
 
 class HeadRequest(urllib2.Request):
     def get_method(self):

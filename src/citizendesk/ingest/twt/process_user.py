@@ -9,7 +9,7 @@ If the user info is already saved, only update the provider-based parts.
 TWT_USER_LINK_PREFIX = 'https://twitter.com/'
 
 import os, sys, datetime, json
-from citizendesk.ingest.twt.connect import get_conf
+from citizendesk.ingest.twt.utils import get_conf
 
 def parse_user_info(authority, user_id, user_info, client_ip):
 
