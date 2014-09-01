@@ -29,7 +29,7 @@ on_behalf_id : ObjectId or None # _id of local user that is set as a creator of 
 produced: DateTime # when the report came (SMS) or was created (tweet)
 _created: DateTime # document creation
 _updated: DateTime # last document modification
-published_during: [{coverage_id: ObjectId, since: DateTime, upto: DateTime}] # intervals when the report had been published
+status_updated: DateTime # last change on (verification) status
 
 # flags
 proto: Boolean # if the report has to be yet taken
@@ -38,6 +38,7 @@ summary: Boolean
 sensitive: Boolean # whether it is kind of "not at work" stuff
 automatic: Boolean # if the report is created by an automated process, e.g. auto-reply
 editable: Boolean # some report types (e.g. tweets) should not be edited
+decayed: Boolean # if the report underwent decay
 
 # status
 assignments: [{user_id:String, type:String}]
@@ -211,11 +212,12 @@ class ReportHolder(object):
         document['produced'] = produced
         document[CREATED_FIELD] = current_timestamp
         document[UPDATED_FIELD] = current_timestamp
-        document['published_during'] = []
+        document['status_updated'] = current_timestamp
         document['proto'] = proto_report
         document['local'] = local_report
         document['automatic'] = automatic_report
         document['editable'] = editable_report
+        document['decayed'] = False
         document['summary'] = summary_report
         document['sensitive'] = sensitive_report
         document['language'] = language

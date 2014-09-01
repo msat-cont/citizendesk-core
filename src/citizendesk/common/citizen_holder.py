@@ -43,6 +43,8 @@ tags_auto: List
 produced: DateTime # when the user info came (SMS sender) or was created (tweet user)
 _created: DateTime # document creation
 _updated: DateTime # last document modification
+created_by: ObjectId # user that created the citizen alias, if locally created
+updated_by: ObjectId # user that updated the citizen alias, if locally updated
 
 # flags
 local: Boolean # if the alias was created by editors
@@ -133,6 +135,8 @@ class CitizenHolder(object):
             UPDATED_FIELD: current_timestamp,
             'local': False,
             'sensitive': None,
+            'created_by': None,
+            'updated_by': None,
 
             'name_first': None,
             'name_last': None,
@@ -161,12 +165,18 @@ class CitizenHolder(object):
             'authority',
             'active',
             'produced',
+            'local',
+            'sensitive',
+            'created_by',
+            'updated_by',
             'name_first',
             'name_last',
             'name_full',
             'time_zone',
             'description',
-            'local',
+            'notable',
+            'reliable',
+            'verified',
         ]
 
         parts_vector = [
@@ -175,6 +185,8 @@ class CitizenHolder(object):
             'languages',
             'sources',
             'home_pages',
+            'places',
+            'comments',
             'links',
             'tags',
             'tags_auto',
@@ -212,15 +224,15 @@ class CitizenHolder(object):
         return alias
 
     def update_alias(self, alias, alias_info):
-        alias = self.adjust_alias(alias, alias_info)
-        if not alias:
+        alias_set = self.adjust_alias({}, alias_info)
+        if not alias_set:
             return False
 
-        alias[UPDATED_FIELD] = datetime.datetime.utcnow()
+        alias_set[UPDATED_FIELD] = datetime.datetime.utcnow()
 
         try:
             collection = self.get_collection('aliases')
-            collection.update({'_id': alias['_id']}, alias, upsert=False)
+            collection.update({'_id': alias['_id']}, {'$set': alias_set}, upsert=False)
         except:
             return False
 
@@ -228,11 +240,17 @@ class CitizenHolder(object):
 
     def adjust_alias(self, alias, alias_info):
         parts_scalar = [
+            'active',
+            'sensitive',
+            'updated_by',
             'name_first',
             'name_last',
             'name_full',
             'time_zone',
             'description',
+            'notable',
+            'reliable',
+            'verified',
         ]
 
         parts_vector = [
@@ -241,6 +259,11 @@ class CitizenHolder(object):
             'languages',
             'sources',
             'home_pages',
+            'places',
+            'comments',
+            'links',
+            'tags',
+            'tags_auto',
         ]
 
         parts_dict = [

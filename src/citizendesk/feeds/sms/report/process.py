@@ -25,7 +25,7 @@ Here we should list (saved) reports filtered according to _id of saved sms-based
 
 def do_get_one(db, doc_id):
     '''
-    returns data of a single citizen alias
+    returns data of a single sms report
     '''
     if not db:
         return (False, 'inner application error')
@@ -37,7 +37,7 @@ def do_get_one(db, doc_id):
 
 def do_get_list(db, spec_type, spec_id, offset=None, limit=None, sort=None, other=None):
     '''
-    returns data of a set of sms citizen aliases
+    returns data of a set of sms reports
     '''
     if not db:
         return (False, 'inner application error')

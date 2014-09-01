@@ -17,6 +17,7 @@ import os, sys, datetime, json
 import urllib2
 
 from citizendesk.common.utils import get_id_value as _get_id_value
+from citizendesk.feeds.any.report.storage import MEDIA_IMAGE_TYPE
 from citizendesk.ingest.twt.utils import get_conf, gen_id, get_tweet
 
 class HeadRequest(urllib2.Request):
@@ -339,7 +340,8 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
                         'link': one_media['media_url'] + size_spec_use,
                         'link_ssl': one_media['media_url_https'] + size_spec_use,
                         'width': one_width,
-                        'height': one_height
+                        'height': one_height,
+                        'type': MEDIA_IMAGE_TYPE,
                     })
                 report['media'] = rep_media
 

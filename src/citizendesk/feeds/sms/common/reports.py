@@ -22,6 +22,7 @@ except:
 from citizendesk.feeds.sms.common.utils import get_conf, gen_id
 from citizendesk.feeds.sms.common.utils import extract_tags as _extract_tags
 from citizendesk.common.utils import get_boolean as _get_boolean
+from citizendesk.common.utils import get_id_value as _get_id_value
 
 '''
 For preparation of message sending
@@ -33,6 +34,9 @@ def prepare_sms_send_report(targets, recipients, message, user_id=None, language
     channel_type = get_conf('channel_type')
     channel_value = get_conf('channel_value_send')
     feed_type = get_conf('feed_type')
+
+    if user_id:
+        user_id = _get_id_value(user_id)
 
     channel = {
         'type': channel_type,
@@ -56,16 +60,15 @@ def prepare_sms_send_report(targets, recipients, message, user_id=None, language
         'session': None,
         'user_id': user_id, # who requested the sending, if not automatic
         'pinned_id': None,
-        'coverage_id': None,
         'language': language,
         'produced': current_timestamp,
-        'created': current_timestamp,
+        '_created': current_timestamp,
+        '_updated': current_timestamp,
         'assignments': [],
         'original_id': None,
         'original': {'message': message},
         'texts': [{'original': message, 'transcript': None}],
         'tags': [], # we shall extract possible #tags, alike at sms receiving
-        'is_published': False,
         'sensitive': None,
         'summary': False,
         'local': True,
@@ -97,6 +100,9 @@ def prepare_sms_reply_report(report, targets, recipients, message, user_id=None,
     channel_value = get_conf('channel_value_send')
     feed_type = get_conf('feed_type')
 
+    if user_id:
+        user_id = _get_id_value(user_id)
+
     channel = {
         'type': channel_type,
         'value': channel_value,
@@ -119,16 +125,15 @@ def prepare_sms_reply_report(report, targets, recipients, message, user_id=None,
         'session': report['session'], # since a reply here
         'user_id': user_id, # who requested the sending, if not automatic
         'pinned_id': None,
-        'coverage_id': None,
         'language': language,
         'produced': current_timestamp,
-        'created': current_timestamp,
+        '_created': current_timestamp,
+        '_updated': current_timestamp,
         'assignments': [],
         'original_id': None,
         'original': {'message': message},
         'texts': [{'original': message, 'transcript': None}],
         'tags': [], # we shall extract possible #tags, alike at sms receiving
-        'is_published': False,
         'sensitive': None,
         'summary': False,
         'local': True,
@@ -144,9 +149,6 @@ def prepare_sms_reply_report(report, targets, recipients, message, user_id=None,
 
     if ('pinned_id' in report) and report['pinned_id']:
         doc['pinned_id'] = report['pinned_id']
-
-    if ('coverage_id' in report) and report['coverage_id']:
-        doc['coverage_id'] = report['coverage_id']
 
     if ('assignments' in report) and report['assignments']:
         doc['assignments'] = report['assignments']
