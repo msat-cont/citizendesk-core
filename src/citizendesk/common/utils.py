@@ -5,6 +5,8 @@
 
 import os, sys, time, signal
 import logging, logging.handlers
+import uuid
+import hashlib
 
 from bson.objectid import ObjectId
 
@@ -121,6 +123,9 @@ def get_client_ip():
         remote_ip = request.remote_addr
 
     return remote_ip
+
+def get_etag():
+    return hashlib.sha1(str(uuid.uuid4().hex)).hexdigest()
 
 def get_boolean(value):
     if value is None:

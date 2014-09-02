@@ -10,6 +10,8 @@ try:
 except:
     unicode = str
 
+from citizendesk.common.utils import get_etag as _get_etag
+
 FIELD_UPDATED = '_updated'
 FIELD_DECAYED = 'decayed'
 FIELD_UUID = 'uuid'
@@ -62,6 +64,7 @@ def update_report_set(db, report_id, update_set):
     coll = db[collection]
 
     try:
+        update_set['_etag'] = _get_etag()
         coll.update({'_id': report_id}, {'$set': update_set})
     except:
         return (False, 'can not make report update')

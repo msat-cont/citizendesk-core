@@ -30,6 +30,7 @@ produced: DateTime # when the report came (SMS) or was created (tweet)
 _created: DateTime # document creation
 _updated: DateTime # last document modification
 status_updated: DateTime # last change on (verification) status
+_etag: String # for the purposes of Eve-related interfaces
 
 # flags
 proto: Boolean # if the report has to be yet taken
@@ -84,6 +85,7 @@ tags: [String] # (hash)tags. keywords, ...
 import os, sys, datetime
 import uuid
 from citizendesk.common.dbc import mongo_dbs
+from citizendesk.common.utils import get_etag as _get_etag
 
 COLL_REPORTS = 'reports'
 COLL_CITIZENS = 'citizens'
@@ -213,6 +215,7 @@ class ReportHolder(object):
         document[CREATED_FIELD] = current_timestamp
         document[UPDATED_FIELD] = current_timestamp
         document['status_updated'] = current_timestamp
+        document['_etag'] = _get_etag()
         document['proto'] = proto_report
         document['local'] = local_report
         document['automatic'] = automatic_report
@@ -423,7 +426,11 @@ class ReportHolder(object):
         coll = self.get_collection('reports')
 
         timepoint = datetime.datetime.utcnow()
-        coll.update({'feed_type': feed_type, 'report_id': report_id}, {'$addToSet': {'channels': {'$each': channels}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+        log_parts = {
+            UPDATED_FIELD: timepoint,
+            '_etag': _get_etag(),
+        }
+        coll.update({'feed_type': feed_type, 'report_id': report_id}, {'$addToSet': {'channels': {'$each': channels}}, '$set': log_parts}, upsert=False)
 
     def add_endorsers(self, feed_type, report_id, endorsers):
         if (not report_id) or (not endorsers) or (type(endorsers) is not list):
@@ -431,5 +438,9 @@ class ReportHolder(object):
         coll = self.get_collection('reports')
 
         timepoint = datetime.datetime.utcnow()
-        coll.update({'feed_type': feed_type, 'report_id': report_id}, {'$addToSet': {'endorsers': {'$each': endorsers}}, '$set': {UPDATED_FIELD: timepoint}}, upsert=False)
+        log_parts = {
+            UPDATED_FIELD: timepoint,
+            '_etag': _get_etag(),
+        }
+        coll.update({'feed_type': feed_type, 'report_id': report_id}, {'$addToSet': {'endorsers': {'$each': endorsers}}, '$set': log_parts}, upsert=False)
 

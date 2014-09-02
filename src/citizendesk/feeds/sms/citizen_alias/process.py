@@ -17,6 +17,7 @@ from citizendesk.feeds.sms.common.utils import create_identities as _create_phon
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_sort as _get_sort
+from citizendesk.common.utils import get_etag as _get_etag
 
 DEFAULT_LIMIT = 20
 
@@ -180,7 +181,7 @@ def do_post_one(db, alias_id, alias_spec, user_id):
             return (False, 'can not save the citizen alias')
 
     else:
-        alias_use = alias_doc
+        alias_use = {}
         alias_use['identifiers'] = use_identifiers
         alias_use['updated_by'] = user_id
         alias_use['local'] = True
@@ -189,8 +190,10 @@ def do_post_one(db, alias_id, alias_spec, user_id):
             if (key in alias_spec) and (type(alias_spec[key]) in spec_keys[key]):
                 alias_use[key] = alias_spec[key]
 
+        alias_use['_etag'] = _get_etag()
+
         coll = db[collection]
-        alias_id = coll.save(alias_use)
+        alias_id = coll.update({'_id': alias_doc['_id']}, {'$set': alias_use}, upsert=False)
 
         if not alias_id:
             return (False, 'can not update the citizen alias')

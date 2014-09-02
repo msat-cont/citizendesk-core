@@ -23,10 +23,12 @@ from bson.objectid import ObjectId
 
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_boolean as _get_boolean
+from citizendesk.common.utils import get_etag as _get_etag
 from citizendesk.feeds.twt.send.storage import collection, schema
 from citizendesk.feeds.twt.report.storage import collection as collection_reports
 from citizendesk.feeds.twt.authorized.storage import collection as collection_authorized
 from citizendesk.feeds.twt.report.storage import FEED_TYPE
+from citizendesk.feeds.any.report.storage import FIELD_UPDATED
 
 '''
 Requests to send a tweet, incl. a reply to a tweet
@@ -171,8 +173,15 @@ def do_post_send(db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec
 
     doc_id = saved_tweet['_id']
 
-    user_id = _get_id_value(user_id)
-    coll.update({'_id': doc_id}, {'$set': {'local': True, 'user_id': user_id, 'proto': False}})
+    saved_update = {
+        'local': True,
+        'user_id': _get_id_value(user_id),
+        'proto': False,
+        FIELD_UPDATED: datetime.datetime.utcnow(),
+        '_etag': _get_etag(),
+    }
+
+    coll.update({'_id': doc_id}, {'$set': saved_update})
 
     return (True, {'_id': doc_id})
 

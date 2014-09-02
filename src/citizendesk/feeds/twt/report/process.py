@@ -12,10 +12,12 @@ except:
 
 from bson.objectid import ObjectId
 
+from citizendesk.feeds.any.report.storage import FIELD_UPDATED
 from citizendesk.feeds.twt.report.storage import collection, schema, FEED_TYPE, PUBLISHER_TYPE
 from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_sort as _get_sort
+from citizendesk.common.utils import get_etag as _get_etag
 
 DEFAULT_LIMIT = 20
 
@@ -174,7 +176,12 @@ def do_patch_one(db, doc_id=None, data=None):
     if type(doc_id) is ObjectId:
         spec_field = '_id'
 
-    coll.update({'feed_type': FEED_TYPE, spec_field: doc_id}, {'$set': {'proto': proto}}, upsert=False)
+    update_set = {}
+    update_set['proto'] = proto
+    update_set[FIELD_UPDATED] = datetime.datetime.utcnow()
+    update_set['_etag'] = _get_etag()
+
+    coll.update({'feed_type': FEED_TYPE, spec_field: doc_id}, {'$set': update_set}, upsert=False)
 
     return (True, {'report_id': doc_id})
 

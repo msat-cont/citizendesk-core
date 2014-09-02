@@ -62,6 +62,7 @@ aliases: {alias_id: ObjectId, preferred: Boolean} # links to ObjctIds of citizen
 import os, sys, datetime
 import uuid
 from citizendesk.common.dbc import mongo_dbs
+from citizendesk.common.utils import get_etag as _get_etag
 
 COLL_ALIASES = 'citizen_aliases'
 COLL_CITIZENS = 'citizens'
@@ -133,6 +134,7 @@ class CitizenHolder(object):
             'produced': None,
             CREATED_FIELD: current_timestamp,
             UPDATED_FIELD: current_timestamp,
+            '_etag': _get_etag(),
             'local': False,
             'sensitive': None,
             'created_by': None,
@@ -229,6 +231,7 @@ class CitizenHolder(object):
             return False
 
         alias_set[UPDATED_FIELD] = datetime.datetime.utcnow()
+        alias_set['_etag'] = _get_etag()
 
         try:
             collection = self.get_collection('aliases')

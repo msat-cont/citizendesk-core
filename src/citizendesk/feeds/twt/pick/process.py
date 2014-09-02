@@ -25,9 +25,11 @@ from bson.objectid import ObjectId
 
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_boolean as _get_boolean
+from citizendesk.common.utils import get_etag as _get_etag
 from citizendesk.feeds.twt.pick.storage import collection, schema
 from citizendesk.feeds.twt.report.storage import collection as collection_reports
 from citizendesk.feeds.twt.report.storage import FEED_TYPE
+from citizendesk.feeds.any.report.storage import FIELD_UPDATED
 
 TWEET_DOMAIN = 'twitter.com'
 
@@ -101,9 +103,13 @@ def do_post_pick(db, picker_url, user_id, endpoint_id, tweet_spec):
     doc_id = saved_tweet['_id']
 
     saved_update = {'proto': False}
+
     if ('user_id' not in saved_tweet) or (not saved_tweet['user_id']):
         user_id = _get_id_value(user_id)
         saved_update['user_id'] = user_id
+
+    saved_update[FIELD_UPDATED] = datetime.datetime.utcnow()
+    saved_update['_etag'] = _get_etag()
 
     coll.update({'_id': doc_id}, {'$set': saved_update})
 
