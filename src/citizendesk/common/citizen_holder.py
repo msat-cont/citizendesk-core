@@ -126,7 +126,7 @@ class CitizenHolder(object):
         current_timestamp = datetime.datetime.utcnow()
 
         alias = {
-            'uuid': str(uuid.uuid4().hex)
+            'uuid': str(uuid.uuid4().hex),
             'active': True,
             'authority': None,
             'identifiers': {},
