@@ -10,6 +10,8 @@ try:
 except:
     unicode = str
 
+from citizendesk.common.utils import get_etag as _get_etag
+
 FIELD_ACTIVE = 'active'
 FIELD_DECAYED = 'decayed'
 
@@ -55,6 +57,8 @@ def update_coverage_set(db, coverage_id, update_set):
     coll = db[collection]
 
     try:
+        update_set['_etag'] = _get_etag()
+
         coll.update({'_id': coverage_id}, {'$set': update_set})
     except:
         return (False, 'can not make coverage update')

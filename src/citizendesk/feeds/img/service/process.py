@@ -16,6 +16,7 @@ import urllib
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_sort as _get_sort
+from citizendesk.common.utils import get_etag as _get_etag
 from citizendesk.feeds.img.service.storage import collection, schema, FIELD_ACTIVE
 from citizendesk.feeds.img.service.storage import METHOD_CLIENT_GET, SERVICE_IMAGE_TYPE, URL_ENCODED_IMG_LINK
 from citizendesk.feeds.img.service.storage import get_service_by_id, update_service_set
@@ -239,6 +240,7 @@ def do_insert_one(db, service_data):
             FIELD_ACTIVE: False,
             '_created': timepoint,
             '_updated': timepoint,
+            '_etag': _get_etag(),
         }
     except:
         return (False, 'can not setup the service')

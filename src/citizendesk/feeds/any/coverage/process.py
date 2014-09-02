@@ -13,6 +13,7 @@ except:
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_sort as _get_sort
+from citizendesk.common.utils import get_etag as _get_etag
 from citizendesk.feeds.any.coverage.storage import collection, schema, FIELD_ACTIVE, FIELD_DECAYED
 from citizendesk.feeds.any.coverage.storage import get_coverage_by_id, update_coverage_set
 from citizendesk.feeds.any.report.storage import collection as collection_reports
@@ -95,6 +96,8 @@ def do_insert_one(db, coverage_data):
     if not db:
         return (False, 'inner application error')
 
+    timepoint = datetime.datetime.utcnow()
+
     try:
         coverage_set = {
             'title': str(coverage_data['title']),
@@ -102,6 +105,9 @@ def do_insert_one(db, coverage_data):
             'user_id': _get_id_value(coverage_data['user_id']),
             FIELD_ACTIVE: False,
             FIELD_DECAYED: False,
+            '_created': timepoint,
+            '_updated': timepoint,
+            '_etag': _get_etag(),
         }
     except:
         return (False, 'can not setup the coverage')
@@ -135,7 +141,9 @@ def do_set_active_one(db, coverage_id, set_active):
         if (FIELD_DECAYED in coverage) and coverage[FIELD_DECAYED]:
             return (False, 'can not activate decayed coverage')
 
-    update_coverage_set(db, coverage_id, {FIELD_ACTIVE: set_active})
+    timepoint = datetime.datetime.utcnow()
+
+    update_coverage_set(db, coverage_id, {FIELD_ACTIVE: set_active, '_updated': timepoint})
 
     return (True, {'_id': coverage_id})
 
@@ -149,7 +157,10 @@ def do_unpublish_one(db, coverage_id):
     coverage_id = _get_id_value(coverage_id)
     timepoint = datetime.datetime.utcnow()
 
-    update_set = {FIELD_UPDATED_REPORT: timepoint}
+    update_set = {
+        FIELD_UPDATED_REPORT: timepoint,
+        '_etag': _get_etag(),
+    }
     excise_set = {FIELD_COVERAGES_PUBLISHED: [coverage_id]}
 
     coll = db[collection_reports]

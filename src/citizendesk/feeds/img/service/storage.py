@@ -10,6 +10,8 @@ try:
 except:
     unicode = str
 
+from citizendesk.common.utils import get_etag as _get_etag
+
 FIELD_ACTIVE = 'active'
 METHOD_CLIENT_GET = 'client_get'
 SERVICE_IMAGE_TYPE = 'image'
@@ -69,6 +71,8 @@ def update_service_set(db, service_id, update_set):
     coll = db[collection]
 
     try:
+        update_set['_etag'] = _get_etag()
+
         coll.update({'_id': service_id}, {'$set': update_set})
     except:
         return (False, 'can not make service update')

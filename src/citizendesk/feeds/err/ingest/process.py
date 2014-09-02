@@ -14,6 +14,7 @@ from bson.objectid import ObjectId
 
 from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_sort as _get_sort
+from citizendesk.common.utils import get_etag as _get_etag
 from citizendesk.feeds.err.ingest.storage import collection, schema
 
 DEFAULT_LIMIT = 20
@@ -91,6 +92,7 @@ def do_insert_one(db, notice_timestamp, notice_data):
             '_id': ObjectId(),
             '_created': timestamp,
             '_updated': timestamp,
+            '_etag': _get_etag(),
             'feed_type': notice_data['feed_type'],
             'channel': notice_data['channel'],
             'message': notice_data['message'],
