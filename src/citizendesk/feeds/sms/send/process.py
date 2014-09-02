@@ -4,10 +4,7 @@
 #
 
 import datetime
-try:
-    from citizendesk.feeds.sms.external import frontlinesms as controller
-except:
-    controller = None
+import importlib
 
 try:
     unicode
@@ -32,7 +29,12 @@ from citizendesk.common.utils import get_id_value as _get_id_value
 Sending message to the specified recipients via an external SMS gateway
 '''
 
-def do_post_send(db, sms_gateway_url, sms_gateway_key, message, targets, user_id, language, sensitive, client_ip):
+def do_post_send(db, sms_gateway_api, sms_gateway_url, sms_gateway_key, message, targets, user_id, language, sensitive, client_ip):
+    try:
+        controller = importlib.import_module('citizendesk.feeds.sms.external.' + sms_gateway_api)
+    except:
+        controller = None
+
     if not controller:
         return (False, 'no sms gateway controller available')
     if not db:

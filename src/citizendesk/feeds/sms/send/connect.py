@@ -35,6 +35,10 @@ def feed_sms_send_one_post():
     sms_allowed_ips = get_main_config('sms_allowed_ips')
     sms_gateway_url = get_main_config('sms_gateway_url')
     sms_gateway_key = get_main_config('sms_gateway_key')
+    try:
+        sms_gateway_api = get_main_config('sms_gateway_api')
+    except:
+        sms_gateway_api = 'frontlinesms'
 
     logger = get_logger()
     client_ip = get_client_ip()
@@ -80,7 +84,7 @@ def feed_sms_send_one_post():
         if ('sms_gateway_key' in control) and control['sms_gateway_key']:
             sms_gateway_key = control['sms_gateway_key']
 
-    res = process.do_post_send(mongo_dbs.get_db().db, sms_gateway_url, sms_gateway_key, message, targets, user_id, language, sensitive, client_ip)
+    res = process.do_post_send(mongo_dbs.get_db().db, sms_gateway_api, sms_gateway_url, sms_gateway_key, message, targets, user_id, language, sensitive, client_ip)
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}

@@ -6,6 +6,8 @@ allowed_ips: ["127.0.0.1"]
 
 # for SMS sending through SMS gateways
 
+# type of interface of the SMS gateway, by now "frontlinesms" is the only supported api type
+gateway_api: frontlinesms
 # where the SMS gateway is located
 gateway_url: url_to_the_sms_gateway
 # API key for the SMS gateway

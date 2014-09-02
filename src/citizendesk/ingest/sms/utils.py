@@ -63,6 +63,7 @@ def load_send_sms_config(config_path):
     return True
 
 config = {
+    'sms_gateway_api': 'frontlinesms',
     'sms_gateway_url': None,
     'sms_gateway_key': None,
     'sms_session_duration': DEFAULT_TIME_DELAY,

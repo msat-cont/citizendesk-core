@@ -4,10 +4,7 @@
 #
 
 import os, sys, datetime, json
-try:
-    from citizendesk.feeds.sms.external import frontlinesms as controller
-except:
-    controller = None
+import importlib
 
 from citizendesk.ingest.sms.utils import holder as report_holder
 from citizendesk.ingest.sms.utils import get_sms
@@ -57,6 +54,16 @@ def is_within_session(last_received, current_received, config):
 def ask_sender(db, session_start, orig_report, alias_info, phone_number, common_config):
     # for now, general config in a config file, or 'core_config' collection in 'sms' document
     # by phone_number: in citizen_alias structure
+
+    try:
+        gateway_api = common_config['gateway_api']
+    except:
+        gateway_api = 'frontlinesms'
+
+    try:
+        controller = importlib.import_module('citizendesk.feeds.sms.external.' + gateway_api)
+    except:
+        controller = None
 
     use_config = {
         'sms_reply_send': None,

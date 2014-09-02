@@ -202,7 +202,7 @@ def get_sort(param):
 def daemonize(work_dir, pid_path):
     global logger
 
-    UMASK = 022
+    UMASK = 0o22
 
     if (hasattr(os, 'devnull')):
        REDIRECT_TO = os.devnull
@@ -211,7 +211,7 @@ def daemonize(work_dir, pid_path):
 
     try:
         pid = os.fork()
-    except OSError, e:
+    except OSError as e:
         logger.error('can not daemonize: %s [%d]' % (e.strerror, e.errno))
         logging.shutdown()
         cleanup(1)
@@ -224,7 +224,7 @@ def daemonize(work_dir, pid_path):
 
     try:
         pid = os.fork()
-    except OSError, e:
+    except OSError as e:
         logger.error('can not daemonize: %s [%d]' % (e.strerror, e.errno))
         logging.shutdown()
         cleanup(1)
@@ -235,7 +235,7 @@ def daemonize(work_dir, pid_path):
     try:
         os.chdir(work_dir)
         os.umask(UMASK)
-    except OSError, e:
+    except OSError as e:
         logger.error('can not daemonize: %s [%d]' % (e.strerror, e.errno))
         logging.shutdown()
         cleanup(1)
@@ -249,7 +249,7 @@ def daemonize(work_dir, pid_path):
         os.dup2(si.fileno(), sys.stdin.fileno())
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(se.fileno(), sys.stderr.fileno())
-    except OSError, e:
+    except OSError as e:
         logger.error('can not daemonize: %s [%d]' % (e.strerror, e.errno))
         logging.shutdown()
         cleanup(1)
@@ -273,7 +273,7 @@ def set_user(user_id, group_id, pid_path):
         if (pid_path is not None) and os.path.exists(pid_path):
             try:
                 os.chown(pid_path, user_id, -1)
-            except OSError, e:
+            except OSError as e:
                 logger.warning('can not set pid file owner: %s [%d]' % (e.strerror, e.errno))
 
     if group_id is not None:

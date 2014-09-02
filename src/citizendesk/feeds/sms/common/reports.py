@@ -4,10 +4,7 @@
 #
 
 import datetime
-try:
-    from citizendesk.feeds.sms.external import frontlinesms as controller
-except:
-    controller = None
+import importlib
 
 try:
     unicode

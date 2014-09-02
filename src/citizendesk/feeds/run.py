@@ -114,6 +114,8 @@ def prepare_reporting(mongo_addr, dbname, newstwister_url, sms_config_path):
             logger.error('can not read sms config file: ' + str(sms_config_path))
             return False
 
+        if ('gateway_api' in sms_config) and sms_config['gateway_api']:
+            set_config('sms_gateway_api', sms_config['gateway_api'])
         if ('gateway_url' in sms_config) and sms_config['gateway_url']:
             set_config('sms_gateway_url', sms_config['gateway_url'])
         if ('gateway_key' in sms_config) and sms_config['gateway_key']:
