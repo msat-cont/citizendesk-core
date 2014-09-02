@@ -21,7 +21,7 @@ except:
     sys.stderr.write('Flask module is not avaliable\n')
     os._exit(1)
 
-from citizendesk.common.utils import get_logger, get_client_ip, get_allowed_ips
+from citizendesk.common.utils import get_logger, get_client_ip, get_allowed_ips, is_remote_ip
 from citizendesk.common.dbc import mongo_dbs
 
 bp_feed_twt_oauth = Blueprint('bp_feed_twt_oauth', __name__)
@@ -36,8 +36,9 @@ def feed_twt_oauth_get_one(oauth_id):
 
     logger = get_logger()
     client_ip = get_client_ip()
+    is_local = is_remote_ip(client_ip)
 
-    res = process.do_get_one(mongo_dbs.get_db().db, oauth_id)
+    res = process.do_get_one(mongo_dbs.get_db().db, oauth_id, is_local)
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}
@@ -52,6 +53,7 @@ def feed_twt_oauth_get_list():
 
     logger = get_logger()
     client_ip = get_client_ip()
+    is_local = is_remote_ip(client_ip)
 
     params = {'offset': None, 'limit': None}
     for key in params:
@@ -61,7 +63,7 @@ def feed_twt_oauth_get_list():
             except:
                 params[key] = None
 
-    res = process.do_get_list(mongo_dbs.get_db().db, params['offset'], params['limit'])
+    res = process.do_get_list(mongo_dbs.get_db().db, is_local, params['offset'], params['limit'])
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}

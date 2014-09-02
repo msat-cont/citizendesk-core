@@ -19,10 +19,9 @@ from bson.objectid import ObjectId
 from citizendesk.feeds.twt.authorized.storage import collection, schema, get_one, USE_SEQUENCES
 from citizendesk.common.utils import get_id_value as _get_id_value
 
-INSECURE = True
 DEFAULT_LIMIT = 20
 
-def do_get_one(db, doc_id):
+def do_get_one(db, doc_id, is_local):
     '''
     returns data of a single authorized info
     '''
@@ -31,7 +30,7 @@ def do_get_one(db, doc_id):
         return res
 
     doc = res[1]
-    if INSECURE:
+    if not is_local:
         try:
             for key in doc['spec']:
                 if key.endswith('_secret') and doc['spec'][key]:
@@ -41,7 +40,7 @@ def do_get_one(db, doc_id):
 
     return (True, doc)
 
-def do_get_list(db, offset=None, limit=None):
+def do_get_list(db, is_local, offset=None, limit=None):
     '''
     returns data of a set of oauth infos
     '''
@@ -65,7 +64,7 @@ def do_get_list(db, offset=None, limit=None):
     for entry in cursor:
         if not entry:
             continue
-        if INSECURE:
+        if not is_local:
             try:
                 for key in entry['spec']:
                     if key.endswith('_secret') and entry['spec'][key]:
