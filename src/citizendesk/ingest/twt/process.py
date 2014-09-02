@@ -266,7 +266,8 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
         'original': tweet,
         'endorsers': endorsers,
         'recipients': [],
-        'sources': []
+        'sources': [],
+        'editable': False,
     }
 
     expanded_text = ''
