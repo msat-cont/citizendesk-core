@@ -9,8 +9,8 @@ COVERAGE_PLACEHOLDER = '__coverage_id_placeholder__'
 PUBLISHED_REPORTS_PLACEHOLDER = '__coverage_id_placeholder__'
 REPORT_LINK_ID_PLACEHOLDER = '__report_link_id_placeholder__'
 
-STATUS_PHRASING_FIELD = 'phrasing'
-STATUS_KEY_FIELD = 'name'
+STATUS_PHRASING_FIELD = 'description'
+STATUS_KEY_FIELD = 'key'
 
 STATUS_PHRASING_CONFIG_TEMPLATE = 'status_phrase_<<status>>_report'
 STATUS_PHRASING_CONFIG_REPLACE = '<<status>>'
@@ -29,7 +29,7 @@ except:
     os._exit(1)
 
 COLL_CONFIG = 'core_config'
-COLL_REPORT_STATUS = 'report_status'
+COLL_REPORT_STATUS = 'report_statuses'
 
 config_default = {
 }

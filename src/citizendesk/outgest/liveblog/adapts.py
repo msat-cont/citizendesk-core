@@ -95,7 +95,7 @@ def extract_annotation_status(db, report):
 
     status_desc = None
     status_filled = False
-    if (FIELD_STATUS_REPORT in report) and (report[FIELD_STATUS_REPORT] is not None):
+    if (FIELD_STATUS_REPORT in report) and (report[FIELD_STATUS_REPORT]):
         status_filled = True
         status_ident = _get_id_value(report[FIELD_STATUS_REPORT])
         if type(status_ident) is ObjectId:
