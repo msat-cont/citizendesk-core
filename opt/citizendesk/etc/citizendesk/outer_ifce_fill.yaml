@@ -27,6 +27,7 @@ liveblog:
     status_phrase_dismissed_report:
     # default value for report status phrasing on false reports
     status_phrase_false_report:
+    status_phrase_debunked_report:
     # default value for report status phrasing on verified reports
     status_phrase_verified_report:
 
