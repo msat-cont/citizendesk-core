@@ -7,6 +7,7 @@ from bson.objectid import ObjectId
 
 import os, sys, datetime, json
 from citizendesk.common.utils import get_boolean as _get_boolean
+from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.outgest.liveblog.utils import get_conf, cid_from_update
 from citizendesk.outgest.liveblog.utils import take_status_desc_by_id, take_status_desc_by_key
 from citizendesk.outgest.liveblog.utils import REPORT_LINK_ID_PLACEHOLDER
