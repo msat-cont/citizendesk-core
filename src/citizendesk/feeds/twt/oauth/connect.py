@@ -36,7 +36,7 @@ def feed_twt_oauth_get_one(oauth_id):
 
     logger = get_logger()
     client_ip = get_client_ip()
-    is_local = is_remote_ip(client_ip)
+    is_local = not is_remote_ip(client_ip)
 
     res = process.do_get_one(mongo_dbs.get_db().db, oauth_id, is_local)
 
@@ -53,7 +53,7 @@ def feed_twt_oauth_get_list():
 
     logger = get_logger()
     client_ip = get_client_ip()
-    is_local = is_remote_ip(client_ip)
+    is_local = not is_remote_ip(client_ip)
 
     params = {'offset': None, 'limit': None}
     for key in params:
