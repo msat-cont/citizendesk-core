@@ -107,7 +107,7 @@ def do_insert_one(db, coverage_data):
             FIELD_DECAYED: False,
             '_created': timepoint,
             '_updated': timepoint,
-            '_etag': _get_etag(),
+            #'_etag': _get_etag(),
         }
     except:
         return (False, 'can not setup the coverage')
@@ -159,7 +159,7 @@ def do_unpublish_one(db, coverage_id):
 
     update_set = {
         FIELD_UPDATED_REPORT: timepoint,
-        '_etag': _get_etag(),
+        #'_etag': _get_etag(),
     }
     excise_set = {FIELD_COVERAGES_PUBLISHED: [coverage_id]}
 

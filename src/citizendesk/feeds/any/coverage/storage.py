@@ -57,7 +57,7 @@ def update_coverage_set(db, coverage_id, update_set):
     coll = db[collection]
 
     try:
-        update_set['_etag'] = _get_etag()
+        #update_set['_etag'] = _get_etag()
 
         coll.update({'_id': coverage_id}, {'$set': update_set})
     except:

@@ -215,7 +215,7 @@ class ReportHolder(object):
         document[CREATED_FIELD] = current_timestamp
         document[UPDATED_FIELD] = current_timestamp
         document['status_updated'] = current_timestamp
-        document['_etag'] = _get_etag()
+        #document['_etag'] = _get_etag()
         document['proto'] = proto_report
         document['local'] = local_report
         document['automatic'] = automatic_report
@@ -227,11 +227,11 @@ class ReportHolder(object):
 
         # publishing
         document['coverages'] = coverages
-        document['on_behalf_id'] = None
+        #document['on_behalf_id'] = None
 
         # status
         document['assignments'] = [] # should be filled
-        document['steps'] = [] # nothing here; put here who did what checks!
+        #document['steps'] = [] # nothing here; put here who did what checks!
         document['verified'] = False
         document['status'] = None
         document['importance'] = importance
@@ -428,7 +428,7 @@ class ReportHolder(object):
         timepoint = datetime.datetime.utcnow()
         log_parts = {
             UPDATED_FIELD: timepoint,
-            '_etag': _get_etag(),
+            #'_etag': _get_etag(),
         }
         coll.update({'feed_type': feed_type, 'report_id': report_id}, {'$addToSet': {'channels': {'$each': channels}}, '$set': log_parts}, upsert=False)
 
@@ -440,7 +440,7 @@ class ReportHolder(object):
         timepoint = datetime.datetime.utcnow()
         log_parts = {
             UPDATED_FIELD: timepoint,
-            '_etag': _get_etag(),
+            #'_etag': _get_etag(),
         }
         coll.update({'feed_type': feed_type, 'report_id': report_id}, {'$addToSet': {'endorsers': {'$each': endorsers}}, '$set': log_parts}, upsert=False)
 

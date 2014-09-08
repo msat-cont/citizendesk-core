@@ -92,7 +92,7 @@ def do_insert_one(db, notice_timestamp, notice_data):
             '_id': ObjectId(),
             '_created': timestamp,
             '_updated': timestamp,
-            '_etag': _get_etag(),
+            #'_etag': _get_etag(),
             'feed_type': notice_data['feed_type'],
             'channel': notice_data['channel'],
             'message': notice_data['message'],

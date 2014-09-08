@@ -178,7 +178,7 @@ def do_post_send(db, sender_url, authorized_id, user_id, endpoint_id, tweet_spec
         'user_id': _get_id_value(user_id),
         'proto': False,
         FIELD_UPDATED: datetime.datetime.utcnow(),
-        '_etag': _get_etag(),
+        #'_etag': _get_etag(),
     }
 
     coll.update({'_id': doc_id}, {'$set': saved_update})

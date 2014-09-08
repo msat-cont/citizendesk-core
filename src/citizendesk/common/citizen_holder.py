@@ -134,7 +134,7 @@ class CitizenHolder(object):
             'produced': None,
             CREATED_FIELD: current_timestamp,
             UPDATED_FIELD: current_timestamp,
-            '_etag': _get_etag(),
+            #'_etag': _get_etag(),
             'local': False,
             'sensitive': None,
             'created_by': None,
@@ -231,7 +231,7 @@ class CitizenHolder(object):
             return False
 
         alias_set[UPDATED_FIELD] = datetime.datetime.utcnow()
-        alias_set['_etag'] = _get_etag()
+        #alias_set['_etag'] = _get_etag()
 
         try:
             collection = self.get_collection('aliases')

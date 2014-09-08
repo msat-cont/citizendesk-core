@@ -240,7 +240,7 @@ def do_insert_one(db, service_data):
             FIELD_ACTIVE: False,
             '_created': timepoint,
             '_updated': timepoint,
-            '_etag': _get_etag(),
+            #'_etag': _get_etag(),
         }
     except:
         return (False, 'can not setup the service')

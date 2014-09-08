@@ -179,7 +179,7 @@ def do_patch_one(db, doc_id=None, data=None):
     update_set = {}
     update_set['proto'] = proto
     update_set[FIELD_UPDATED] = datetime.datetime.utcnow()
-    update_set['_etag'] = _get_etag()
+    #update_set['_etag'] = _get_etag()
 
     coll.update({'feed_type': FEED_TYPE, spec_field: doc_id}, {'$set': update_set}, upsert=False)
 

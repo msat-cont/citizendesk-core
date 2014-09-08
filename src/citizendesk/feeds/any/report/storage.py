@@ -64,7 +64,7 @@ def update_report_set(db, report_id, update_set):
     coll = db[collection]
 
     try:
-        update_set['_etag'] = _get_etag()
+        #update_set['_etag'] = _get_etag()
         coll.update({'_id': report_id}, {'$set': update_set})
     except:
         return (False, 'can not make report update')

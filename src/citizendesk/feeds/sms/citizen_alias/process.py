@@ -190,7 +190,7 @@ def do_post_one(db, alias_id, alias_spec, user_id):
             if (key in alias_spec) and (type(alias_spec[key]) in spec_keys[key]):
                 alias_use[key] = alias_spec[key]
 
-        alias_use['_etag'] = _get_etag()
+        #alias_use['_etag'] = _get_etag()
 
         coll = db[collection]
         alias_id = coll.update({'_id': alias_doc['_id']}, {'$set': alias_use}, upsert=False)

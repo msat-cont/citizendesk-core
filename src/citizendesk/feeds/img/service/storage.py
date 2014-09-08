@@ -71,7 +71,7 @@ def update_service_set(db, service_id, update_set):
     coll = db[collection]
 
     try:
-        update_set['_etag'] = _get_etag()
+        #update_set['_etag'] = _get_etag()
 
         coll.update({'_id': service_id}, {'$set': update_set})
     except:

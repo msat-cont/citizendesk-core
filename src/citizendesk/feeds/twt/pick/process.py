@@ -109,7 +109,7 @@ def do_post_pick(db, picker_url, user_id, endpoint_id, tweet_spec):
         saved_update['user_id'] = user_id
 
     saved_update[FIELD_UPDATED] = datetime.datetime.utcnow()
-    saved_update['_etag'] = _get_etag()
+    #saved_update['_etag'] = _get_etag()
 
     coll.update({'_id': doc_id}, {'$set': saved_update})
 
