@@ -158,9 +158,15 @@ def do_on_behalf_of(db, report_id, user_id=None):
     timepoint = datetime.datetime.utcnow()
     properties_set = {
         FIELD_UPDATED: timepoint,
-        'on_behalf_id': user_id,
     }
-    update_report_set(db, report_id, properties_set)
+    removal_set = None
+
+    if user_id:
+        properties_set['on_behalf_id'] = user_id
+    else:
+        removal_set = {'on_behalf_id': ''}
+
+    update_report_set(db, report_id, properties_set, removal_set)
 
     return (True, {'_id': report_id})
 

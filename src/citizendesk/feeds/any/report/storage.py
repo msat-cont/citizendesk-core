@@ -50,7 +50,7 @@ def get_report_by_id(db, report_id):
 
     return (True, doc)
 
-def update_report_set(db, report_id, update_set):
+def update_report_set(db, report_id, update_set, unset_set=None):
     '''
     updates data of a single report
     '''
@@ -63,9 +63,15 @@ def update_report_set(db, report_id, update_set):
 
     coll = db[collection]
 
+    use_set = {
+        '$set': update_set,
+    }
+    if unset_set:
+        use_set['$unset'] = unset_set
+
     try:
         #update_set['_etag'] = _get_etag()
-        coll.update({'_id': report_id}, {'$set': update_set})
+        coll.update({'_id': report_id}, use_set)
     except:
         return (False, 'can not make report update')
 
