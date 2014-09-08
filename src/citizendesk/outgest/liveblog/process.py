@@ -134,7 +134,7 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
 
     search_spec = {
         'coverages.outgested': coverage_id,
-        FIELD_DECAYED_REPORT: {'$ne': False},
+        FIELD_DECAYED_REPORT: {'$ne': True},
     }
     if cid_last:
         update_last = update_from_cid(cid_last)
