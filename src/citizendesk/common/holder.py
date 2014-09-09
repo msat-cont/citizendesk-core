@@ -233,7 +233,7 @@ class ReportHolder(object):
         document['assignments'] = [] # should be filled
         #document['steps'] = [] # nothing here; put here who did what checks!
         document['verified'] = False
-        document['status'] = None
+        document['status'] = ''
         document['importance'] = importance
         document['relevance'] = None
 
