@@ -87,7 +87,10 @@ def do_publish_one(db, report_id, coverage_id=None):
         update_report_set(db, report_id, {'coverages.outgested': cov_outgested})
 
     timepoint = datetime.datetime.utcnow()
-    adjective_set = {FIELD_UPDATED: timepoint}
+    adjective_set = {
+        FIELD_UPDATED: timepoint,
+        'proto': False,
+    }
     if FIELD_UUID not in report:
         adjective_set[FIELD_UUID] = str(uuid.uuid4().hex)
     update_report_set(db, report_id, adjective_set)
@@ -134,7 +137,10 @@ def do_unpublish_one(db, report_id, coverage_id=None):
     update_report_set(db, report_id, {'coverages.published': cov_published})
 
     timepoint = datetime.datetime.utcnow()
-    adjective_set = {FIELD_UPDATED: timepoint}
+    adjective_set = {
+        FIELD_UPDATED: timepoint,
+        'proto': False,
+    }
     update_report_set(db, report_id, adjective_set)
 
     return (True, {'_id': report_id})
@@ -158,6 +164,7 @@ def do_on_behalf_of(db, report_id, user_id=None):
     timepoint = datetime.datetime.utcnow()
     properties_set = {
         FIELD_UPDATED: timepoint,
+        'proto': False,
     }
     removal_set = None
 
