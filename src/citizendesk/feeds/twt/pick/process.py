@@ -23,7 +23,6 @@ except:
 
 from bson.objectid import ObjectId
 
-from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_etag as _get_etag
 from citizendesk.feeds.twt.pick.storage import collection, schema
@@ -37,7 +36,7 @@ TWEET_DOMAIN = 'twitter.com'
 Requests to pick a tweet
 '''
 
-def do_post_pick(db, picker_url, user_id, endpoint_id, tweet_spec):
+def do_post_pick(db, picker_url, endpoint_id, tweet_spec):
     '''
     picks a tweet
     '''
@@ -46,8 +45,6 @@ def do_post_pick(db, picker_url, user_id, endpoint_id, tweet_spec):
     if not db:
         return (False, 'inner application error')
 
-    if not user_id:
-        return (False, 'user_id not specified')
     if not endpoint_id:
         return (False, 'endpoint_id not specified')
 
@@ -103,10 +100,6 @@ def do_post_pick(db, picker_url, user_id, endpoint_id, tweet_spec):
     doc_id = saved_tweet['_id']
 
     saved_update = {'proto': False}
-
-    if ('user_id' not in saved_tweet) or (not saved_tweet['user_id']):
-        user_id = _get_id_value(user_id)
-        saved_update['user_id'] = user_id
 
     saved_update[FIELD_UPDATED] = datetime.datetime.utcnow()
     #saved_update['_etag'] = _get_etag()

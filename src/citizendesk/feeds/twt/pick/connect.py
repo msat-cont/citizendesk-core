@@ -52,15 +52,14 @@ def feed_twt_pick_one_post():
         return (json.dumps('provided data are not valid json'), 404, {'Content-Type': 'application/json'})
 
     try:
-        user_id = data['user_id']
         endpoint_id = data['endpoint_id']
         tweet_spec = data['tweet_spec']
     except:
-        return (json.dumps('provided data should contain "user_id", "endpoint_id", "tweet_spec" parts'), 404, {'Content-Type': 'application/json'})
+        return (json.dumps('provided data should contain "endpoint_id", "tweet_spec" parts'), 404, {'Content-Type': 'application/json'})
 
     picker_url = get_config('newstwister_url')
 
-    res = process.do_post_pick(mongo_dbs.get_db().db, picker_url, user_id, endpoint_id, tweet_spec)
+    res = process.do_post_pick(mongo_dbs.get_db().db, picker_url, endpoint_id, tweet_spec)
 
     if not res[0]:
         ret_data = {'_meta': {'schema': process.schema, 'message': res[1]}}

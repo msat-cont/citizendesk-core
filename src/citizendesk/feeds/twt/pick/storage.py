@@ -18,7 +18,6 @@ except:
 collection = 'twt_picked'
 
 schema = {
-    'user_id': 'ObjectId',
     'endpoint_id': 'ObjectId',
     'tweet_spec': {
         'tweet_id': 'str',
