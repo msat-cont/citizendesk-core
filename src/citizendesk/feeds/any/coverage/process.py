@@ -4,6 +4,8 @@
 #
 
 import datetime
+import uuid
+from bson.objectid import ObjectId
 
 try:
     unicode
@@ -15,7 +17,7 @@ from citizendesk.common.utils import get_boolean as _get_boolean
 from citizendesk.common.utils import get_sort as _get_sort
 from citizendesk.common.utils import get_etag as _get_etag
 from citizendesk.feeds.any.coverage.storage import collection, schema, FIELD_ACTIVE, FIELD_DECAYED
-from citizendesk.feeds.any.coverage.storage import get_coverage_by_id, update_coverage_set
+from citizendesk.feeds.any.coverage.storage import get_coverage_by_id, get_coverage_by_uuid, update_coverage_set
 from citizendesk.feeds.any.report.storage import collection as collection_reports
 from citizendesk.feeds.any.report.storage import FIELD_COVERAGES_PUBLISHED
 from citizendesk.feeds.any.report.storage import FIELD_UPDATED as FIELD_UPDATED_REPORT
@@ -98,17 +100,35 @@ def do_insert_one(db, coverage_data):
 
     timepoint = datetime.datetime.utcnow()
 
+    uuid_value = None
+    if ('uuid' in coverage_data) and coverage_data['uuid']:
+        try:
+            uuid_value = str(uuid.UUID(str(coverage_data['uuid'])).hex)
+        except:
+            uuid_value = None
+
+    coverage_set = None
+    if uuid_value:
+        coverage_get = get_coverage_by_uuid(db, uuid_value)
+        if coverage_get[0]:
+            coverage_set = coverage_get[1]
+    if not coverage_set:
+        coverage_set = {}
+
+    if uuid_value:
+        coverage_set['uuid'] = uuid_value
+    else:
+        coverage_set['uuid'] = str(uuid.uuid4().hex)
+
     try:
-        coverage_set = {
-            'title': str(coverage_data['title']),
-            'description': str(coverage_data['description']),
-            'user_id': _get_id_value(coverage_data['user_id']),
-            FIELD_ACTIVE: False,
-            FIELD_DECAYED: False,
-            '_created': timepoint,
-            '_updated': timepoint,
-            #'_etag': _get_etag(),
-        }
+        coverage_set['title'] = str(coverage_data['title'])
+        coverage_set['description'] = str(coverage_data['description'])
+        coverage_set['user_id'] = _get_id_value(coverage_data['user_id'])
+        coverage_set[FIELD_ACTIVE] = False
+        coverage_set[FIELD_DECAYED] = False
+        coverage_set['_created'] = timepoint
+        coverage_set['_updated'] = timepoint
+        #coverage_set['_etag'] = _get_etag()
     except:
         return (False, 'can not setup the coverage')
 
@@ -143,7 +163,12 @@ def do_set_active_one(db, coverage_id, set_active):
 
     timepoint = datetime.datetime.utcnow()
 
-    update_coverage_set(db, coverage_id, {FIELD_ACTIVE: set_active, '_updated': timepoint})
+    if type(coverage_id) is ObjectId:
+        sel_part = {'_id': coverage_id}
+    else:
+        sel_part = {'uuid': coverage_id}
+
+    update_coverage_set(db, sel_part, {FIELD_ACTIVE: set_active, '_updated': timepoint})
 
     return (True, {'_id': coverage_id})
 

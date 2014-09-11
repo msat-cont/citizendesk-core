@@ -6,6 +6,9 @@
 GET list of coverages:
 /streams/liveblog/coverage/
 
+GET specified coverage:
+/streams/liveblog/coverage/<coverage_id>/
+
 GET list of published reports:
 /streams/liveblog/coverage/<coverage_id>/reports/published/
 
