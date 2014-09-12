@@ -29,7 +29,7 @@ def get_coverage_list(db):
 
     coverages = []
 
-    cursor = coll.find({FIELD_ACTIVE_COVERAGE: True}, {'_id': True, 'title': True, 'description': True}).sort([('_id', 1)])
+    cursor = coll.find({FIELD_ACTIVE_COVERAGE: True}, {'_id': True, 'title': True, 'description': True, 'uuid': True}).sort([('_id', 1)])
 
     for entry in cursor:
         if 'uuid' not in entry:
