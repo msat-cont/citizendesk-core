@@ -1,0 +1,2 @@
+https://publicsuffix.org/list/
+https://publicsuffix.org/list/effective_tld_names.dat
