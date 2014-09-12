@@ -120,6 +120,11 @@ def feed_any_coverage_insert_one():
 
     if 'active' in data:
         coverage_data['active'] = _get_boolean(data['active'])
+    try:
+        if ('uuid' in data) and data['uuid']:
+            coverage_data['uuid'] = str(data['uuid'])
+    except:
+        pass
 
     res = process.do_insert_one(mongo_dbs.get_db().db, coverage_data)
 

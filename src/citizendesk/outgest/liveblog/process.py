@@ -32,7 +32,10 @@ def get_coverage_list(db):
     cursor = coll.find({FIELD_ACTIVE_COVERAGE: True}, {'_id': True, 'title': True, 'description': True}).sort([('_id', 1)])
 
     for entry in cursor:
-        cov_id = entry['_id']
+        if 'uuid' not in entry:
+            continue
+
+        cov_id = entry['uuid']
         coverage_url = base_url.replace(COVERAGE_PLACEHOLDER, urllib.quote_plus(str(cov_id)))
 
         if 'title' not in entry:
@@ -63,7 +66,12 @@ def get_coverage_info(db, coverage_id):
     coverage_id = _get_id_value(coverage_id)
 
     coll = db[COLL_COVERAGES]
-    coverage = coll.find_one({'_id': coverage_id})
+
+    if type(coverage_id) is ObjectId:
+        return (False, 'old form of coverage info retrieval')
+    else:
+        coverage = coll.find_one({'uuid': coverage_id})
+
     if not coverage:
         return (False, 'coverage not found')
 
@@ -117,7 +125,12 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
     }
 
     coll = db[COLL_COVERAGES]
-    coverage = coll.find_one({'_id': coverage_id})
+
+    if type(coverage_id) is ObjectId:
+        return (False, 'old form of coverage reports retrieval')
+    else:
+        coverage = coll.find_one({'uuid': coverage_id})
+
     if not coverage:
         return (False, 'coverage not found')
     if (FIELD_ACTIVE_COVERAGE not in coverage) or (not coverage[FIELD_ACTIVE_COVERAGE]):
@@ -133,7 +146,7 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
     put_up_border = datetime.datetime.utcfromtimestamp(0)
 
     search_spec = {
-        'coverages.outgested': coverage_id,
+        'coverages.outgested': {'$in': [coverage_id, coverage['_id']]},
         FIELD_DECAYED_REPORT: {'$ne': True},
     }
     if cid_last:
@@ -209,7 +222,8 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
                 pass
 
         if coverage_id not in entry['coverages']['published']:
-            one_report['DeletedOn'] = '01/01/70 12:01 AM'
+            if coverage['_id'] not in entry['coverages']['published']:
+                one_report['DeletedOn'] = '01/01/70 12:01 AM'
 
         link_id = urllib.quote_plus(str(entry['_id']))
         author_url = author_url_template.replace(REPORT_LINK_ID_PLACEHOLDER, link_id)

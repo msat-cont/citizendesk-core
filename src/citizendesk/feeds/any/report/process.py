@@ -5,6 +5,7 @@
 
 import datetime
 import uuid
+from bson.objectid import ObjectId
 
 try:
     unicode
@@ -14,7 +15,7 @@ except:
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.feeds.any.report.storage import collection, schema, FIELD_UPDATED, FIELD_UUID
 from citizendesk.feeds.any.report.storage import get_report_by_id, update_report_set
-from citizendesk.feeds.any.coverage.storage import get_coverage_by_id
+from citizendesk.feeds.any.coverage.storage import get_coverage_by_id, get_coverage_by_uuid
 
 COVERAGE_SETS = ('targeting', 'published', 'outgested')
 
@@ -28,7 +29,7 @@ coverages: {
 
 def do_publish_one(db, report_id, coverage_id=None):
     '''
-    sets report as published in a coverage
+    sets report as published in a coverage; the coverage_id can be either _id or uuid
     '''
     if not db:
         return (False, 'inner application error')
@@ -57,12 +58,27 @@ def do_publish_one(db, report_id, coverage_id=None):
     to_publish = coverages['targeting']
 
     if coverage_id:
+        coverage_uuid = None
+
         coverage_id = _get_id_value(coverage_id)
-        coverage_get = get_coverage_by_id(db, coverage_id)
+        if type(coverage_id) is ObjectId:
+            coverage_get = get_coverage_by_id(db, coverage_id)
+        else:
+            coverage_uuid = coverage_id
+            coverage_get = get_coverage_by_uuid(db, coverage_uuid)
         if not coverage_get[0]:
             return (False, 'coverage not found')
-        coverage_get = coverage_get[1]
-        to_publish = [coverage_id]
+
+        if not coverage_uuid:
+            # here we know the coverage_id was _id of an existent coverage
+            coverage_got = coverage_get[1]
+            if ('uuid' in coverage_got) and coverage_got['uuid']:
+                coverage_uuid = coverage_got['uuid']
+            else:
+                coverage_uuid = str(uuid.uuid4().hex)
+                update_coverage_set({'_id': coverage_id}, {'uuid': coverage_uuid})
+
+        to_publish = [coverage_uuid]
 
     cov_published = coverages['published']
     cov_outgested = coverages['outgested']
@@ -99,7 +115,7 @@ def do_publish_one(db, report_id, coverage_id=None):
 
 def do_unpublish_one(db, report_id, coverage_id=None):
     '''
-    sets report as unpublished in a coverage
+    sets report as unpublished in a coverage; the coverage_id can be either _id or uuid
     '''
     if not db:
         return (False, 'inner application error')
@@ -127,11 +143,30 @@ def do_unpublish_one(db, report_id, coverage_id=None):
     cov_published = []
 
     if coverage_id:
+        coverage_uuid = None
+
         coverage_id = _get_id_value(coverage_id)
-        if (coverage_id not in coverages['published']):
+        if type(coverage_id) is ObjectId:
+            coverage_get = get_coverage_by_id(db, coverage_id)
+            if coverage_get[0] and ('uuid' in coverage_get[1]) and coverage_get[1]['uuid']:
+                coverage_uuid = coverage_get[1]['uuid']
+        else:
+            coverage_uuid = coverage_id
+
+        curr_specifiers = [coverage_id]
+        if coverage_uuid:
+            curr_specifiers.append(coverage_uuid)
+
+        was_published = False
+        for one_spec in curr_specifiers:
+            if (coverage_id in coverages['published']):
+                was_published = True
+                break
+        if not was_published:
             return (False, 'not published into the coverage')
+
         for one_cov in coverages['published']:
-            if one_cov != coverage_id:
+            if one_cov and (one_cov != coverage_id) and (one_cov != coverage_uuid):
                 cov_published.append(one_cov)
 
     update_report_set(db, report_id, {'coverages.published': cov_published})
