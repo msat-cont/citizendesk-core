@@ -3,7 +3,7 @@
 # Citizen Desk
 #
 
-import os, sys, datetime, random
+import os, sys, datetime, random, json
 from bson import json_util
 try:
     from flask import Blueprint, request
@@ -19,8 +19,8 @@ def setup_blueprints(app):
     app.register_blueprint(bp_ingest_url_feed)
     return
 
-@bp_ingest_url_feed.route('/ingest/url/feed/', defaults={'feed_name': None}, methods=['GET', 'POST'], strict_slashes=False)
-@bp_ingest_url_feed.route('/ingest/url/feed/<feed_name>', defaults={}, methods=['GET', 'POST'], strict_slashes=False)
+@bp_ingest_url_feed.route('/ingest/url/feed/', defaults={'feed_name': None}, methods=['POST'], strict_slashes=False)
+@bp_ingest_url_feed.route('/ingest/url/feed/<feed_name>', defaults={}, methods=['POST'], strict_slashes=False)
 def ingest_url_feed_take_one(feed_name):
     from citizendesk.common.dbc import mongo_dbs
     db = mongo_dbs.get_db().db
@@ -44,15 +44,26 @@ def ingest_url_feed_take_one(feed_name):
     ]
     params = {'feed_name': feed_name}
 
+    try:
+        data = request.get_json(True, False, False)
+        if type(data) is not dict:
+            data = None
+    except:
+        data = None
+    if data is None:
+        try:
+            data = request.json
+            if type(data) is not dict:
+                data = None
+        except:
+            data = None
+    if data is None:
+        return (json.dumps('provided data are not valid json'), 404, {'Content-Type': 'application/json'})
+
     for one_param in param_keys:
-        if one_param in request.args:
+        if one_param in data:
             try:
-                params[one_param] = str(request.args[one_param].encode('utf8'))
-            except:
-                pass
-        if one_param in request.form:
-            try:
-                params[one_param] = str(request.form[one_param].encode('utf8'))
+                params[one_param] = str(data[one_param].encode('utf8'))
             except:
                 pass
 
@@ -61,7 +72,7 @@ def ingest_url_feed_take_one(feed_name):
             return ('No ' + str(one_param) + ' provided', 404)
 
     try:
-        res = do_post(db, params['url_link'], param_keys['feed_name'], params['request_id'], client_ip)
+        res = do_post(db, params['url_link'], params['feed_name'], params['request_id'], client_ip)
         if not res[0]:
             logger.info(str(res[1]))
             return (res[1], 404,)

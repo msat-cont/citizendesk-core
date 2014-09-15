@@ -16,11 +16,11 @@ except:
     os._exit(1)
 
 from citizendesk.common.utils import get_logger
-from citizendesk.common.holder import Holder
+from citizendesk.common.holder import ReportHolder
 from citizendesk.common.citizen_holder import CitizenHolder
 from citizendesk.ingest.url.eff_tlds import take_tlds_sets
 
-report_holder = Holder()
+report_holder = ReportHolder()
 citizen_holder = CitizenHolder()
 
 COLL_CONFIG = 'core_config'

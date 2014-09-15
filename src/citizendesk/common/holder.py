@@ -84,6 +84,7 @@ tags: [String] # (hash)tags. keywords, ...
 
 import os, sys, datetime
 import uuid
+import random
 from citizendesk.common.dbc import mongo_dbs
 from citizendesk.common.utils import get_etag as _get_etag
 
