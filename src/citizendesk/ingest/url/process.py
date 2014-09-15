@@ -22,7 +22,7 @@ def assure_citizen_alias(db, authority, use_identifiers, author_name):
 
     found_aliases = citizen_holder.alias_present(authority, 'user_id_search', use_identifiers['user_id_search'])
     if found_aliases:
-        return (True, citizen_alias[0]['_id'])
+        return (True, found_aliases[0]['_id'])
 
     alias_new = {
         'authority': authority,
