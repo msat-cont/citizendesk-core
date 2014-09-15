@@ -14,7 +14,7 @@ RESOLVE_HOSTS = ['bit.ly', 'bitly.com']
 RESOLVE_TIMEOUT = 1
 
 import os, sys, datetime, json
-import urllib2
+import urllib, urllib2
 
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.feeds.any.report.storage import MEDIA_IMAGE_TYPE
@@ -405,7 +405,7 @@ def process_new_tweet(holder, tweet_id, tweet, channel_type, endpoint_id, reques
 
     except Exception as exc:
         sys.stderr.write(str(exc) + '\n')
-        return (False, 'wrong tweet structure')
+        return (False, 'wrong tweet structure: ' + str(exc))
 
     try:
         one_channel = {'type': channel_type, 'value': endpoint_id, 'request': request_id, 'filter': feed_filter}
