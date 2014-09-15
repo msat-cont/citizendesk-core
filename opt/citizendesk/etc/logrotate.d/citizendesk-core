@@ -33,3 +33,12 @@
     rotate 10
     compress
 }
+
+/opt/citizendesk/var/log/citizendesk/url_ingest.log {
+    missingok
+    notifempty
+    weekly
+    create 0664 citizendesk citizendesk
+    rotate 10
+    compress
+}

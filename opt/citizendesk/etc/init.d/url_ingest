@@ -1,0 +1,79 @@
+#!/bin/sh
+# Start/stop the url_ingest storage daemon.
+
+### BEGIN INIT INFO
+# Provides:          url_ingest
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:     $local_fs $remote_fs
+# Should-Start:      $network
+# Should-Stop:       $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: URL-ingest daemon
+# Description:       the URL-ingest controller daemon
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+TLDSPATH=/opt/citizendesk/etc/citizendesk/effective_tld_names.dat
+DAEMON=/opt/citizendesk/lib/citizendesk/ingest/url/start.py
+PIDFILE=/opt/citizendesk/var/run/url_ingestd.pid
+LOGFILE=/opt/citizendesk/var/log/citizendesk/url_ingest.log
+WEBPORT=9071
+WEBHOST=localhost
+MONGOHOST=localhost
+MONGOPORT=27017
+DBNAME=citizendesk
+CLIENTS=/opt/citizendesk/etc/citizendesk/url_allowed.conf
+USER=citizendesk
+GROUP=citizendesk
+
+# check/touch/chown the log file
+
+test -x $DAEMON || exit 0
+
+case "$1" in
+  start)
+    # move/roll log files, if they are too big
+    touch $LOGFILE
+    chown $USER.$GROUP $LOGFILE
+    touch $PIDFILE
+    chown $USER.$GROUP $PIDFILE
+
+    log_daemon_msg "Starting URL-ingest daemon"
+    log_progress_msg "url_ingest"
+
+    start-stop-daemon --start --quiet --pidfile $PIDFILE --startas $DAEMON -- \
+        -w $WEBHOST -p $WEBPORT -i $PIDFILE -l $LOGFILE \
+        -m $MONGOHOST -o $MONGOPORT -b $DBNAME -t $TLDSPATH \
+        -d -u $USER -g $GROUP -a $CLIENTS || true
+
+    log_end_msg 0
+    ;;
+
+  stop)
+    log_daemon_msg "Stopping URL-ingest daemon"
+    log_progress_msg "url_ingest"
+    start-stop-daemon --stop --quiet \
+        --pidfile $PIDFILE || true
+    log_end_msg 0
+    ;;
+
+  reload)
+    # We don't have support for this yet.
+    exit 1
+    ;;
+
+  restart|force-reload)
+    $0 stop
+    sleep 1
+    $0 start
+    ;;
+
+  *)
+    echo "Usage: $0 {start|stop|restart|force-reload}"
+    exit 1
+
+esac
+
+exit 0
