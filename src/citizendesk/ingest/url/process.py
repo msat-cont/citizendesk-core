@@ -10,6 +10,7 @@ from citizendesk.ingest.url.utils import citizen_holder, report_holder
 from citizendesk.ingest.url.utils import get_conf
 from citizendesk.ingest.url.eff_tlds import take_specific_domain
 from citizendesk.ingest.url.url_info import get_page_info
+from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.common.utils import get_logger
 
 try:
@@ -44,10 +45,14 @@ def do_post(db, url, channel_type, request_id, client_ip):
     * assure citizen_alias exists (i.e. create/save if does not yet)
     * create and save the report
     * channel_type: frontend, bookmarklet, etc.
+    * request_id: commonly _id or uuid for filtering
     '''
     logger = get_logger()
 
     timestamp = datetime.datetime.utcnow()
+
+    channel_type = _get_id_value(channel_type)
+    request_id = _get_id_value(request_id)
 
     if not url:
         return (False, 'emtpy url')
