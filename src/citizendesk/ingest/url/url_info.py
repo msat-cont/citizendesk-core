@@ -34,6 +34,7 @@ def get_page_info(url):
         'type': '',
         'language': '',
         'feed_name': '',
+        'domain_name': '',
     }
 
     og_properties = {
@@ -174,6 +175,12 @@ def get_page_info(url):
                 required_info['site_icon'] = ico_link
                 break
 
+    if (not required_info['site_icon']):
+        try:
+            required_info['site_icon'] = 'http://g.etfv.co/' + url
+        except:
+            required_info['site_icon'] = 'http://g.etfv.co/' + 'http'
+
     if (len(required_info['image']) < MAX_IMG_LINKS_TAKE) and bs and bs.html and bs.html.body:
         # img/src
         for one_img in bs.html.body.findAll('img'):
@@ -186,11 +193,14 @@ def get_page_info(url):
                 if len(required_info['image']) >= MAX_IMG_LINKS_TAKE:
                     break
 
+    if required_info['url']:
+        required_info['domain_name'] = urlparse(required_info['url']).netloc.split(':')[0].strip()
+
     return (True, required_info)
 
 def test():
 
-    url = 'http://tech.ihned.cz/testy/c1-62719620-sencor-element-destroyer-odolny-telefon-jsme-koupali-i-prejeli-autem-prezil-vsechno'
+    url = 'https://www.sourcefabric.org/'
     res = get_page_info(url)
     print(res)
 

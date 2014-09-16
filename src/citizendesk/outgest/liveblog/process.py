@@ -9,7 +9,7 @@ import os, sys, datetime, json, urllib
 from citizendesk.common.utils import get_id_value as _get_id_value
 from citizendesk.outgest.liveblog.utils import COVERAGE_PLACEHOLDER, PUBLISHED_REPORTS_PLACEHOLDER, REPORT_LINK_ID_PLACEHOLDER
 from citizendesk.outgest.liveblog.utils import get_conf, cid_from_update, update_from_cid
-from citizendesk.outgest.liveblog.adapts import adapt_sms_report, adapt_tweet_report, adapt_plain_report
+from citizendesk.outgest.liveblog.adapts import adapt_sms_report, adapt_tweet_report, adapt_plain_report, adapt_link_report
 from citizendesk.outgest.liveblog.adapts import get_sms_report_author, get_tweet_report_author, get_plain_report_author
 from citizendesk.outgest.liveblog.adapts import get_sms_report_creator, get_tweet_report_creator, get_plain_report_creator
 from citizendesk.outgest.liveblog.adapts import get_sms_report_icon, get_tweet_report_icon, get_plain_report_icon
@@ -18,7 +18,7 @@ from citizendesk.outgest.liveblog.storage import COLL_COVERAGES, COLL_REPORTS
 from citizendesk.outgest.liveblog.storage import FIELD_UPDATED_REPORT, FIELD_DECAYED_REPORT, FIELD_UUID_REPORT, FIELD_PUTUP_REPORT
 from citizendesk.outgest.liveblog.storage import FIELD_ACTIVE_COVERAGE
 
-OUTPUT_FEED_TYPES = ['sms', 'tweet', 'plain']
+OUTPUT_FEED_TYPES = ['sms', 'tweet', 'plain', 'web_link']
 DEFAULT_FIELD_TYPE = 'plain'
 
 def get_coverage_list(db):
@@ -110,6 +110,9 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
     plain: a text
     http://sourcefabric.superdesk.pro/resources/LiveDesk/Blog/1/Post/856
 
+    link: a web link
+    http://sourcefabric.superdesk.pro/resources/LiveDesk/Blog/38/Post/1070
+
     other: ignoring by now
     '''
     try:
@@ -183,6 +186,7 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
 
         content = None
         meta = None
+        post_type_key = 'normal'
 
         if 'sms' == feed_type:
             adapted = adapt_sms_report(db, entry)
@@ -199,6 +203,12 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
             content = adapted['content']
             meta = adapted['meta']
 
+        if 'web_link' == feed_type:
+            adapted = adapt_link_report(db, entry)
+            content = adapted['content']
+            meta = adapted['meta']
+            post_type_key = 'link'
+
         use_cid = 0
         if FIELD_UPDATED_REPORT in entry:
             use_cid = cid_from_update(entry[FIELD_UPDATED_REPORT])
@@ -206,7 +216,7 @@ def get_coverage_published_report_list(db, coverage_id, cid_last):
         one_report = {
             'CId': use_cid,
             'IsPublished': 'True',
-            'Type': {'Key': 'normal'},
+            'Type': {'Key': post_type_key},
             'Content': content,
             'Meta': meta,
         }
@@ -288,7 +298,7 @@ def get_report_author(db, report_id, author_form):
         if 'icon' == author_form:
             author = get_tweet_report_icon(report_id, report, user)
 
-    if 'plain' == feed_type:
+    if feed_type in ('plain', 'web_link'):
         if 'author' == author_form:
             author = get_plain_report_author(report_id, report, user)
         if 'creator' == author_form:

@@ -109,7 +109,7 @@ def take_specific_domain(tlds, domain):
 
 def test(dat_file_path):
     test_names = [
-        'm.ihned.cz',
+        'www.sourcefabric.org',
         'www.bbc.co.uk',
         'www.xn--alliancefranaise-npb.nu',
         'www.city.kawasaki.jp',

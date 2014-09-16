@@ -23,6 +23,8 @@ NOTICE_STATUS_DEFAULT = 'before'
 
 SMS_CONTENT_START = '<h3><a href="" target="_blank"></a></h3><div class="result-description"></div><!-- p.result-description tag displays for:> internal link> twitter> google link> google news> google images> flickr> youtube> soundcloud-->'
 
+URL_LINK_DESCRIPTION_SHOW_LEN = 100
+
 def get_default_author_name():
     default_author_name = get_conf('default_report_author_name')
     if not default_author_name:
@@ -203,6 +205,118 @@ def adapt_plain_report(db, report):
         annotation = extract_annotation(report)
     parts['meta'] = json.dumps({'annotation': annotation})
 
+    return parts
+
+def adapt_link_report(db, report):
+
+    meta_stored = {}
+    if ('original' in report) and (type(report['original']) is dict):
+        meta_stored = json.loads(report['original'])
+
+    meta = {
+        'description': '',
+        'favicon': '',
+        'hostname': '',
+        'siteData': {
+            'ContentType': '',
+            'Date': '',
+            'Description': '',
+            'Picture': {
+                'Picture': [],
+            },
+        },
+        'thumbnail': '',
+        'thumbnailShow': False,
+        'title': '',
+        'url': '',
+    }
+
+    meta_data_from_stored = {
+        'description': 'description',
+        'favicon': 'site_icon',
+        'hostname': 'domain_name',
+        'title': 'title',
+        'url': 'url',
+    }
+    site_data_from_stored = {
+        'ContentType': 'site_icon',
+        'Description': 'description',
+    }
+
+    for out_key in meta_data_from_stored:
+        inn_key = meta_data_from_stored[out_key]
+        if inn_key in meta_stored:
+            meta[out_key] = meta_stored[inn_key]
+
+    for out_key in site_data_from_stored:
+        inn_key = meta_data_from_stored[out_key]
+        if inn_key in meta_stored:
+            meta['siteData'][out_key] = meta_stored[inn_key]
+
+    if ('date' in meta_stored) and (type(meta_stored['date']) is datetime.datetime):
+        meta['siteData']['Date'] = meta_stored['date'].strftime('%m/%d/%y %I:%M %p')
+
+    if ('image' in meta_stored) and (type(meta_stored['image']) in (list, tuple)):
+        meta['siteData']['Picture']['Picture'] = meta_stored['image']
+
+    if ('media' in report) and (type(report['media']) in (list, tuple)):
+        if len(report['media']) and (type(report['media'][0]) is dict):
+            thumb_image_link = None
+            thumb_image_part = report['media'][0]
+            if (not thumb_image_link) and ('link_ssl' in thumb_image_part) and thumb_image_part['link_ssl']:
+                thumb_image_link = thumb_image_part['link_ssl']
+            if (not thumb_image_link) and ('link' in thumb_image_part) and thumb_image_part['link']:
+                thumb_image_link = thumb_image_part['link']
+            if thumb_image_link:
+                meta['thumbnail'] = thumb_image_link
+                meta['thumbnailShow'] = True
+
+    if get_conf('use_status_for_output'):
+        annotation = extract_annotation_status(db, report)
+    else:
+        annotation = extract_annotation(report)
+    meta['annotation'] = annotation
+
+    content = '<div class="link-preview">'
+    if meta['thumbnailShow']:
+        content += '<figure style="display: table-cell;" class="link-thumbnail"> '
+    else:
+        content += '<figure style="display: none;" class="link-thumbnail"> '
+    try:
+        cnt_url = meta['url'].replace('\'', '%27')
+    except:
+        cnt_url = ''
+    content += '<a href="' + cnt_url + '" target="_blank">'
+    try:
+        cnt_thmb = meta['thumbnail'].replace('\'', '%27')
+    except:
+        cnt_thmb = ''
+    content += '<img src="' + cnt_thmb + '" border="0">'
+    content += '</a></figure><div class="link-content"><p class="link-title">'
+    content += '<a href="' + cnt_url + '"> '
+    try:
+        cnt_ttl = meta['title'].replace('<', '&lt;').replace('>', '&gt;')
+    except:
+        cnt_ttl = ''
+    content += cnt_ttl + '</a></p><p class="link-text">'
+    try:
+        cnt_desc = meta['description'][:URL_LINK_DESCRIPTION_SHOW_LEN].replace('<', '&lt;').replace('>', '&gt;')
+    except:
+        cnt_desc = ''
+    content += cnt_desc + '</p><p class="attributes">'
+    content += '<a href="' + cnt_url + '" class="source-link" target="_blank">'
+    try:
+        cnt_icon = meta['favicon'].replace('\'', '%27')
+    except:
+        cnt_icon = ''
+    content += '<i class="source-icon"><img src="' + cnt_icon + '" style="max-width: 16px" border="0"></i>'
+    try:
+        cnt_host = meta['hostname'].replace('<', '&lt;').replace('>', '&gt;')
+    except:
+        cnt_host = ''
+    content += cnt_host + '</a></p></div></div>'
+
+    parts = {'content':content, 'meta':json.dumps(meta)}
     return parts
 
 def get_sms_report_author(report_id, report, user):
