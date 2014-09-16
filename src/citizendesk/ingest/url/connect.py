@@ -77,7 +77,7 @@ def ingest_url_feed_take_one(feed_name):
             logger.info(str(res[1]))
             return (res[1], 404,)
         ret_data = res[1]
-        return json.dumps(ret_data, default=json_util.default, sort_keys=True), 404, {'Content-Type': 'application/json'}
+        return json.dumps(ret_data, default=json_util.default, sort_keys=True), 200, {'Content-Type': 'application/json'}
 
     except Exception as exc:
         logger.warning('problem on url processing or saving: ' + str(exc))
