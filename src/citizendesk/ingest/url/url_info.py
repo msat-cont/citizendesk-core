@@ -25,6 +25,8 @@ def get_page_info(url):
     except Exception as exc:
         return (False, 'can not parse url: ' + str(exc))
 
+    url_subs = url
+
     required_info = {
         'url': '',
         'author': '',
@@ -56,12 +58,18 @@ def get_page_info(url):
         rq = Request(url)
         rq.add_header('User-Agent', 'citizen desk core')
         fh = urlopen(rq)
-        if fh and hasattr(fh, 'headers') and fh.headers and hasattr(fh.headers, 'type') and fh.headers.type:
+        if not fh:
+            return (False, 'unopened url')
+        if fh.headers and hasattr(fh.headers, 'type') and fh.headers.type:
             required_info['content_type'] = fh.headers.type.split(';')[0].strip().lower()
+        url_subs = fh.geturl()
         pd = fh.read()
         fh.close()
     except Exception as exc:
         return (False, 'can not open url: ' + str(exc))
+
+    if not url_subs:
+        url_subs = url
 
     bs = BeautifulSoup.BeautifulSoup(pd)
     if (not bs) or (not bs.html) or (not bs.html.head):
@@ -80,7 +88,7 @@ def get_page_info(url):
                 continue
             if type(required_info[use_property]) is list:
                 if 'image' == use_property:
-                    required_info[use_property].append(urljoin(url, og_part['content']))
+                    required_info[use_property].append(urljoin(url_subs, og_part['content']))
                 else:
                     required_info[use_property].append(og_part['content'])
             else:
@@ -175,7 +183,7 @@ def get_page_info(url):
         for ico_part in icos:
             if not ico_part['href']:
                 continue
-            ico_link = urljoin(url, ico_part['href'])
+            ico_link = urljoin(url_subs, ico_part['href'])
             if ico_link:
                 required_info['site_icon'] = ico_link
                 break
@@ -191,7 +199,7 @@ def get_page_info(url):
         for one_img in bs.html.body.findAll('img'):
             if not one_img['src']:
                 continue
-            one_img_link = urljoin(url, one_img['src'])
+            one_img_link = urljoin(url_subs, one_img['src'])
 
             if one_img_link:
                 required_info['image'].append(one_img_link)
