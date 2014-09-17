@@ -21,6 +21,7 @@ NOTICES_USED = ['before', 'after']
 NOTICE_STATUS_DEFAULT = 'before'
 
 SMS_CONTENT_START = '<h3><a href="" target="_blank"></a></h3><div class="result-description"></div><!-- p.result-description tag displays for:> internal link> twitter> google link> google news> google images> flickr> youtube> soundcloud-->'
+TEXTS_SEPARATOR = '<br>'
 
 URL_LINK_DESCRIPTION_SHOW_LEN = 100
 
