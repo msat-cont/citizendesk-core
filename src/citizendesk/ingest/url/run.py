@@ -58,7 +58,7 @@ def page_not_found(error):
 
 def run_flask(dbname, server, mongo, tlds_path, debug=False):
     prepare_reporting(mongo, dbname, tlds_path)
-    app.run(host=server[0], port=server[1], debug=debug)
+    app.run(host=server[0], port=server[1], debug=debug, threaded=True)
 
 if __name__ == '__main__':
     file_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))

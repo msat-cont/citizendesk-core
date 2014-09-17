@@ -16,6 +16,7 @@ OGPROPS = re.compile(r'^og')
 TWPROPS = re.compile(r'^twitter')
 ICORELS = re.compile(r'^shortcut icon')
 MAX_IMG_LINKS_TAKE = 10
+REQUEST_TIMEOUT = 30
 
 def get_page_info(url):
 
@@ -57,7 +58,7 @@ def get_page_info(url):
     try:
         rq = Request(url)
         rq.add_header('User-Agent', 'citizen desk core')
-        fh = urlopen(rq)
+        fh = urlopen(rq, timeout=REQUEST_TIMEOUT)
         if not fh:
             return (False, 'unopened url')
         if fh.headers and hasattr(fh.headers, 'type') and fh.headers.type:
