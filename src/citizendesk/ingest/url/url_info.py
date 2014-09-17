@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 
 import datetime
-import re, urllib
+import re
 import BeautifulSoup
 
 try:
-    from urllib.parse import urlparse, urlunparse, urljoin
+    from urllib.parse import urlparse, urlunparse, urljoin, unquote_plus
+    from urllib.request import Request, urlopen
 except:
     from urlparse import urlparse, urlunparse, urljoin
+    from urllib import unquote_plus
+    from urllib2 import Request, urlopen
 
 OGPROPS = re.compile(r'^og')
 TWPROPS = re.compile(r'^twitter')
@@ -50,8 +53,10 @@ def get_page_info(url):
     }
 
     try:
-        fh = urllib.urlopen(url)
-        if fh.headers.type:
+        rq = Request(url)
+        rq.add_header('User-Agent', 'citizen desk core')
+        fh = urlopen(rq)
+        if fh and hasattr(fh, 'headers') and fh.headers and hasattr(fh.headers, 'type') and fh.headers.type:
             required_info['content_type'] = fh.headers.type.split(';')[0].strip().lower()
         pd = fh.read()
         fh.close()
@@ -110,7 +115,7 @@ def get_page_info(url):
             path_parts = url_parsed.path.split('/')
             path_parts.reverse()
             for one_part in path_parts:
-                one_part = urllib.unquote_plus(one_part).split('.')[0].strip()
+                one_part = unquote_plus(one_part).split('.')[0].strip()
                 if one_part:
                     end_path_part = one_part
                     break
