@@ -17,7 +17,6 @@ from citizendesk.outgest.liveblog.storage import STATUS_ASSIGNED_KEY, STATUS_NEW
 from citizendesk.outgest.liveblog.storage import FIELD_STATUS_VERIFIED_REPORT
 from citizendesk.outgest.liveblog.storage import FIELD_SUMMARY_REPORT
 
-TEXTS_SEPARATOR = '<br>'
 NOTICES_USED = ['before', 'after']
 NOTICE_STATUS_DEFAULT = 'before'
 
@@ -60,37 +59,21 @@ def extract_texts(report):
 
     return texts
 
-def extract_annotation(report):
+def extract_annotation_comment(db, report):
     # taking editorial comments
 
-    notices = {}
-    annotation = {}
-    for notice_type in NOTICES_USED:
-        notices[notice_type] = []
-        annotation[notice_type] = None
+    notice = None
 
     if ('notices_outer' in report) and (type(report['notices_outer']) in (list, tuple)):
-        for one_notice in report['notices_outer']:
-            if type(one_notice) is not dict:
-                continue
-            if ('what' not in one_notice) or not one_notice['what']:
-                continue
-            if ('where' not in one_notice) or (one_notice['where'] not in NOTICES_USED):
-                continue
-            notices[one_notice['where']].append(one_notice['what'])
+        if len(report['notices_outer']):
+            notice = report['notices_outer'][0]
 
-    for notice_type in NOTICES_USED:
-        if notices[notice_type]:
-            annotation[notice_type] = TEXTS_SEPARATOR.join(notices[notice_type])
-
-    return annotation
+    if not notice:
+        notice = None
+    return notice
 
 def extract_annotation_status(db, report):
     # taking annotation from status
-
-    annotation = {}
-    for notice_type in NOTICES_USED:
-        annotation[notice_type] = None
 
     is_summary = False
     if (FIELD_SUMMARY_REPORT in report) and (report[FIELD_SUMMARY_REPORT] is not None):
@@ -125,9 +108,28 @@ def extract_annotation_status(db, report):
     if (status_desc is None) and (not is_assigned) and (not is_summary):
         status_desc = take_status_desc_by_key(db, STATUS_NEW_KEY)
 
-    if status_desc:
-        status_position = get_status_display_position()
-        annotation[status_position] = status_desc
+    if not status_desc:
+        status_desc = None
+    return status_desc
+
+def extract_annotation(db, report):
+    annotation = {}
+    for notice_type in NOTICES_USED:
+        annotation[notice_type] = None
+
+    status_position = get_status_display_position()
+    comment_position = ''
+    for one_pos in NOTICES_USED:
+        if one_pos != status_position:
+            comment_position = one_pos
+            break
+
+    if get_conf('use_status_for_output'):
+        status = extract_annotation_status(db, report)
+        annotation[status_position] = status
+
+    comment = extract_annotation_comment(db, report)
+    annotation[comment_position] = comment
 
     return annotation
 
@@ -144,10 +146,7 @@ def adapt_sms_report(db, report):
     # https://github.com/superdesk/Live-Blog/blob/master/plugins/livedesk/gui-resources/templates/items/base.dust#L81
     parts['content'] = SMS_CONTENT_START + TEXTS_SEPARATOR.join(texts)
 
-    if get_conf('use_status_for_output'):
-        annotation = extract_annotation_status(db, report)
-    else:
-        annotation = extract_annotation(report)
+    annotation = extract_annotation(db, report)
     parts['meta'] = json.dumps({'annotation': annotation})
 
     return parts
@@ -183,10 +182,7 @@ def adapt_tweet_report(db, report):
     #https://github.com/superdesk/Live-Blog/blob/master/plugins/livedesk/gui-resources/scripts/js/providers/twitter.js#L574
     parts_meta['type'] = 'natural'
 
-    if get_conf('use_status_for_output'):
-        annotation = extract_annotation_status(db, report)
-    else:
-        annotation = extract_annotation(report)
+    annotation = extract_annotation(db, report)
     parts_meta['annotation'] = annotation
 
     parts['meta'] = json.dumps(parts_meta)
@@ -199,10 +195,7 @@ def adapt_plain_report(db, report):
     texts = extract_texts(report)
     parts['content'] = TEXTS_SEPARATOR.join(texts)
 
-    if get_conf('use_status_for_output'):
-        annotation = extract_annotation_status(db, report)
-    else:
-        annotation = extract_annotation(report)
+    annotation = extract_annotation(db, report)
     parts['meta'] = json.dumps({'annotation': annotation})
 
     return parts
@@ -211,7 +204,7 @@ def adapt_link_report(db, report):
 
     meta_stored = {}
     if ('original' in report) and (type(report['original']) is dict):
-        meta_stored = json.loads(report['original'])
+        meta_stored = report['original']
 
     meta = {
         'description': '',
@@ -249,7 +242,7 @@ def adapt_link_report(db, report):
             meta[out_key] = meta_stored[inn_key]
 
     for out_key in site_data_from_stored:
-        inn_key = meta_data_from_stored[out_key]
+        inn_key = site_data_from_stored[out_key]
         if inn_key in meta_stored:
             meta['siteData'][out_key] = meta_stored[inn_key]
 
@@ -271,10 +264,7 @@ def adapt_link_report(db, report):
                 meta['thumbnail'] = thumb_image_link
                 meta['thumbnailShow'] = True
 
-    if get_conf('use_status_for_output'):
-        annotation = extract_annotation_status(db, report)
-    else:
-        annotation = extract_annotation(report)
+    annotation = extract_annotation(db, report)
     meta['annotation'] = annotation
 
     content = '<div class="link-preview">'
