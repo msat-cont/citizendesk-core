@@ -71,6 +71,8 @@ def get_page_info(url):
 
     if not url_subs:
         url_subs = url
+    else:
+        url = url_subs
 
     bs = BeautifulSoup.BeautifulSoup(pd)
     if (not bs) or (not bs.html) or (not bs.html.head):
