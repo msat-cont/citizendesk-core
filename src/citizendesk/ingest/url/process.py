@@ -216,6 +216,7 @@ def do_post(db, url, channel_type, request_id, client_ip):
     report['language'] = use_language
     report['sources'] = [source_url]
     report['media'] = media
+    report['editable'] = False
 
     report['proto'] = False
 
