@@ -71,13 +71,6 @@ def do_post(db, url, channel_type, request_id, client_ip):
     eff_tlds = get_conf('eff_tlds')
 
     # taking info
-    if eff_tlds:
-        citizen_id = take_specific_domain(eff_tlds, url_parsed.netloc.split(':')[0].strip())
-    else:
-        citizen_id = url_parsed.netloc.split(':')[0].strip()
-    if not citizen_id:
-        citizen_id = url
-
     page_info_got = get_page_info(url)
     if not page_info_got[0]:
         return (False, 'can not get page info: ' + page_info_got[1])
@@ -103,6 +96,22 @@ def do_post(db, url, channel_type, request_id, client_ip):
             pass
     if not source_url:
         source_url = url.strip()
+
+    domain_effective = ''
+    if ('domain_name' in page_info) and page_info['domain_name']:
+        try:
+            domain_effective = str(page_info['domain_name']).split(':')[0].strip()
+        except:
+            pass
+    if not domain_effective:
+        domain_effective = url_parsed.netloc.split(':')[0].strip()
+
+    if eff_tlds:
+        citizen_id = take_specific_domain(eff_tlds, domain_effective)
+    else:
+        citizen_id = domain_effective
+    if not citizen_id:
+        citizen_id = source_url
 
     parent_id = None
     publisher = None
