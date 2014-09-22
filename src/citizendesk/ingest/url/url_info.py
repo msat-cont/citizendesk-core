@@ -184,6 +184,10 @@ def get_page_info(url):
         icos = bs.html.head.findAll(rel=ICORELS)
 
         for ico_part in icos:
+            if not ico_part:
+                continue
+            if not 'href' in ico_part:
+                continue
             if not ico_part['href']:
                 continue
             ico_link = urljoin(url_subs, ico_part['href'])
@@ -200,6 +204,10 @@ def get_page_info(url):
     if (len(required_info['image']) < MAX_IMG_LINKS_TAKE) and bs and bs.html and bs.html.body:
         # img/src
         for one_img in bs.html.body.findAll('img'):
+            if not one_img:
+                continue
+            if not 'src' in one_img:
+                continue
             if not one_img['src']:
                 continue
             one_img_link = urljoin(url_subs, one_img['src'])
